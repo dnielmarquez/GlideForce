@@ -182,7 +182,7 @@ export default function ClassesScreen() {
                                     </div>
                                     <span className="font-bold text-on-surface">{c.prof}</span>
                                 </div>
-                                <button onClick={() => navigate('/booking')} className="w-full py-4 bg-primary-container/10 border-2 border-primary-container rounded-full text-primary-container font-black text-sm uppercase tracking-widest hover:bg-primary-container hover:text-white transition-all">
+                                <button onClick={() => navigate('/booking', { state: { date: selectedDay } })} className="w-full py-4 bg-primary-container/10 border-2 border-primary-container rounded-full text-primary-container font-black text-sm uppercase tracking-widest hover:bg-primary-container hover:text-white transition-all">
                                     Reservar
                                 </button>
                             </motion.div>
