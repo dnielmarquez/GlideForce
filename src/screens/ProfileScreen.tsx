@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import BottomNavBar from '../components/BottomNavBar';
 import PageTransition from '../components/PageTransition';
 
 export default function ProfileScreen() {

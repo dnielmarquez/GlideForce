@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import BottomNavBar from '../components/BottomNavBar';
 import PageTransition from '../components/PageTransition';
 
 export default function StarsScreen() {

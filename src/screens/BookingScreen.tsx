@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNavBar from '../components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
 import PageTransition from '../components/PageTransition';
 
