@@ -1,9 +1,7 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
 
 export default function StarsScreen() {
-    const navigate = useNavigate();
     
     // Filtering logic
     const [filter, setFilter] = useState("Todas");
