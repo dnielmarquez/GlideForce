@@ -41,15 +41,6 @@ export default function StarsScreen() {
 
     return (
         <PageTransition className="bg-surface-container-low text-on-background font-body min-h-screen pb-24 max-w-md mx-auto relative shadow-2xl overflow-hidden">
-            <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md flex justify-between items-center px-6 h-16 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5QwU6Gx3c_OswaEHgkETPRIvve4hFps-Q2MidZAwJ7MnUe8OJ3ABB503DJrFMHpeF-aOwFdOOoHPKnmwssqmO1ugQBEL6yflzV-Y0EygRyVflrIF_OjN87AbLhCFGz3FbjRbPIsgEZDKdXlGFI_Xs1sQ1pWyiQ-oGCMdzNPSan07N5KjekxlQYoRnugF2M38ENCH06z10IhK6J1mHKKrHFgKf-2l4IWVMNx55O-o0dWTkBcVXqEZSncKHtMr2eEu1MZE5RJfbPq0" className="w-full h-full object-cover" alt="Profile" />
-                    </div>
-                    <span className="text-2xl font-black text-[#1c1b1b] tracking-tight">GlideForce</span>
-                </div>
-                <span className="material-symbols-outlined text-[#ea7034] text-2xl">notifications</span>
-            </header>
             <main className="pt-24 px-6 max-w-2xl mx-auto space-y-8">
                 <section className="space-y-4">
                     <h2 className="text-3xl font-black tracking-tight">Mis Estrellitas</h2>

@@ -7,6 +7,7 @@ import StarsScreen from './screens/StarsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import BookingScreen from './screens/BookingScreen';
 import BottomNavBar from './components/BottomNavBar';
+import TopNavBar from './components/TopNavBar';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -28,6 +29,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <Router>
+      <TopNavBar />
       <AnimatedRoutes />
       <BottomNavBar />
     </Router>

@@ -6,13 +6,6 @@ export default function ProfileScreen() {
     const navigate = useNavigate();
     return (
         <PageTransition className="bg-[#fcf9f8] min-h-screen pb-24 font-body text-[#1c1b1b] max-w-md mx-auto relative shadow-2xl overflow-hidden">
-            <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md shadow-sm">
-                <div className="flex justify-between items-center w-full px-6 py-4">
-                    <button onClick={() => navigate(-1)} className="text-[#ea7034]"><span className="material-symbols-outlined">arrow_back_ios</span></button>
-                    <h1 className="font-bold text-[1.25rem]">Perfil</h1>
-                    <button className="text-[#ea7034]"><span className="material-symbols-outlined">settings</span></button>
-                </div>
-            </header>
             <main className="pt-24 pb-32 px-6 max-w-md mx-auto">
                 <div className="flex flex-col items-center mb-10">
                     <div className="relative group">

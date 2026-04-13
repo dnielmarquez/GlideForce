@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BottomNavBar from '../components/BottomNavBar';
@@ -83,17 +83,19 @@ export default function ClassesScreen() {
         setSelectedDay(1); // Reset selected day to 1st when changing months
     };
 
+    // Auto-scroll selected date to center
+    useEffect(() => {
+        const el = document.getElementById(`date-btn-${selectedDay}`);
+        if (el && scrollRef.current) {
+            const container = scrollRef.current;
+            // Calculate scroll position to center the element
+            const scrollTarget = el.offsetLeft - container.offsetLeft - (container.offsetWidth / 2) + (el.offsetWidth / 2);
+            container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        }
+    }, [selectedDay]);
+
     return (
         <PageTransition className="bg-surface-container-low font-body text-on-surface min-h-screen max-w-md mx-auto relative shadow-2xl overflow-hidden">
-            <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md shadow-sm flex justify-between items-center px-6 h-16">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5QwU6Gx3c_OswaEHgkETPRIvve4hFps-Q2MidZAwJ7MnUe8OJ3ABB503DJrFMHpeF-aOwFdOOoHPKnmwssqmO1ugQBEL6yflzV-Y0EygRyVflrIF_OjN87AbLhCFGz3FbjRbPIsgEZDKdXlGFI_Xs1sQ1pWyiQ-oGCMdzNPSan07N5KjekxlQYoRnugF2M38ENCH06z10IhK6J1mHKKrHFgKf-2l4IWVMNx55O-o0dWTkBcVXqEZSncKHtMr2eEu1MZE5RJfbPq0" className="w-full h-full object-cover" alt="Profile" />
-                    </div>
-                    <span className="text-2xl font-black text-[#1c1b1b] tracking-tight">GlideForce</span>
-                </div>
-                <span className="material-symbols-outlined text-[#ea7034] text-2xl">calendar_today</span>
-            </header>
             <main className="pt-20 pb-28 px-6 max-w-md mx-auto">
                 <section className="mb-8">
                     <p className="text-on-surface-variant font-medium label-sm uppercase opacity-70">Buenos días</p>
@@ -125,6 +127,7 @@ export default function ClassesScreen() {
                             const isSelected = selectedDay === day.date;
                             return (
                                 <div 
+                                    id={`date-btn-${day.date}`}
                                     key={day.date}
                                     onClick={() => setSelectedDay(day.date)}
                                     className={`flex flex-col items-center justify-center min-w-[64px] h-24 rounded-xl transition-all select-none ${
