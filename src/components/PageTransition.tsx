@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface PageTransitionProps {
     children: ReactNode;
@@ -16,7 +16,7 @@ const pageVariants = {
         y: 0,
         transition: {
             duration: 0.3,
-            ease: [0.22, 1, 0.36, 1],
+            ease: [0.22, 1, 0.36, 1] as const,
         }
     },
     exit: {
@@ -24,7 +24,7 @@ const pageVariants = {
         y: -10,
         transition: {
             duration: 0.2,
-            ease: [0.22, 1, 0.36, 1],
+            ease: [0.22, 1, 0.36, 1] as const,
         }
     }
 };
