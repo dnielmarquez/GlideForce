@@ -1,11 +1,17 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-interface BottomNavBarProps {
-    active: 'classes' | 'stars' | 'profile';
-}
-
-export default function BottomNavBar({ active }: BottomNavBarProps) {
+export default function BottomNavBar() {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // Automatically hide on auth screens
+    const path = location.pathname;
+    if (path === '/' || path === '/register') return null;
+
+    let active = 'classes';
+    if (path.includes('stars')) active = 'stars';
+    if (path.includes('profile')) active = 'profile';
+
     return (
         <nav className="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 rounded-t-[3rem] z-50 bg-[#fcf9f8]/80 backdrop-blur-xl shadow-[0_-8px_24px_rgba(28,27,27,0.06)] flex justify-around items-center h-20 px-8 pb-4">
             <button 

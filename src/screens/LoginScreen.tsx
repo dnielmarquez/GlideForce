@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import LogoHeader from '../components/LogoHeader';
+import PageTransition from '../components/PageTransition';
 
 export default function LoginScreen() {
     const navigate = useNavigate();
     return (
-        <div className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <PageTransition className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
             <LogoHeader />
             <main className="flex-grow px-8 pb-12">
                 <div className="max-w-md mx-auto space-y-8">
@@ -48,6 +49,6 @@ export default function LoginScreen() {
             <footer className="h-12 w-full flex items-center justify-center bg-white">
                 <div className="w-32 h-1 bg-surface-container-high rounded-full opacity-50"></div>
             </footer>
-        </div>
+        </PageTransition>
     );
 }

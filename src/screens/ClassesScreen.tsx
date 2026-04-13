@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import BottomNavBar from '../components/BottomNavBar';
+import PageTransition from '../components/PageTransition';
 
 const i1 = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
 const i2 = "https://lh3.googleusercontent.com/aida-public/AB6AXuB5zfrO3MqE8xhrpxMXC1qC63uF8NW1LHokY076UJ9NLOd8frOG0SiSm8Fu_N-xr_KtSACFtxE7cWJWKxLtYtIEtlwBgY_CEa4thGmUiyjVL2zZ4XWF1H7128rEa7qeNyQ6egRPJMF1KBrORYFyNNVVw46IcJ_FyUDZ1yNp6bbDj3eWqs0Y_-4P9Wd8PkeyDlGGr5jzXGXBWMpHBMmCQFnwZ7dJEaQjSKgvSHto_ld_1jzuP8zXULbkjCrSZdmo8Bu0F24cCuMzwLE";
@@ -82,7 +84,7 @@ export default function ClassesScreen() {
     };
 
     return (
-        <div className="bg-surface-container-low font-body text-on-surface min-h-screen max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <PageTransition className="bg-surface-container-low font-body text-on-surface min-h-screen max-w-md mx-auto relative shadow-2xl overflow-hidden">
             <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md shadow-sm flex justify-between items-center px-6 h-16">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full overflow-hidden">
@@ -144,16 +146,27 @@ export default function ClassesScreen() {
 
                         if (currentClasses.length === 0) {
                             return (
-                                <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in zoom-in duration-300">
+                                <motion.div 
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="flex flex-col items-center justify-center py-16 text-center"
+                                >
                                     <span className="material-symbols-outlined text-6xl text-surface-container-highest mb-4" style={{fontVariationSettings: "'FILL' 0"}}>event_busy</span>
                                     <h3 className="text-xl font-bold text-on-surface tracking-tight">No hay clases hoy</h3>
                                     <p className="text-sm text-on-surface-variant font-medium mt-1">Selecciona otra fecha en el calendario.</p>
-                                </div>
+                                </motion.div>
                             );
                         }
 
                         return currentClasses.map((c, i) => (
-                            <div key={i} className="bg-white rounded-lg p-6 shadow-sm relative overflow-hidden group animate-in slide-in-from-bottom-2 fade-in duration-300">
+                            <motion.div 
+                                key={i} 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
+                                className="bg-white rounded-lg p-6 shadow-sm relative overflow-hidden group"
+                            >
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <span className="text-primary-container font-black text-sm tracking-widest uppercase mb-1 block">{c.time}</span>
@@ -170,12 +183,11 @@ export default function ClassesScreen() {
                                 <button onClick={() => navigate('/booking')} className="w-full py-4 bg-primary-container/10 border-2 border-primary-container rounded-full text-primary-container font-black text-sm uppercase tracking-widest hover:bg-primary-container hover:text-white transition-all">
                                     Reservar
                                 </button>
-                            </div>
+                            </motion.div>
                         ));
                     })()}
                 </section>
             </main>
-            <BottomNavBar active="classes" />
-        </div>
+        </PageTransition>
     );
 }

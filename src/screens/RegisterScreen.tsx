@@ -1,14 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
 import LogoHeader from '../components/LogoHeader';
+import PageTransition from '../components/PageTransition';
 
 export default function RegisterScreen() {
     const navigate = useNavigate();
     return (
-        <div className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <PageTransition className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
             <LogoHeader />
             <main className="flex-grow px-8 pb-12">
                 <div className="max-w-md mx-auto space-y-8">
-                    <section className="bg-white p-8 rounded-lg ios-shadow space-y-6 border border-surface-container">
+                    <section className="bg-white p-8 rounded-lg ios-shadow space-y-5 border border-surface-container">
                         <form className="space-y-4" onSubmit={(e) => {e.preventDefault(); navigate('/classes')}}>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">Nombre Completo</label>
@@ -32,6 +33,6 @@ export default function RegisterScreen() {
                     </div>
                 </div>
             </main>
-        </div>
+        </PageTransition>
     );
 }

@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import BottomNavBar from '../components/BottomNavBar';
+import PageTransition from '../components/PageTransition';
 
 export default function StarsScreen() {
     
@@ -38,7 +40,7 @@ export default function StarsScreen() {
     };
 
     return (
-        <div className="bg-surface-container-low text-on-background font-body min-h-screen pb-24 max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <PageTransition className="bg-surface-container-low text-on-background font-body min-h-screen pb-24 max-w-md mx-auto relative shadow-2xl overflow-hidden">
             <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md flex justify-between items-center px-6 h-16 shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full overflow-hidden">
@@ -88,7 +90,13 @@ export default function StarsScreen() {
                     </div>
                     <div className="space-y-4">
                         {filteredHistory.map((item, i) => (
-                            <div key={i} className="bg-white p-5 rounded-lg flex items-center gap-4 hover:shadow-md transition-all">
+                            <motion.div 
+                                key={i} 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.3, delay: i * 0.08, ease: "easeOut" }}
+                                className="bg-white p-5 rounded-lg flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
+                            >
                                 <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-surface-container">
                                     <img src={item.img} className="w-full h-full object-cover" alt={item.title} />
                                 </div>
@@ -99,12 +107,11 @@ export default function StarsScreen() {
                                     </div>
                                     <p className="text-xs text-on-surface-variant font-medium mt-0.5">Profesora: Tania Janek</p>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 </section>
             </main>
-            <BottomNavBar active="stars" />
-        </div>
+        </PageTransition>
     );
 }

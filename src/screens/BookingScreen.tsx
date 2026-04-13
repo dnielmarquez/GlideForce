@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '../components/BottomNavBar';
+import { AnimatePresence, motion } from 'framer-motion';
+import PageTransition from '../components/PageTransition';
 
 export default function BookingScreen() {
     const navigate = useNavigate();
@@ -9,11 +11,25 @@ export default function BookingScreen() {
     const [showPolicyModal, setShowPolicyModal] = useState(false);
     const [selected, setSelected] = useState(1);
 
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     return (
-        <div className="bg-surface-container-low text-on-surface min-h-screen pb-32 max-w-md mx-auto relative shadow-2xl overflow-hidden">
-            {showPolicyModal && (
-                <div className="fixed inset-y-0 w-full z-[120] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2">
-                    <div className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl animate-in fade-in zoom-in duration-300">
+        <PageTransition className="bg-surface-container-low text-on-surface min-h-screen pb-32 max-w-md mx-auto relative shadow-2xl overflow-hidden">
+            <AnimatePresence>
+                {showPolicyModal && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-y-0 w-full z-[120] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                    >
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
+                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                        >
                         <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">Políticas de Cancelación</h2>
                         <p className="text-on-surface-variant text-sm leading-relaxed mb-8 text-left">
                             Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">12 horas antes</strong> del inicio de la clase.<br/><br/>
@@ -22,13 +38,24 @@ export default function BookingScreen() {
                         <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => setShowPolicyModal(false)}>
                             Entendido
                         </button>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {showDisclaimerModal && (
-                <div className="fixed inset-y-0 w-full z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2">
-                    <div className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl animate-in fade-in zoom-in duration-300">
+            <AnimatePresence>
+                {showDisclaimerModal && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-y-0 w-full z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                    >
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
+                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                        >
                         <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
                             <span className="material-symbols-outlined text-4xl text-on-surface-variant">info</span>
                         </div>
@@ -48,13 +75,24 @@ export default function BookingScreen() {
                                 Cancelar
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {showSuccessModal && (
-                <div className="fixed inset-y-0 w-full z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2">
-                    <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl animate-in fade-in zoom-in duration-300">
+            <AnimatePresence>
+                {showSuccessModal && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-y-0 w-full z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                    >
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
+                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                        >
                         <div className="w-20 h-20 bg-primary-container/10 rounded-full flex items-center justify-center mb-6">
                             <span className="material-symbols-outlined text-primary-container text-5xl" style={{fontVariationSettings: "'FILL' 1, 'wght' 700"}}>check_circle</span>
                         </div>
@@ -63,9 +101,10 @@ export default function BookingScreen() {
                         <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform" onClick={() => navigate('/classes')}>
                             Volver al Inicio
                         </button>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <header className="fixed top-0 w-full max-w-md left-1/2 -translate-x-1/2 z-50 bg-[#fcf9f8]/75 backdrop-blur-md shadow-sm flex justify-between items-center px-6 h-16">
                 <div className="flex items-center gap-3">
@@ -130,7 +169,6 @@ export default function BookingScreen() {
                     </button>
                 </section>
             </main>
-            <BottomNavBar active="classes" />
-        </div>
+        </PageTransition>
     );
 }
