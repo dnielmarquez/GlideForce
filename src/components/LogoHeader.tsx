@@ -7,6 +7,7 @@ export default function LogoHeader({ title = "GlideForce", subtitle = "Eleva tu 
     return (
         <header className="bg-white pt-16 pb-12 flex flex-col items-center">
             <div className="mb-6 flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                     alt="GlideForce Logo" 
                     className="h-20 w-auto object-contain" 

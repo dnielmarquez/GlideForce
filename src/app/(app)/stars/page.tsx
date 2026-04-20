@@ -6,6 +6,8 @@ import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { purchaseStars } from '@/app/actions/stars';
 
+export const dynamic = 'force-dynamic';
+
 export default function StarsPage() {
     const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
     const supabase = createClient();
