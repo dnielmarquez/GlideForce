@@ -39,6 +39,7 @@ export default function MembersPage() {
       if (error) {
         console.error('Error fetching members:', error);
       } else if (data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped: Member[] = (data as any[]).map((p) => ({
           id: p.id,
           name: p.full_name,
@@ -73,7 +74,7 @@ export default function MembersPage() {
     showToast('Guardando cambios...');
 
     // 2. Map frontend partial form back to Supabase profile row
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (form.name !== undefined) updateData.full_name = form.name;
     if (form.email !== undefined) updateData.email = form.email;
     if (form.phone !== undefined) updateData.phone = form.phone;

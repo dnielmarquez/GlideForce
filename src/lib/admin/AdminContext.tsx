@@ -24,7 +24,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const loadInstructors = useCallback(async () => {
     const { data } = await supabase.from('instructors').select('*').eq('active', true);
     if (data) {
-      setInstructors((data as any[]).map((i) => ({
+      setInstructors(data.map((i) => ({
         id: i.id,
         name: i.name,
         specialty: i.specialty ?? '',
@@ -42,17 +42,17 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       .neq('status', 'cancelled');
     
     if (data) {
-      setClasses(data.map((c: any) => ({
+      setClasses(data.map((c) => ({
         id: c.id,
         title: c.title,
         description: c.description ?? undefined,
-        instructor: c.instructors?.id ?? '',
+        instructor: (c.instructors as { id: string } | null)?.id ?? '',
         time: c.start_time.substring(0, 5), // 'HH:MM:SS' to 'HH:MM'
         duration: c.duration_minutes,
         date: c.date,
         color: c.color,
         capacity: c.capacity,
-        enrolled: 0, // We could join bookings or count them later
+        enrolled: 0, 
         recurring: !!c.recurrence_id
       })));
     }

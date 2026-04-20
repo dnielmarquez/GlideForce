@@ -71,6 +71,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
         const { data: rec, error: rErr } = await supabase
           .from('class_recurrences')
           .insert({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             template_id: (template as any).id,
             start_date: form.startDate,
             end_date: form.endDate,
@@ -82,6 +83,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
           .single();
           
         if (rErr) throw new Error(rErr.message);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         recurrenceId = (rec as any)?.id || null;
       }
 
@@ -102,6 +104,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
           const dateStr = cur.toISOString().split('T')[0];
           
           sessions.push({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             template_id: (template as any).id,
             recurrence_id: recurrenceId,
             title: form.title,
@@ -121,14 +124,16 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
 
       // 4. Batch Insert Sessions
       if (sessions.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: sErr } = await supabase.from('class_sessions').insert(sessions as any);
         if (sErr) throw new Error(sErr.message);
       }
 
       onSave(sessions.length);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      showToast('Error: ' + err.message);
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      showToast('Error: ' + msg);
       setIsSaving(false);
     }
   };

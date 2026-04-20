@@ -20,6 +20,7 @@ export async function processBooking(
 
     try {
         // 2. Fetch session details securely to prevent client spoofing 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: session, error: sessErr } = await (supabase as any)
             .from('class_sessions')
             .select('stars_cost, capacity')
@@ -29,6 +30,7 @@ export async function processBooking(
         if (sessErr || !session) return { error: 'Clase no encontrada.' };
 
         // 3. Double check the machine isn't literally just taken
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: takenCheck } = await (supabase as any)
             .from('bookings')
             .select('id')
@@ -43,6 +45,7 @@ export async function processBooking(
         // 4. Process Payment Modality
         if (paymentMethod === 'stars') {
             // Check literal balance natively in DB
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: profile } = await (supabase as any)
                 .from('profiles')
                 .select('stars_balance')
@@ -58,6 +61,7 @@ export async function processBooking(
             const adminSupabase = createAdminClient();
 
             // Log the literal transaction (Trigger will auto-deduct profile)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { error: txErr } = await (adminSupabase as any)
                 .from('star_transactions')
                 .insert({
@@ -71,6 +75,7 @@ export async function processBooking(
         }
 
         // 5. Finally, insert the booking lock!
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: bookingErr } = await (supabase as any)
             .from('bookings')
             .insert({
@@ -88,7 +93,7 @@ export async function processBooking(
         revalidatePath(`/booking/${sessionId}`);
 
         return { success: true };
-    } catch (e: any) {
+    } catch (e) {
         console.error('Booking Transaction Error: ', e);
         return { error: 'Ocurrió un error al procesar tu reserva.' };
     }

@@ -18,6 +18,7 @@ export async function purchaseStars(amount: number) {
 
         // Insert credit transaction. 
         // NOTE: Postgres Trigger `trg_sync_stars_balance` will automatically increment the wallet profile!
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: txErr } = await (adminSupabase as any)
             .from('star_transactions')
             .insert({
@@ -33,7 +34,7 @@ export async function purchaseStars(amount: number) {
         revalidatePath('/classes');
 
         return { success: true };
-    } catch (e: any) {
+    } catch (e) {
         console.error('Star Purchase Error: ', e);
         return { error: 'Ocurrió un error procesando el pago. Intenta nuevamente.' };
     }

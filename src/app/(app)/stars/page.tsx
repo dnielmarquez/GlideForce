@@ -12,6 +12,7 @@ export default function StarsPage() {
 
     const [filter, setFilter] = useState("Todas");
     const [balance, setBalance] = useState<number>(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [history, setHistory] = useState<any[]>([]);
     
     const [showTopUp, setShowTopUp] = useState(false);
@@ -19,12 +20,13 @@ export default function StarsPage() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Fetch Database Data Natively
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
         // Fetch Balance
         const { data: profile } = await supabase.from('profiles').select('stars_balance').eq('id', user.id).single();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (profile) setBalance((profile as any).stars_balance);
 
         // Fetch Bookings History deeply joined
@@ -43,6 +45,7 @@ export default function StarsPage() {
             .order('created_at', { ascending: false });
 
         if (bks) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const mappedHistory = (bks as any[]).map(b => {
                 let statusLabel = 'Activa';
                 let color = 'green';
@@ -70,11 +73,11 @@ export default function StarsPage() {
             });
             setHistory(mappedHistory);
         }
-    };
+    }, [supabase]);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     const filteredHistory = filter === "Todas"
         ? history

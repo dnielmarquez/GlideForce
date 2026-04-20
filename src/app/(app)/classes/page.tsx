@@ -24,6 +24,7 @@ export default function ClassesPage() {
     // We default to the mocked Today (April 20 2026) to match the UI behavior for GlideForce so far
     const [currentMonth, setCurrentMonth] = useState(new Date('2026-04-20T12:00:00'));
     const [selectedDay, setSelectedDay] = useState(20);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [dbClasses, setDbClasses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 

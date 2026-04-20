@@ -9,14 +9,7 @@ import { processBooking } from '@/app/actions/booking';
 
 const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
 
-function formatTime(t: string | undefined) {
-    if (!t) return '';
-    const [hStr, mStr] = t.split(':');
-    let h = parseInt(hStr, 10);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h.toString().padStart(2, '0')}:${mStr} ${suffix}`;
-}
+
 
 function BookingContent({ id }: { id: string }) {
     const router = useRouter();
@@ -26,8 +19,10 @@ function BookingContent({ id }: { id: string }) {
     const [showWaitlistModal, setShowWaitlistModal] = useState(false);
     
     // DB State
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [session, setSession] = useState<any>(null);
     const [machinesCount, setMachinesCount] = useState<number>(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [machineList, setMachineList] = useState<any[]>([]);
     const [occupied, setOccupied] = useState<string[]>([]);
     const [stars, setStars] = useState<number>(0);
@@ -50,6 +45,7 @@ function BookingContent({ id }: { id: string }) {
 
             // 2. Fetch Machine Limits from Settings & Real Machines Table
             const { data: st } = await supabase.from('settings').select('machines_count').single();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (st) setMachinesCount((st as any).machines_count || 5);
             
             const { data: ms } = await supabase.from('machines').select('*').eq('active', true).order('number');
@@ -61,6 +57,7 @@ function BookingContent({ id }: { id: string }) {
                 .eq('session_id', id)
                 .in('status', ['confirmed']);
             if (bks) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setOccupied((bks as any[]).map(b => b.machine_id));
             }
 
@@ -68,6 +65,7 @@ function BookingContent({ id }: { id: string }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: profile } = await supabase.from('profiles').select('stars_balance').eq('id', user.id).single();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setStars((profile as any)?.stars_balance || 0);
             } else {
                 // Mock fallback in case testing environment lacks strict auth wiring initially.
