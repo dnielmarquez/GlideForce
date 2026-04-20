@@ -24,7 +24,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const loadInstructors = useCallback(async () => {
     const { data } = await supabase.from('instructors').select('*').eq('active', true);
     if (data) {
-      setInstructors(data.map((i) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setInstructors((data as any[]).map((i) => ({
         id: i.id,
         name: i.name,
         specialty: i.specialty ?? '',
@@ -42,7 +43,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       .neq('status', 'cancelled');
     
     if (data) {
-      setClasses(data.map((c) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setClasses((data as any[]).map((c) => ({
         id: c.id,
         title: c.title,
         description: c.description ?? undefined,

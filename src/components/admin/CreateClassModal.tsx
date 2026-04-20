@@ -58,6 +58,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
           color: form.color,
           stars_cost: 1,
           active: true,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         .select('id')
         .single();
@@ -78,6 +79,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
             selected_days: form.selectedDays,
             exclude_holidays: form.excludeHolidays,
             sessions_created: previewCount(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any)
           .select('id')
           .single();
@@ -91,7 +93,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
       const sessions = [];
       const start = new Date(form.startDate + 'T00:00:00');
       const end = form.isRecurring ? new Date(form.endDate + 'T00:00:00') : new Date(start);
-      let cur = new Date(start);
+      const cur = new Date(start);
 
       while (cur <= end) {
         const dow = cur.getDay();
@@ -117,6 +119,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
             color: form.color,
             stars_cost: 1,
             status: 'scheduled',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any);
         }
         cur.setDate(cur.getDate() + 1);
