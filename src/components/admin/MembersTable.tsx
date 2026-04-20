@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { Member } from '@/lib/admin/types';
+import type { Member, MemberFormData } from '@/lib/admin/types';
 import AdminIcon from './AdminIcon';
 import MemberDetailModal from './MemberDetailModal';
 
 interface MembersTableProps {
   members: Member[];
-  onSave: (id: string, data: Partial<Member>) => void;
+  onSave: (id: string, data: MemberFormData) => void;
 }
 
 export default function MembersTable({ members, onSave }: MembersTableProps) {

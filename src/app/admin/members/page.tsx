@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import type { Member, MemberStatus } from '@/lib/admin/types';
+import type { Member, MemberStatus, MemberFormData } from '@/lib/admin/types';
 import MembersTable from '@/components/admin/MembersTable';
 import Toast from '@/components/admin/Toast';
 import type { ToastState } from '@/lib/admin/types';
@@ -63,7 +63,7 @@ export default function MembersPage() {
     setTimeout(() => setToast({ show: false, msg: '' }), 3200);
   };
 
-  const handleSave = async (id: string, form: Partial<Member>) => {
+  const handleSave = async (id: string, form: MemberFormData) => {
     // 1. Optimistic UI update
     setMembers((prev) =>
       prev.map((m) =>
