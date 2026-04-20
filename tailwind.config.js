@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/screens/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   darkMode: "class",
   theme: {
@@ -63,12 +64,12 @@ export default {
         "full": "9999px"
       },
       fontFamily: {
-        "headline": ["Inter"],
-        "body": ["Inter"],
-        "label": ["Inter"],
+        "headline": ["Inter", "sans-serif"],
+        "body": ["Inter", "sans-serif"],
+        "label": ["Inter", "sans-serif"],
         "sans": ["Inter", "sans-serif"],
       }
     },
   },
   plugins: [],
-}
+};
