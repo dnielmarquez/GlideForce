@@ -1,8 +1,9 @@
 'use client';
 
 import type { GFClass } from '@/lib/admin/types';
-import { CLASS_COLORS, DAYS_OF_WEEK, INSTRUCTORS } from '@/lib/admin/constants';
+import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
 import { getClassesForDayHour, formatHour } from '@/lib/admin/utils';
+import { useAdmin } from '@/lib/admin/AdminContext';
 
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am–8pm
@@ -21,6 +22,7 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
     d.setDate(d.getDate() + i);
     return d;
   });
+  const { instructors } = useAdmin();
 
   return (
     <div className="cal-grid-wrap">
@@ -52,7 +54,7 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
                   {dayClasses.map((cls) => {
                     const colorObj = CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0];
                     const heightPx = Math.max(56, (cls.duration / 60) * 64 - 6);
-                    const instr = INSTRUCTORS.find((i) => i.id === cls.instructor);
+                    const instr = instructors.find((i) => i.id === cls.instructor);
                     return (
                       <div
                         key={cls.id}

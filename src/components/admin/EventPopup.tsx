@@ -1,7 +1,8 @@
 'use client';
 
 import type { EventPopupData } from '@/lib/admin/types';
-import { CLASS_COLORS, INSTRUCTORS } from '@/lib/admin/constants';
+import { CLASS_COLORS } from '@/lib/admin/constants';
+import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 
 interface EventPopupProps {
@@ -12,7 +13,8 @@ interface EventPopupProps {
 
 export default function EventPopup({ data, onClose, onDelete }: EventPopupProps) {
   const { event, pos } = data;
-  const instr = INSTRUCTORS.find((i) => i.id === event.instructor);
+  const { instructors } = useAdmin();
+  const instr = instructors.find((i) => i.id === event.instructor);
   const colorObj = CLASS_COLORS.find((c) => c.key === event.color) ?? CLASS_COLORS[0];
   const pct = Math.round((event.enrolled / event.capacity) * 100);
 

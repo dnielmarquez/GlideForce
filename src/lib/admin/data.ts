@@ -14,16 +14,16 @@ export const seedClasses: GFClass[] = (() => {
     const dow = d.getDay();
 
     if ([1, 3, 5].includes(dow)) {
-      classes.push({ id: `seed-${ds}-1`, title: 'HIIT Burn', instructor: 1, time: '10:00', duration: 45, date: ds, color: 'orange', capacity: 12, enrolled: dow === 1 ? 8 : 5, recurring: true, description: 'Entrenamiento de alta intensidad.' });
+      classes.push({ id: `seed-${ds}-1`, title: 'HIIT Burn', instructor: '1', time: '10:00', duration: 45, date: ds, color: 'orange', capacity: 12, enrolled: dow === 1 ? 8 : 5, recurring: true, description: 'Entrenamiento de alta intensidad.' });
     }
     if ([2, 4].includes(dow)) {
-      classes.push({ id: `seed-${ds}-2`, title: 'Yoga Flow', instructor: 1, time: '08:00', duration: 60, date: ds, color: 'teal', capacity: 10, enrolled: 7, recurring: true, description: 'Yoga vinyasa al ritmo de la respiración.' });
+      classes.push({ id: `seed-${ds}-2`, title: 'Yoga Flow', instructor: '1', time: '08:00', duration: 60, date: ds, color: 'teal', capacity: 10, enrolled: 7, recurring: true, description: 'Yoga vinyasa al ritmo de la respiración.' });
     }
     if ([1, 4].includes(dow)) {
-      classes.push({ id: `seed-${ds}-3`, title: 'Pilates Core', instructor: 2, time: '17:00', duration: 50, date: ds, color: 'purple', capacity: 8, enrolled: 6, recurring: true, description: 'Fortalecimiento de core con Pilates.' });
+      classes.push({ id: `seed-${ds}-3`, title: 'Pilates Core', instructor: '2', time: '17:00', duration: 50, date: ds, color: 'purple', capacity: 8, enrolled: 6, recurring: true, description: 'Fortalecimiento de core con Pilates.' });
     }
     if ([3].includes(dow)) {
-      classes.push({ id: `seed-${ds}-4`, title: 'Funcional', instructor: 3, time: '07:00', duration: 45, date: ds, color: 'blue', capacity: 15, enrolled: 10, recurring: true, description: 'Entrenamiento funcional de fuerza.' });
+      classes.push({ id: `seed-${ds}-4`, title: 'Funcional', instructor: '3', time: '07:00', duration: 45, date: ds, color: 'blue', capacity: 15, enrolled: 10, recurring: true, description: 'Entrenamiento funcional de fuerza.' });
     }
   });
 

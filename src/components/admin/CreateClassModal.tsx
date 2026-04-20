@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import type { ClassFormData, GFClass } from '@/lib/admin/types';
-import { CLASS_COLORS, DAYS_OF_WEEK, DAYS_FULL, INSTRUCTORS } from '@/lib/admin/constants';
-import { generateRecurringClasses, countRecurringPreview } from '@/lib/admin/utils';
+import type { ClassFormData } from '@/lib/admin/types';
+import { CLASS_COLORS, DAYS_OF_WEEK, DAYS_FULL } from '@/lib/admin/constants';
+import { countRecurringPreview, isHoliday } from '@/lib/admin/utils';
+import { useAdmin } from '@/lib/admin/AdminContext';
+import { createClient } from '@/utils/supabase/client';
 import AdminIcon from './AdminIcon';
 import Toggle from './Toggle';
 
 const EMPTY_FORM: ClassFormData = {
   title: '', description: '', instructorId: null,
   time: '10:00', duration: '45', capacity: '12',
-  startDate: '2026-04-21', endDate: '2026-06-30',
+  startDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+  endDate: new Date(Date.now() + 86400000 * 60).toISOString().split('T')[0],
   selectedDays: [1, 3, 5],
   isRecurring: true,
   excludeHolidays: true,
@@ -19,12 +22,15 @@ const EMPTY_FORM: ClassFormData = {
 
 interface Props {
   onClose: () => void;
-  onSave: (classes: GFClass[]) => void;
+  onSave: (count: number) => void;
 }
 
 export default function CreateClassModal({ onClose, onSave }: Props) {
+  const { instructors, showToast } = useAdmin();
   const [form, setForm] = useState<ClassFormData>(EMPTY_FORM);
   const [step, setStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = createClient();
 
   const set = <K extends keyof ClassFormData>(key: K, val: ClassFormData[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
@@ -37,27 +43,99 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
 
   const previewCount = () => countRecurringPreview(form);
 
-  const handleSave = () => {
-    const classes = form.isRecurring
-      ? generateRecurringClasses(form)
-      : [{
-          id: `${Date.now()}`,
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // 1. Insert Template
+      const { data: template, error: tErr } = await supabase
+        .from('class_templates')
+        .insert({
           title: form.title,
-          description: form.description,
-          instructor: form.instructorId!,
-          time: form.time,
-          duration: parseInt(form.duration),
-          date: form.startDate,
-          color: form.color,
+          description: form.description || null,
+          instructor_id: form.instructorId!,
+          duration_minutes: parseInt(form.duration),
           capacity: parseInt(form.capacity),
-          enrolled: 0,
-        }];
-    onSave(classes);
+          color: form.color,
+          stars_cost: 1,
+          active: true,
+        } as any)
+        .select('id')
+        .single();
+        
+      if (tErr || !template) throw new Error(tErr?.message || 'Error creating template');
+
+      let recurrenceId = null;
+
+      // 2. Insert Recurrence if needed
+      if (form.isRecurring) {
+        const { data: rec, error: rErr } = await supabase
+          .from('class_recurrences')
+          .insert({
+            template_id: (template as any).id,
+            start_date: form.startDate,
+            end_date: form.endDate,
+            selected_days: form.selectedDays,
+            exclude_holidays: form.excludeHolidays,
+            sessions_created: previewCount(),
+          } as any)
+          .select('id')
+          .single();
+          
+        if (rErr) throw new Error(rErr.message);
+        recurrenceId = (rec as any)?.id || null;
+      }
+
+      // 3. Generate Sessions Payload
+      const sessions = [];
+      const start = new Date(form.startDate + 'T00:00:00');
+      const end = form.isRecurring ? new Date(form.endDate + 'T00:00:00') : new Date(start);
+      let cur = new Date(start);
+
+      while (cur <= end) {
+        const dow = cur.getDay();
+        // If it's a single class, just do it. If recurring, check days.
+        if (!form.isRecurring || form.selectedDays.includes(dow)) {
+          if (form.isRecurring && form.excludeHolidays && isHoliday(cur)) {
+            cur.setDate(cur.getDate() + 1);
+            continue;
+          }
+          const dateStr = cur.toISOString().split('T')[0];
+          
+          sessions.push({
+            template_id: (template as any).id,
+            recurrence_id: recurrenceId,
+            title: form.title,
+            description: form.description || null,
+            instructor_id: form.instructorId!,
+            date: dateStr,
+            start_time: form.time + ':00', // Needs HH:MM:SS
+            duration_minutes: parseInt(form.duration),
+            capacity: parseInt(form.capacity),
+            color: form.color,
+            stars_cost: 1,
+            status: 'scheduled',
+          } as any);
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      // 4. Batch Insert Sessions
+      if (sessions.length > 0) {
+        const { error: sErr } = await supabase.from('class_sessions').insert(sessions as any);
+        if (sErr) throw new Error(sErr.message);
+      }
+
+      onSave(sessions.length);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Error: ' + err.message);
+      setIsSaving(false);
+    }
   };
 
-  const isValid = form.title.trim() && form.instructorId && form.selectedDays.length > 0;
+  const isValid = form.title.trim() && form.instructorId && (!form.isRecurring || form.selectedDays.length > 0);
   const colorObj = CLASS_COLORS.find((c) => c.key === form.color);
-  const count = previewCount();
+  const count = form.isRecurring ? previewCount() : 1;
 
   const stepLabel = step === 1
     ? 'Información general de la clase'
@@ -66,7 +144,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
     : 'Confirmar y crear';
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !isSaving) onClose(); }}>
       <div className="modal">
         {/* Header */}
         <div className="modal-header">
@@ -79,7 +157,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
               </span>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}><AdminIcon name="x" size={14} /></button>
+          <button className="modal-close" onClick={onClose} disabled={isSaving}><AdminIcon name="x" size={14} /></button>
         </div>
 
         {/* Step bar */}
@@ -90,9 +168,9 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
               className="step-seg"
               style={{
                 background: s <= step ? 'var(--orange)' : 'var(--border)',
-                cursor: s < step ? 'pointer' : 'default',
+                cursor: s < step && !isSaving ? 'pointer' : 'default',
               }}
-              onClick={() => s < step && setStep(s)}
+              onClick={() => s < step && !isSaving && setStep(s)}
             />
           ))}
         </div>
@@ -136,7 +214,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
               <div className="form-section">
                 <div className="form-section-title">Profesora</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {INSTRUCTORS.map((instr) => (
+                  {instructors.map((instr) => (
                     <div
                       key={instr.id}
                       className={`instructor-option${form.instructorId === instr.id ? ' selected' : ''}`}
@@ -154,6 +232,9 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
                       </div>
                     </div>
                   ))}
+                  {instructors.length === 0 && (
+                     <div style={{ padding: 10, fontSize: 13, color: 'var(--text-muted)' }}>Ninguna profesora registrada en el sistema.</div>
+                  )}
                 </div>
               </div>
 
@@ -263,7 +344,7 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
                   </div>
                   {form.instructorId && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-                      <AdminIcon name="users" size={13} /> {INSTRUCTORS.find((i) => i.id === form.instructorId)?.name}
+                      <AdminIcon name="users" size={13} /> {instructors.find((i) => i.id === form.instructorId)?.name}
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
@@ -306,9 +387,9 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
         {/* Footer */}
         <div className="modal-footer">
           {step > 1 && (
-            <button className="btn-cancel" onClick={() => setStep((s) => s - 1)}>← Atrás</button>
+            <button className="btn-cancel" onClick={() => setStep((s) => s - 1)} disabled={isSaving}>← Atrás</button>
           )}
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={onClose} disabled={isSaving}>Cancelar</button>
           {step < 3 ? (
             <button
               className="btn-primary"
@@ -322,11 +403,17 @@ export default function CreateClassModal({ onClose, onSave }: Props) {
             <button
               className="btn-primary"
               onClick={handleSave}
-              disabled={!isValid}
+              disabled={!isValid || isSaving}
               style={{ margin: 0 }}
             >
-              <AdminIcon name="plus" size={14} />
-              Crear {count > 1 ? `${count} clases` : 'clase'}
+              {isSaving ? (
+                <>Creando...</>
+              ) : (
+                <>
+                  <AdminIcon name="plus" size={14} />
+                  Crear {count > 1 ? `${count} clases` : 'clase'}
+                </>
+              )}
             </button>
           )}
         </div>

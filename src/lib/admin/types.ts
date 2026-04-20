@@ -1,7 +1,7 @@
 // ─── Core entities ────────────────────────────────────────────────────────
 
 export interface Instructor {
-  id: number;
+  id: string;
   name: string;
   specialty: string;
   initials: string;
@@ -21,7 +21,7 @@ export interface GFClass {
   id: string;
   title: string;
   description?: string;
-  instructor: number;
+  instructor: string;
   time: string;
   duration: number;
   date: string; // ISO date string: YYYY-MM-DD
@@ -34,7 +34,7 @@ export interface GFClass {
 export interface ClassFormData {
   title: string;
   description: string;
-  instructorId: number | null;
+  instructorId: string | null;
   time: string;
   duration: string;
   capacity: string;

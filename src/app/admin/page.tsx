@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import StatsBar from '@/components/admin/StatsBar';
 import CalendarHeader from '@/components/admin/CalendarHeader';
@@ -15,7 +16,7 @@ import { weekLabel, monthLabel, getWeekStart } from '@/lib/admin/utils';
 const TODAY = new Date('2026-04-20');
 
 export default function AdminDashboard() {
-  const { classes, setClasses, toast, showToast } = useAdmin();
+  const { classes, refreshClasses, toast, showToast } = useAdmin();
 
   const [calView, setCalView] = useState<'week' | 'month'>('week');
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
@@ -54,16 +55,22 @@ export default function AdminDashboard() {
   const totalCapacity  = classes.reduce((a, c) => a + c.capacity, 0);
 
   // ── Event handlers ───────────────────────────────────────────────────────
-  const handleSave = (newClasses: GFClass[]) => {
-    setClasses((prev) => [...prev, ...newClasses]);
+  const handleSave = async (count: number) => {
     setShowModal(false);
-    showToast(`✓ ${newClasses.length} clase${newClasses.length !== 1 ? 's' : ''} creada${newClasses.length !== 1 ? 's' : ''} en el calendario`);
+    await refreshClasses();
+    showToast(`✓ ${count} clase${count !== 1 ? 's' : ''} creada${count !== 1 ? 's' : ''} en el calendario`);
   };
 
-  const handleDelete = (id: string) => {
-    setClasses((prev) => prev.filter((c) => c.id !== id));
-    setPopup(null);
-    showToast('Clase eliminada del calendario');
+  const handleDelete = async (id: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from('class_sessions').delete().eq('id', id);
+    if (!error) {
+      setPopup(null);
+      await refreshClasses();
+      showToast('Clase eliminada del calendario');
+    } else {
+      showToast('Error: ' + error.message);
+    }
   };
 
   const handleEventClick = (cls: GFClass, e: React.MouseEvent) => {

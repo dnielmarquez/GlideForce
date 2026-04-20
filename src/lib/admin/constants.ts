@@ -1,10 +1,10 @@
 import type { ClassColor, Instructor } from './types';
 
 export const INSTRUCTORS: Instructor[] = [
-  { id: 1, name: 'Tania Janek',   specialty: 'HIIT · Yoga Flow',       initials: 'TJ', color: '#E8682A' },
-  { id: 2, name: 'María López',   specialty: 'Pilates · Stretching',   initials: 'ML', color: '#0F8B76' },
-  { id: 3, name: 'Carlos Ruiz',   specialty: 'Funcional · Crossfit',   initials: 'CR', color: '#6D37C4' },
-  { id: 4, name: 'Laura Gómez',   specialty: 'Yoga · Meditación',      initials: 'LG', color: '#2563EB' },
+  { id: '1', name: 'Tania Janek',   specialty: 'HIIT · Yoga Flow',       initials: 'TJ', color: '#E8682A' },
+  { id: '2', name: 'María López',   specialty: 'Pilates · Stretching',   initials: 'ML', color: '#0F8B76' },
+  { id: '3', name: 'Carlos Ruiz',   specialty: 'Funcional · Crossfit',   initials: 'CR', color: '#6D37C4' },
+  { id: '4', name: 'Laura Gómez',   specialty: 'Yoga · Meditación',      initials: 'LG', color: '#2563EB' },
 ];
 
 export const CLASS_COLORS: ClassColor[] = [

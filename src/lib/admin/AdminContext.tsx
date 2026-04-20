@@ -1,12 +1,14 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { GFClass, ToastState } from './types';
-import { seedClasses } from './data';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import type { GFClass, Instructor, ToastState } from './types';
+import { createClient } from '@/utils/supabase/client';
 
 interface AdminContextType {
   classes: GFClass[];
+  instructors: Instructor[];
   setClasses: (fn: GFClass[] | ((prev: GFClass[]) => GFClass[])) => void;
+  refreshClasses: () => Promise<void>;
   toast: ToastState;
   showToast: (msg: string) => void;
 }
@@ -14,21 +16,53 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | null>(null);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [classes, setClasses] = useState<GFClass[]>(seedClasses);
+  const [classes, setClasses] = useState<GFClass[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [toast, setToast] = useState<ToastState>({ show: false, msg: '' });
+  const supabase = createClient();
 
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('gf_classes');
-    if (saved) {
-      try { setClasses(JSON.parse(saved)); } catch { /* ignore */ }
+  const loadInstructors = useCallback(async () => {
+    const { data } = await supabase.from('instructors').select('*').eq('active', true);
+    if (data) {
+      setInstructors((data as any[]).map((i) => ({
+        id: i.id,
+        name: i.name,
+        specialty: i.specialty ?? '',
+        initials: i.initials,
+        color: i.color
+      })));
     }
-  }, []);
+  }, [supabase]);
 
-  // Persist to localStorage on change
+  const refreshClasses = useCallback(async () => {
+    // Only grab classes where status is scheduled or in_progress (omit cancelled perhaps? or fetch all based on calendar logic)
+    const { data } = await supabase
+      .from('class_sessions')
+      .select('*, instructors(*)')
+      .neq('status', 'cancelled');
+    
+    if (data) {
+      setClasses(data.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        description: c.description ?? undefined,
+        instructor: c.instructors?.id ?? '',
+        time: c.start_time.substring(0, 5), // 'HH:MM:SS' to 'HH:MM'
+        duration: c.duration_minutes,
+        date: c.date,
+        color: c.color,
+        capacity: c.capacity,
+        enrolled: 0, // We could join bookings or count them later
+        recurring: !!c.recurrence_id
+      })));
+    }
+  }, [supabase]);
+
+  // Initial load
   useEffect(() => {
-    localStorage.setItem('gf_classes', JSON.stringify(classes));
-  }, [classes]);
+    loadInstructors();
+    refreshClasses();
+  }, [loadInstructors, refreshClasses]);
 
   const showToast = (msg: string) => {
     setToast({ show: true, msg });
@@ -36,7 +70,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AdminContext.Provider value={{ classes, setClasses, toast, showToast }}>
+    <AdminContext.Provider value={{ classes, instructors, setClasses, refreshClasses, toast, showToast }}>
       {children}
     </AdminContext.Provider>
   );
