@@ -3,16 +3,34 @@ import { updateSession } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
     const { response, user } = await updateSession(request);
+    const pathname = request.nextUrl.pathname;
 
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-    const isPublicRoute = request.nextUrl.pathname === '/';
+    const isAuthRoute =
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/register') ||
+        pathname.startsWith('/forgot-password') ||
+        pathname.startsWith('/reset-password');
 
-    // If perfectly authenticated, push them off the login page so they don't get trapped.
+    const isPublicRoute = pathname === '/';
+    const isCallbackRoute = pathname.startsWith('/auth/callback');
+
+    // Always let Supabase callback routes through
+    if (isCallbackRoute) {
+        return response;
+    }
+
+    // If already authenticated, push them off auth pages
     if (user && isAuthRoute) {
         return NextResponse.redirect(new URL('/classes', request.url));
     }
 
-    // If completely logged out, bounce them back to login (unless they are on the root homepage or auth pages)
+    // Allow unauthenticated access to /reset-password
+    // (user arrives with a valid recovery token, session is set by the callback)
+    if (pathname.startsWith('/reset-password')) {
+        return response;
+    }
+
+    // If logged out, bounce back to login (unless on root or auth pages)
     if (!user && !isAuthRoute && !isPublicRoute) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
