@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-    const { response, user } = await updateSession(request);
+    const { response, user, supabase } = await updateSession(request);
     const pathname = request.nextUrl.pathname;
 
     const isAuthRoute =
@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
 
     const isPublicRoute = pathname === '/';
     const isCallbackRoute = pathname.startsWith('/auth/callback');
+    const isAdminRoute = pathname.startsWith('/admin');
 
     // Always let Supabase callback routes through
     if (isCallbackRoute) {
@@ -28,6 +29,19 @@ export async function middleware(request: NextRequest) {
     // (user arrives with a valid recovery token, session is set by the callback)
     if (pathname.startsWith('/reset-password')) {
         return response;
+    }
+
+    // Admin authorization check
+    if (user && isAdminRoute) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.role !== 'admin') {
+            return NextResponse.redirect(new URL('/classes', request.url));
+        }
     }
 
     // If logged out, bounce back to login (unless on root or auth pages)
