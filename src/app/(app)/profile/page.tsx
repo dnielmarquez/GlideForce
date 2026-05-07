@@ -1,10 +1,17 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import PageTransition from '@/components/PageTransition';
+import { logout } from '@/app/actions/auth';
 
 export default function ProfilePage() {
-    const router = useRouter();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        await logout();
+    };
+
     return (
         <PageTransition className="bg-[#fcf9f8] min-h-screen pb-24 font-body text-[#1c1b1b] max-w-md mx-auto relative shadow-2xl overflow-hidden">
             <main className="pt-24 pb-32 px-6 max-w-md mx-auto">
@@ -35,7 +42,18 @@ export default function ProfilePage() {
                 </div>
                 <div className="mt-12 px-2">
                     <button className="w-full py-4 bg-primary-container text-white rounded-xl font-semibold shadow-lg">Guardar Cambios</button>
-                    <button onClick={() => router.push('/login')} className="w-full mt-4 py-4 text-error font-medium">Cerrar Sesión</button>
+                    <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="w-full mt-4 py-4 text-error font-medium disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
+                    >
+                        {isLoggingOut ? (
+                            <>
+                                <span className="inline-block w-4 h-4 border-2 border-error/30 border-t-error rounded-full animate-spin" />
+                                Cerrando sesión...
+                            </>
+                        ) : 'Cerrar Sesión'}
+                    </button>
                 </div>
             </main>
         </PageTransition>
