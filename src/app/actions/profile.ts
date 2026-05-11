@@ -45,19 +45,44 @@ export async function updateProfile(formData: FormData) {
   return { success: true }
 }
 
-export async function updateAvatar(avatar_url: string) {
+export async function uploadProfileAvatar(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No estás autenticado.' }
 
+  const avatarFile = formData.get('avatar_file') as File | null
+  if (!avatarFile || avatarFile.size === 0) return { error: 'No se seleccionó ninguna imagen.' }
+  if (avatarFile.size > 5 * 1024 * 1024) return { error: 'La imagen supera los 5MB.' }
+
+  const ext = avatarFile.name.split('.').pop()
+  const fileName = `${user.id}-${Date.now()}.${ext}`
+
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('avatars')
+    .upload(fileName, avatarFile, { cacheControl: '3600', upsert: true })
+
+  if (uploadError) {
+    console.error('Error uploading avatar:', uploadError)
+    return { error: 'Error al subir la imagen.' }
+  }
+
+  const { data: publicUrlData } = supabaseAdmin.storage.from('avatars').getPublicUrl(fileName)
+  const finalAvatarUrl = publicUrlData.publicUrl
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('profiles')
-    .update({ avatar_url })
+    .update({ avatar_url: finalAvatarUrl })
     .eq('id', user.id)
 
   if (error) return { error: 'No se pudo actualizar la foto.' }
 
   revalidatePath('/profile')
-  return { success: true }
+  return { success: true, avatar_url: finalAvatarUrl }
 }

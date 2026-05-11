@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { processBooking, cancelBooking } from '@/app/actions/booking';
 
-const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
+const defaultAvatar = "/logo.png";
 
 
 
@@ -82,8 +82,11 @@ function BookingContent({ id }: { id: string }) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setStars((profile as any)?.stars_balance || 0);
 
-                const { data: myBooking } = await supabase.from('bookings').select('status, machine_id').eq('session_id', id).eq('member_id', user.id).maybeSingle();
-                if (myBooking) setUserBooking(myBooking);
+                const { data: myBookings } = await supabase.from('bookings').select('status, machine_id').eq('session_id', id).eq('member_id', user.id);
+                if (myBookings && myBookings.length > 0) {
+                    const active = myBookings.find(b => b.status !== 'cancelled');
+                    if (active) setUserBooking(active);
+                }
             } else {
                 // Mock fallback in case testing environment lacks strict auth wiring initially.
                 setStars(15);

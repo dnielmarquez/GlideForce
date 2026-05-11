@@ -12,6 +12,7 @@ export default function RegisterPage() {
     const [state, setState] = useState<FormState>('idle');
     const [error, setError] = useState<string | null>(null);
     const [registeredEmail, setRegisteredEmail] = useState('');
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -33,12 +34,28 @@ export default function RegisterPage() {
         const email = formData.get('email') as string;
         setRegisteredEmail(email);
 
-        const res = await signup(formData);
-        if (res?.error) {
-            setError(res.error);
+        const avatarFile = formData.get('avatar_file') as File | null;
+        if (avatarFile && avatarFile.size > 5 * 1024 * 1024) {
+            setError('La foto de perfil no debe superar los 5MB.');
             setState('error');
-        } else if (res?.success) {
-            setState('success');
+            return;
+        }
+
+        try {
+            const res = await signup(formData);
+            if (res?.error) {
+                setError(res.error);
+                setState('error');
+            } else if (res?.success) {
+                setState('success');
+            }
+        } catch (err: any) {
+            if (err.message?.includes('Body exceeded 1 MB limit') || err.message?.includes('payload too large') || err.message?.includes('413')) {
+                setError('La imagen es demasiado grande. Por favor elige una de menor tamaño (máximo 5MB).');
+            } else {
+                setError('Ocurrió un error inesperado al intentar crear tu cuenta.');
+            }
+            setState('error');
         }
     };
 
@@ -111,6 +128,44 @@ export default function RegisterPage() {
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-5">
+                            {/* Profile Picture (Optional) */}
+                            <div className="flex flex-col items-center space-y-3 pb-2 pt-2">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                    Foto de Perfil (Opcional)
+                                </label>
+                                <label className="relative flex items-center justify-center w-24 h-24 rounded-full bg-surface-container border-2 border-dashed border-primary-container/50 cursor-pointer overflow-hidden group hover:border-primary-container transition-colors">
+                                    {avatarPreview ? (
+                                        <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="flex flex-col items-center text-primary-container/60 group-hover:text-primary-container transition-colors">
+                                            <span className="material-symbols-outlined text-3xl">add_a_photo</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="material-symbols-outlined text-white">edit</span>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        name="avatar_file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                if (file.size > 5 * 1024 * 1024) {
+                                                    setError('La foto de perfil no debe superar los 5MB.');
+                                                } else {
+                                                    setError(null);
+                                                    setAvatarPreview(URL.createObjectURL(file));
+                                                }
+                                            } else {
+                                                setAvatarPreview(null);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
+
                             {/* Full name */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">
@@ -124,6 +179,21 @@ export default function RegisterPage() {
                                     className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                     placeholder="Tu nombre"
                                     type="text"
+                                />
+                            </div>
+
+                            {/* Phone */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">
+                                    Teléfono
+                                </label>
+                                <input
+                                    name="phone"
+                                    required
+                                    autoComplete="tel"
+                                    className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                    placeholder="Tu número de celular"
+                                    type="tel"
                                 />
                             </div>
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { logout } from '@/app/actions/auth';
-import { updateProfile, updateAvatar } from '@/app/actions/profile';
+import { updateProfile, uploadProfileAvatar } from '@/app/actions/profile';
 import type { Database } from '@/types/database.types';
 import { createClient } from '@/utils/supabase/client';
 
@@ -69,20 +69,10 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
         setIsUploadingAvatar(true);
 
         try {
-            const fileExt = file.name.split('.').pop();
-            const filePath = `${profile.id}-${Math.random()}.${fileExt}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file, { upsert: true });
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
-
-            const res = await updateAvatar(publicUrl);
+            const formData = new FormData();
+            formData.append('avatar_file', file);
+            
+            const res = await uploadProfileAvatar(formData);
             
             if (res?.error) {
                 setFeedback({ type: 'error', message: res.error });
