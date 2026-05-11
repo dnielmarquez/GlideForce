@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export default function StarsPage() {
     const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
     const supabase = createClient();
+    const router = useRouter();
 
     const [filter, setFilter] = useState("Todas");
     const [balance, setBalance] = useState<number>(0);
@@ -37,9 +39,11 @@ export default function StarsPage() {
                 id,
                 status,
                 class_sessions (
+                    id,
                     title,
                     date,
                     start_time,
+                    duration_minutes,
                     instructors ( name, photo_url )
                 )
             `)
@@ -52,8 +56,20 @@ export default function StarsPage() {
                 let statusLabel = 'Activa';
                 let color = 'green';
                 
+                let isFinished = false;
+                if (b.class_sessions?.date && b.class_sessions?.start_time) {
+                    const classStart = new Date(`${b.class_sessions.date}T${b.class_sessions.start_time}`);
+                    const duration = b.class_sessions.duration_minutes || 60;
+                    const classEnd = new Date(classStart.getTime() + duration * 60000);
+                    isFinished = new Date() > classEnd;
+                }
+
                 if (b.status === 'confirmed') { 
-                    statusLabel = 'Activa'; color = 'green'; 
+                    if (isFinished) {
+                        statusLabel = 'Completada'; color = 'gray'; 
+                    } else {
+                        statusLabel = 'Activa'; color = 'green'; 
+                    }
                 } else if (b.status === 'cancelled') { 
                     statusLabel = 'Cancelada'; color = 'red'; 
                 } else if (b.status === 'completed') { 
@@ -64,6 +80,7 @@ export default function StarsPage() {
 
                 return {
                     id: b.id,
+                    classId: b.class_sessions?.id,
                     title: b.class_sessions?.title || 'Sesión',
                     statusLabel: statusLabel,
                     color: color,
@@ -170,6 +187,7 @@ export default function StarsPage() {
                         {filteredHistory.map((item, i) => (
                             <motion.div
                                 key={item.id}
+                                onClick={() => { if (item.classId) router.push('/booking/' + item.classId); }}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.3, delay: i * 0.08, ease: "easeOut" }}

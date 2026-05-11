@@ -365,7 +365,7 @@ export type Database = {
       settings: {
         Row: {
           id:               number       // always 1
-          cancel_days:      number
+          cancel_time:      number       // in minutes
           waitlist_hours:   number
           waitlist_minutes: WaitlistMinutes
           machines_count:   number
@@ -382,7 +382,7 @@ export type Database = {
         }
         Insert: {
           id?:              number
-          cancel_days?:     number
+          cancel_time?:     number
           waitlist_hours?:  number
           waitlist_minutes?:WaitlistMinutes
           machines_count?:  number
@@ -398,7 +398,7 @@ export type Database = {
           updated_by?:      string | null
         }
         Update: {
-          cancel_days?:     number
+          cancel_time?:     number
           waitlist_hours?:  number
           waitlist_minutes?:WaitlistMinutes
           machines_count?:  number

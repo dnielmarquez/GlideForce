@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
-import { processBooking } from '@/app/actions/booking';
+import { processBooking, cancelBooking } from '@/app/actions/booking';
 
 const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBlTIX2c0YLEM31fa8dvXo8YXKgTQCDf5KeisuISVpwYYPcpytHwooEWAYwzLSvkZyWU1SWUViVYF-iOHbyAmzPjYCbjO0sTNxyP1V5OguCoqKyLvlMW-8st3UQrPTtCU7t9Y3xYT3yjnpPvQMhuyJEYyRofpUQ40QxtIVeClq0xmnjGtS8T7llSu3ADIhjFInPWFwpRhIzPKe6YEvZqKHKj4fyF4kD-_uUG0ix7UCkCvS-WHXZqGwNu5jlEyKU2Xb_whVAsDVYuYk";
 
@@ -17,11 +17,17 @@ function BookingContent({ id }: { id: string }) {
     const [paymentMethod, setPaymentMethod] = useState<'stars' | 'online' | null>(null);
     const [showPolicyModal, setShowPolicyModal] = useState(false);
     const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelResult, setCancelResult] = useState<{success: boolean, refunded?: boolean, error?: string} | null>(null);
+    const [dateParam, setDateParam] = useState<string | null>(null);
     
     // DB State
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [session, setSession] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [userBooking, setUserBooking] = useState<any>(null);
     const [machinesCount, setMachinesCount] = useState<number>(0);
+    const [cancelTimeMinutes, setCancelTimeMinutes] = useState<number>(0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [machineList, setMachineList] = useState<any[]>([]);
     const [occupied, setOccupied] = useState<string[]>([]);
@@ -32,6 +38,11 @@ function BookingContent({ id }: { id: string }) {
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            setDateParam(params.get('date'));
+        }
 
         async function loadData() {
             const supabase = createClient();
@@ -43,10 +54,13 @@ function BookingContent({ id }: { id: string }) {
                 .single();
             if (sess) setSession(sess);
 
-            // 2. Fetch Machine Limits from Settings & Real Machines Table
-            const { data: st } = await supabase.from('settings').select('machines_count').single();
+            // 2. Fetch Machine Limits and Cancel Policy from Settings & Real Machines Table
+            const { data: st } = await supabase.from('settings').select('machines_count, cancel_time').single();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (st) setMachinesCount((st as any).machines_count || 5);
+            if (st) {
+                setMachinesCount((st as any).machines_count || 5);
+                setCancelTimeMinutes((st as any).cancel_time || 0);
+            }
             
             const { data: ms } = await supabase.from('machines').select('*').eq('active', true).order('number');
             if (ms) setMachineList(ms);
@@ -67,6 +81,9 @@ function BookingContent({ id }: { id: string }) {
                 const { data: profile } = await supabase.from('profiles').select('stars_balance').eq('id', user.id).single();
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setStars((profile as any)?.stars_balance || 0);
+
+                const { data: myBooking } = await supabase.from('bookings').select('status, machine_id').eq('session_id', id).eq('member_id', user.id).maybeSingle();
+                if (myBooking) setUserBooking(myBooking);
             } else {
                 // Mock fallback in case testing environment lacks strict auth wiring initially.
                 setStars(15);
@@ -92,7 +109,7 @@ function BookingContent({ id }: { id: string }) {
             <div className="min-h-screen bg-surface-container-low flex flex-col items-center justify-center text-on-surface-variant">
                 <span className="material-symbols-outlined text-4xl mb-4">event_busy</span>
                 <p className="font-bold tracking-tight">Clase no encontrada</p>
-                <button className="mt-6 font-bold underline" onClick={() => router.push('/classes')}>Volver al Calendario</button>
+                <button className="mt-6 font-bold underline" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>Volver al Calendario</button>
             </div>
         );
     }
@@ -114,8 +131,49 @@ function BookingContent({ id }: { id: string }) {
         }
     };
 
+    const handleCancelBooking = async () => {
+        setIsProcessing(true);
+        const res = await cancelBooking(id);
+        setIsProcessing(false);
+        if (res.error) {
+            alert(res.error);
+        } else {
+            setCancelResult({ success: true, refunded: res.refunded });
+        }
+    };
+
     const instructorName = session.instructors?.name || 'Instructor';
     const instructorImg = session.instructors?.photo_url || defaultAvatar;
+
+    let userBookingStatusLabel = '';
+    let userBookingBadgeClass = '';
+    let canBook = true;
+
+    let isFinished = false;
+    if (session?.date && session?.start_time) {
+        const classStart = new Date(`${session.date}T${session.start_time}`);
+        const duration = session.duration_minutes || 60;
+        const classEnd = new Date(classStart.getTime() + duration * 60000);
+        isFinished = new Date() > classEnd;
+    }
+
+    if (userBooking) {
+        if (userBooking.status === 'confirmed') { 
+            if (isFinished) {
+                userBookingStatusLabel = 'Completada'; userBookingBadgeClass = 'bg-gray-100 text-gray-700'; canBook = false;
+            } else {
+                userBookingStatusLabel = 'Activa'; userBookingBadgeClass = 'bg-green-100 text-green-700'; canBook = false;
+            }
+        } else if (userBooking.status === 'cancelled') { 
+            userBookingStatusLabel = 'Cancelada'; userBookingBadgeClass = 'bg-red-100 text-red-700'; canBook = !isFinished; 
+        } else if (userBooking.status === 'completed') { 
+            userBookingStatusLabel = 'Completada'; userBookingBadgeClass = 'bg-gray-100 text-gray-700'; canBook = false; 
+        } else if (userBooking.status === 'no_show') {
+            userBookingStatusLabel = 'Inasistencia'; userBookingBadgeClass = 'bg-orange-100 text-orange-700'; canBook = false;
+        }
+    } else if (isFinished) {
+        canBook = false;
+    }
 
     return (
         <PageTransition className="bg-surface-container-low text-on-surface min-h-screen pb-32 max-w-md mx-auto relative shadow-2xl overflow-hidden">
@@ -133,7 +191,11 @@ function BookingContent({ id }: { id: string }) {
                         >
                             <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">Políticas de Cancelación</h2>
                             <p className="text-on-surface-variant text-sm leading-relaxed mb-8 text-left">
-                                Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">12 horas antes</strong> del inicio de la clase.<br /><br />
+                                {cancelTimeMinutes > 0 ? (
+                                    <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
+                                ) : (
+                                    <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
+                                )}
                                 Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de estrellitas</strong>.
                             </p>
                             <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => setShowPolicyModal(false)}>
@@ -241,9 +303,72 @@ function BookingContent({ id }: { id: string }) {
                             <p className="text-on-surface-variant text-base leading-relaxed mb-8">
                                 Tu puesto ha sido asegurado. ¡Te esperamos!
                             </p>
-                            <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform" onClick={() => router.push('/classes')}>
+                            <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
                                 Volver al Calendario
                             </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Cancel Modal */}
+            <AnimatePresence>
+                {showCancelModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-y-0 w-full z-[130] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
+                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                        >
+                            {cancelResult ? (
+                                <>
+                                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${cancelResult.refunded ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                        <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            {cancelResult.refunded ? 'check_circle' : 'info'}
+                                        </span>
+                                    </div>
+                                    <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">Clase Cancelada</h2>
+                                    <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
+                                        {cancelResult.refunded 
+                                            ? 'Cancelaste a tiempo. Tu estrellita ha sido reembolsada a tu cuenta.' 
+                                            : 'Cancelaste fuera del tiempo permitido. La estrellita no fue reembolsada según las políticas.'}
+                                    </p>
+                                    <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
+                                        Volver al Calendario
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-red-50 text-error rounded-full flex items-center justify-center mb-6">
+                                        <span className="material-symbols-outlined text-4xl">event_busy</span>
+                                    </div>
+                                    <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">¿Cancelar Clase?</h2>
+                                    <p className="text-on-surface-variant text-sm leading-relaxed mb-6 text-left border border-error/20 bg-error/5 p-4 rounded-xl">
+                                        <span className="font-bold text-error mb-2 block">Políticas de Cancelación:</span>
+                                        {cancelTimeMinutes > 0 ? (
+                                            <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
+                                        ) : (
+                                            <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
+                                        )}
+                                        Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de estrellitas</strong>.
+                                    </p>
+                                    <div className="w-full space-y-3">
+                                        <button 
+                                            className="w-full py-4 bg-error text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform disabled:opacity-50" 
+                                            disabled={isProcessing}
+                                            onClick={handleCancelBooking}
+                                        >
+                                            {isProcessing ? 'Procesando...' : 'Confirmar Cancelación'}
+                                        </button>
+                                        <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" disabled={isProcessing} onClick={() => setShowCancelModal(false)}>
+                                            Mantener Reserva
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
@@ -257,12 +382,19 @@ function BookingContent({ id }: { id: string }) {
                             <h2 className="text-3xl font-extrabold tracking-tight">{session.title}</h2>
                             <p className="text-primary font-semibold text-lg">{instructorName}</p>
                         </div>
-                        <div className="bg-primary-container/10 px-4 py-2 rounded-full">
-                            <span className="text-primary font-bold text-sm">En Vivo</span>
+                        <div className="flex flex-col items-end gap-2">
+                            <div className="bg-primary-container/10 px-4 py-2 rounded-full">
+                                <span className="text-primary font-bold text-sm">En Vivo</span>
+                            </div>
+                            {userBookingStatusLabel && (
+                                <div className={`${userBookingBadgeClass} px-3 py-1 rounded-full`}>
+                                    <span className="font-black text-[10px] uppercase tracking-widest">{userBookingStatusLabel}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="relative w-full h-48 rounded-lg overflow-hidden shadow-sm">
-                        <img className="w-full h-full object-cover" src={instructorImg} alt="Class preview" />
+                        <img className="w-full h-full object-cover" src="/gym.webp" alt="Class preview" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                     </div>
                 </section>
@@ -274,17 +406,24 @@ function BookingContent({ id }: { id: string }) {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                         {machineList.length > 0 ? machineList.map(m => {
-                            const isOccupied = occupied.includes(m.id);
+                            const isMyMachine = userBooking?.machine_id === m.id && userBooking?.status === 'confirmed';
+                            const isOccupied = occupied.includes(m.id) && !isMyMachine;
                             return (
                                 <button
                                     key={m.id}
-                                    disabled={isOccupied || isWaitlist}
+                                    disabled={isOccupied || isWaitlist || !canBook}
                                     onClick={() => setSelected(m.id)}
-                                    className={`flex flex-col items-center justify-center p-6 rounded-lg shadow-sm transition-all ${isOccupied || isWaitlist ? 'bg-surface-container-low opacity-50' : (selected === m.id ? 'border-2 border-primary-container bg-white' : 'border-2 border-transparent bg-surface-container-lowest')}`}
+                                    className={`flex flex-col items-center justify-center p-6 rounded-lg shadow-sm transition-all ${
+                                        isMyMachine ? 'border-2 border-green-500 bg-green-50/50' : 
+                                        isOccupied || isWaitlist || !canBook ? 'bg-surface-container-low opacity-50' : 
+                                        (selected === m.id ? 'border-2 border-primary-container bg-white' : 'border-2 border-transparent bg-surface-container-lowest')
+                                    }`}
                                 >
-                                    <span className="material-symbols-outlined text-3xl mb-2" style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
+                                    <span className={`material-symbols-outlined text-3xl mb-2 ${isMyMachine ? 'text-green-600' : ''}`} style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) || isMyMachine ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
                                     <span className="text-[11px] font-bold">{m.label}</span>
-                                    <span className="text-[9px] uppercase tracking-wider text-primary font-black mt-1">{isOccupied || isWaitlist ? 'Ocupado' : 'Disponible'}</span>
+                                    <span className={`text-[9px] uppercase tracking-wider font-black mt-1 ${isMyMachine ? 'text-green-600' : (isOccupied || isWaitlist ? 'text-primary' : 'text-primary')}`}>
+                                        {isMyMachine ? 'Tu Máquina' : (isOccupied || isWaitlist ? 'Ocupado' : 'Disponible')}
+                                    </span>
                                 </button>
                             );
                         }) : Array.from({ length: machinesCount || 5 }, (_, i) => i + 1).map(m => (
@@ -304,7 +443,25 @@ function BookingContent({ id }: { id: string }) {
                 </section>
 
                 <section className="space-y-4 pb-12">
-                    {isWaitlist ? (
+                    {!canBook ? (
+                        <div className="flex flex-col gap-3">
+                            <div className="w-full h-auto min-h-[4rem] bg-surface-container-high text-on-surface-variant rounded-xl font-bold text-sm flex flex-col items-center justify-center shadow-inner p-3 text-center">
+                                 <span>{
+                                    isFinished && (!userBooking || userBooking.status === 'cancelled') ? 'Esta clase ya finalizó.' :
+                                    userBooking?.status === 'confirmed' ? (isFinished ? 'Clase completada. ¡Gracias por asistir!' : 'Ya estás inscrito en esta clase.') :
+                                    `Esta clase está ${userBookingStatusLabel.toLowerCase()}.`
+                                 }</span>
+                                 {userBooking?.status === 'confirmed' && userBooking?.machine_id && (
+                                     <span className="text-green-700 mt-1 uppercase tracking-wider text-[11px]">Máquina asignada: {machineList.find(m => m.id === userBooking.machine_id)?.label || userBooking.machine_id}</span>
+                                 )}
+                            </div>
+                            {userBooking?.status === 'confirmed' && !isFinished && (
+                                <button onClick={() => setShowCancelModal(true)} className="w-full py-4 border-2 border-error/30 text-error rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-error/5">
+                                    <span className="material-symbols-outlined text-lg">cancel</span> Cancelar Clase
+                                </button>
+                            )}
+                        </div>
+                    ) : isWaitlist ? (
                         <button onClick={() => setShowWaitlistModal(true)} className="w-full h-16 bg-surface-container-highest text-on-surface-variant rounded-xl font-bold text-lg shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95">
                             <span className="material-symbols-outlined">group_add</span> Entrar a lista de espera
                         </button>

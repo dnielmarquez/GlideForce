@@ -23,11 +23,31 @@ export default function ClassesPage() {
     const router = useRouter();
     const supabase = createClient();
     
-    // We default to the mocked Today (April 20 2026) to match the UI behavior for GlideForce so far
-    const [currentMonth, setCurrentMonth] = useState(new Date('2026-04-20T12:00:00'));
-    const [selectedDay, setSelectedDay] = useState(20);
+    const [currentMonth, setCurrentMonth] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const dateParam = params.get('date');
+            if (dateParam) {
+                const parsed = new Date(`${dateParam}T12:00:00`);
+                if (!isNaN(parsed.getTime())) return parsed;
+            }
+        }
+        return new Date();
+    });
+    const [selectedDay, setSelectedDay] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const dateParam = params.get('date');
+            if (dateParam) {
+                const parsed = new Date(`${dateParam}T12:00:00`);
+                if (!isNaN(parsed.getTime())) return parsed.getDate();
+            }
+        }
+        return new Date().getDate();
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [dbClasses, setDbClasses] = useState<any[]>([]);
+    const [userBookings, setUserBookings] = useState<Record<string, boolean>>({});
     const [isLoading, setIsLoading] = useState(true);
 
     const year = currentMonth.getFullYear();
@@ -47,11 +67,36 @@ export default function ClassesPage() {
                
             if (!error && data) {
                 setDbClasses(data);
+                
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const sessionIds = data.map(c => c.id);
+                    if (sessionIds.length > 0) {
+                        const { data: bks } = await supabase.from('bookings')
+                            .select('session_id')
+                            .eq('member_id', user.id)
+                            .in('status', ['confirmed'])
+                            .in('session_id', sessionIds);
+                        if (bks) {
+                            const bkMap: Record<string, boolean> = {};
+                            bks.forEach(b => { bkMap[b.session_id] = true; });
+                            setUserBookings(bkMap);
+                        }
+                    }
+                }
             }
             setIsLoading(false);
         };
         
         loadClasses();
+
+        // Clear date param from URL if present
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('date')) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
     }, [year, month, supabase]);
 
     // Drag to scroll logic
@@ -150,7 +195,7 @@ export default function ClassesPage() {
                         if (isLoading) {
                             return (
                                 <div className="flex flex-col items-center justify-center py-16 text-center opacity-60">
-                                    <span className="material-symbols-outlined text-4xl animate-spin mb-4">progress_activity</span>
+                                    <span className="material-symbols-outlined text-4xl mb-4">progress_activity</span>
                                     <h3 className="text-sm font-bold tracking-tight">Cargando clases...</h3>
                                 </div>
                             );
@@ -183,13 +228,17 @@ export default function ClassesPage() {
                             const dur = `${c.duration_minutes} MIN`;
                             const imgUrl = c.instructors?.photo_url || defaultAvatar;
 
+                            const classStart = new Date(`${c.date}T${c.start_time}`);
+                            const classEnd = new Date(classStart.getTime() + (c.duration_minutes || 60) * 60000);
+                            const isFinished = new Date() > classEnd;
+
                             return (
                                 <motion.div
                                     key={c.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: i * 0.1, ease: "easeOut" }}
-                                    className="bg-white rounded-lg p-6 shadow-sm relative overflow-hidden group"
+                                    className={`bg-white rounded-lg p-6 shadow-sm relative overflow-hidden group ${isFinished ? 'opacity-80' : ''}`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
@@ -209,10 +258,17 @@ export default function ClassesPage() {
                                         <span className="font-bold text-on-surface">{profName}</span>
                                     </div>
                                     <button
-                                        onClick={() => router.push(`/booking/${c.id}`)}
-                                        className="w-full py-4 bg-primary-container/10 border-2 border-primary-container rounded-full text-primary-container font-black text-sm uppercase tracking-widest hover:bg-primary-container hover:text-white transition-all"
+                                        disabled={isFinished}
+                                        onClick={() => router.push(`/booking/${c.id}?date=${selectedDateStr}`)}
+                                        className={`w-full py-4 border-2 rounded-full font-black text-sm uppercase tracking-widest transition-all ${
+                                            isFinished 
+                                            ? 'bg-surface-container-high border-transparent text-on-surface-variant cursor-not-allowed opacity-70' 
+                                            : userBookings[c.id]
+                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600 shadow-md shadow-green-500/20'
+                                            : 'bg-primary-container/10 border-primary-container text-primary-container hover:bg-primary-container hover:text-white'
+                                        }`}
                                     >
-                                        Reservar
+                                        {isFinished ? 'Finalizada' : (userBookings[c.id] ? 'Reservada' : 'Reservar')}
                                     </button>
                                 </motion.div>
                             );

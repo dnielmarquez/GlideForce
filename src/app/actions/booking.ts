@@ -98,3 +98,93 @@ export async function processBooking(
         return { error: 'Ocurrió un error al procesar tu reserva.' };
     }
 }
+
+export async function cancelBooking(sessionId: string) {
+    const supabase = await createClient();
+
+    // 1. Authenticate user strictly on server
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: 'Debes iniciar sesión para cancelar.' };
+    }
+
+    try {
+        // 2. Fetch user's active booking
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: booking, error: bkErr } = await (supabase as any)
+            .from('bookings')
+            .select('id, status, stars_spent')
+            .eq('session_id', sessionId)
+            .eq('member_id', user.id)
+            .in('status', ['confirmed'])
+            .single();
+
+        if (bkErr || !booking) return { error: 'No se encontró una reserva activa para esta clase.' };
+
+        // 3. Fetch session details and settings
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: session } = await (supabase as any)
+            .from('class_sessions')
+            .select('date, start_time')
+            .eq('id', sessionId)
+            .single();
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: settings } = await (supabase as any)
+            .from('settings')
+            .select('cancel_time')
+            .single();
+
+        if (!session || !settings) return { error: 'Error al cargar los datos de la clase.' };
+
+        // 4. Calculate cutoff time
+        const classStart = new Date(`${session.date}T${session.start_time}`);
+        const cancelTimeMinutes = settings.cancel_time || 0;
+        
+        // current time + cancelTimeMinutes MUST BE < classStart to get a refund.
+        // equivalent to: classStart - currentTime >= cancelTimeMinutes
+        const now = new Date();
+        const diffMinutes = (classStart.getTime() - now.getTime()) / 60000;
+        const qualifiesForRefund = diffMinutes >= cancelTimeMinutes;
+
+        // 5. Update booking status
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: updErr } = await (supabase as any)
+            .from('bookings')
+            .update({
+                status: 'cancelled',
+                cancellation_reason: 'member',
+                star_refunded: qualifiesForRefund,
+                cancelled_at: new Date().toISOString()
+            })
+            .eq('id', booking.id);
+
+        if (updErr) throw updErr;
+
+        // 6. Process refund if applicable
+        if (qualifiesForRefund && booking.stars_spent > 0) {
+            const adminSupabase = createAdminClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: txErr } = await (adminSupabase as any)
+                .from('star_transactions')
+                .insert({
+                    member_id: user.id,
+                    amount: booking.stars_spent,
+                    type: 'cancellation_refund',
+                    reference_id: sessionId,
+                    reference_type: 'session',
+                    note: 'Reembolso por cancelación a tiempo'
+                });
+            if (txErr) console.error('Error processing refund transaction:', txErr);
+        }
+
+        revalidatePath('/classes');
+        revalidatePath(`/booking/${sessionId}`);
+        revalidatePath('/stars');
+
+        return { success: true, refunded: qualifiesForRefund };
+    } catch (e) {
+        console.error('Cancellation Error: ', e);
+        return { error: 'Ocurrió un error al cancelar la reserva.' };
+    }
+}

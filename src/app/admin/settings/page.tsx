@@ -146,35 +146,59 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="settings-card-body">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Días de anticipación para cancelar</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
-                  Los usuarios podrán cancelar su reserva hasta <strong>{cfg.cancel_days} día{cfg.cancel_days !== 1 ? 's' : ''}</strong> antes del inicio de la clase sin perder su estrellita.
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <div className="counter-box">
-                  <button className="counter-btn" onClick={() => updateCfg('cancel_days', Math.max(0, cfg.cancel_days - 1))}>−</button>
-                  <div className="counter-val" style={{ width: 64, color: 'var(--orange)' }}>{cfg.cancel_days}</div>
-                  <button className="counter-btn" onClick={() => updateCfg('cancel_days', Math.min(30, cfg.cancel_days + 1))}>+</button>
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Días</div>
-              </div>
-            </div>
-            <div style={{ marginTop: 16 }}>
-              <input type="range" min="0" max="30" value={cfg.cancel_days}
-                onChange={(e) => updateCfg('cancel_days', parseInt(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: 4 }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-light)', fontWeight: 600, marginTop: 4 }}>
-                <span>0 días (sin política)</span><span>15 días</span><span>30 días</span>
-              </div>
-            </div>
-            {cfg.cancel_days === 0 && (
-              <div style={{ marginTop: 12, padding: '10px 14px', background: '#FDE8F0', borderRadius: 10, fontSize: 12.5, color: '#C4376D', fontWeight: 600 }}>
-                ⚠️ Sin política activa — los usuarios pueden cancelar en cualquier momento sin consecuencias.
-              </div>
-            )}
+            {(() => {
+              const totalMinutes = cfg.cancel_time || 0;
+              const h = Math.floor(totalMinutes / 60);
+              const m = totalMinutes % 60;
+              return (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                    Tiempo de anticipación: <span style={{ color: '#C4376D', fontWeight: 800 }}>{h}h {m}min</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
+                    {/* Hours */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Horas</div>
+                      <div className="counter-box" style={{ height: 52 }}>
+                        <button className="counter-btn" style={{ height: 52 }} onClick={() => updateCfg('cancel_time', Math.max(0, (h - 1) * 60 + m))}>−</button>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: 30, fontWeight: 800, color: '#C4376D', letterSpacing: '-1px' }}>{String(h).padStart(2, '0')}</div>
+                        <button className="counter-btn" style={{ height: 52 }} onClick={() => updateCfg('cancel_time', Math.min(72 * 60, (h + 1) * 60 + m))}>+</button>
+                      </div>
+                      <input type="range" min="0" max="72" value={h}
+                        onChange={(e) => updateCfg('cancel_time', parseInt(e.target.value) * 60 + m)}
+                        style={{ width: '100%', accentColor: '#C4376D', cursor: 'pointer', marginTop: 10 }} />
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
+                    {/* Minutes */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Minutos</div>
+                      <div className="counter-box" style={{ height: 52 }}>
+                        <button className="counter-btn" style={{ height: 52 }} onClick={() => updateCfg('cancel_time', h * 60 + (m === 0 ? 45 : m - 15))}>−</button>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: 30, fontWeight: 800, color: '#C4376D', letterSpacing: '-1px' }}>{String(m).padStart(2, '0')}</div>
+                        <button className="counter-btn" style={{ height: 52 }} onClick={() => updateCfg('cancel_time', h * 60 + (m === 45 ? 0 : m + 15))}>+</button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                        {[0, 15, 30, 45].map((minVal) => (
+                          <div key={minVal} onClick={() => updateCfg('cancel_time', h * 60 + minVal)}
+                            style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                              background: m === minVal ? '#C4376D' : 'var(--bg)',
+                              color: m === minVal ? 'white' : 'var(--text-muted)',
+                              border: '1.5px solid', borderColor: m === minVal ? '#C4376D' : 'var(--border)',
+                              transition: 'all 0.15s' }}>
+                            :{String(minVal).padStart(2, '0')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: '#FDE8F0', borderRadius: 10, fontSize: 12.5, color: '#C4376D', fontWeight: 600 }}>
+                    {totalMinutes === 0 
+                      ? '⚠️ Sin política activa — los usuarios pueden cancelar en cualquier momento sin consecuencias.' 
+                      : `Los usuarios podrán cancelar su reserva hasta ${h}h ${m}min antes del inicio de la clase sin perder su estrellita.`}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 

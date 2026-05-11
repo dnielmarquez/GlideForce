@@ -133,7 +133,7 @@ export type SelectedDate = {
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
 /** Subset used by the cancellation policy logic */
-export type CancellationPolicy = Pick<Settings, 'cancel_days'>
+export type CancellationPolicy = Pick<Settings, 'cancel_time'>
 
 /** Subset used by the waitlist logic */
 export type WaitlistConfig = Pick<Settings, 'waitlist_enabled' | 'waitlist_hours' | 'waitlist_minutes'>
