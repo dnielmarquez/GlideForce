@@ -294,8 +294,8 @@ export async function fulfillBookingFromWebhook(
             member_id:   memberId,
             machine_id:  machineId,
             status:      'confirmed',
-            stars_spent: 0,                         // Paid in COP, not stars
-            payment_id:  paymentId,                 // Link back to payments table
+            stars_spent: 0,          // Paid in COP, not stars
+            payment_id:  paymentId,  // FK → payments table
         });
 
     if (bookingErr) {
