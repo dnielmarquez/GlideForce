@@ -26,7 +26,9 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
   const set = <K extends keyof MemberFormData>(k: K, v: MemberFormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [history, setHistory] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
 
@@ -52,9 +54,12 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
 
       if (data && !error) {
          const now = new Date();
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
          const upc: any[] = [];
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
          const hist: any[] = [];
          
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
          data.forEach((b: any) => {
            const session = b.class_sessions;
            if (!session) return;

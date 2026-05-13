@@ -437,7 +437,7 @@ export type Database = {
           machine_id:           string | null
           amount_in_cents:      number
           currency:             string
-          wompi_payload:        any | null
+          wompi_payload:        unknown | null
           created_at:           string
           fulfilled_at:         string | null
         }
@@ -453,14 +453,14 @@ export type Database = {
           machine_id?:           string | null
           amount_in_cents:       number
           currency?:             string
-          wompi_payload?:        any | null
+          wompi_payload?:        unknown | null
           created_at?:           string
           fulfilled_at?:         string | null
         }
         Update: {
           wompi_transaction_id?: string | null
           status?:               PaymentStatus
-          wompi_payload?:        any | null
+          wompi_payload?:        unknown | null
           fulfilled_at?:         string | null
         }
       }

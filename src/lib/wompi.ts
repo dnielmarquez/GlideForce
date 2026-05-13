@@ -45,6 +45,7 @@ export function generateIntegrityHash(
  * Then SHA-256 of the result.
  * Returns true if the checksum matches.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function verifyWebhookSignature(body: any): boolean {
     const secret = process.env.WOMPI_EVENTS_SECRET;
     if (!secret) throw new Error('WOMPI_EVENTS_SECRET is not defined');
@@ -61,6 +62,7 @@ export function verifyWebhookSignature(body: any): boolean {
     let concatenatedValues = '';
     for (const prop of signature.properties) {
         const keys = prop.split('.');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let value: any = data;
         for (const key of keys) {
             if (value && typeof value === 'object') {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import type { Member, MemberStatus, MemberFormData } from '@/lib/admin/types';
+import type { Member, MemberFormData } from '@/lib/admin/types';
 import MembersTable from '@/components/admin/MembersTable';
 import Toast from '@/components/admin/Toast';
 import type { ToastState } from '@/lib/admin/types';

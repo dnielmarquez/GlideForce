@@ -44,6 +44,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setClasses((data as any[]).map((c) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const enrolledCount = c.bookings ? c.bookings.filter((b: any) => b.status === 'confirmed').length : 0;
         return {
           id: c.id,

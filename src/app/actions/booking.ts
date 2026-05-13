@@ -286,14 +286,6 @@ export async function fulfillBookingFromWebhook(
 ) {
     const adminSupabase = createAdminClient();
 
-    // Fetch session for stars_cost (0 for online payments — already paid in COP)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session } = await (adminSupabase as any)
-        .from('class_sessions')
-        .select('stars_cost')
-        .eq('id', sessionId)
-        .single();
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: bookingErr } = await (adminSupabase as any)
         .from('bookings')

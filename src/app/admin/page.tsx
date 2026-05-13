@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import StatsBar from '@/components/admin/StatsBar';
 import CalendarHeader from '@/components/admin/CalendarHeader';

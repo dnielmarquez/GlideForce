@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { getPaymentStatus } from '@/app/actions/payments';
@@ -10,11 +10,11 @@ type ResultState = 'loading' | 'approved' | 'declined' | 'pending' | 'error';
 const POLL_INTERVAL_MS = 2500;
 const MAX_POLLS = 20; // 50 seconds max
 
-export default function PaymentResultPage() {
+function PaymentResultContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const reference = searchParams.get('ref');
 
-    const reference = searchParams.get('ref');   // our internal reference
     const [state, setState] = useState<ResultState>('loading');
     const [purpose, setPurpose] = useState<string | null>(null);
     const [pollCount, setPollCount] = useState(0);
@@ -131,7 +131,6 @@ export default function PaymentResultPage() {
                 transition={{ type: 'spring', duration: 0.5, bounce: 0.3 }}
                 className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 flex flex-col items-center text-center shadow-2xl"
             >
-                {/* Icon */}
                 <div className={`w-24 h-24 ${config.bgColor} rounded-full flex items-center justify-center mb-8`}>
                     <span
                         className={`material-symbols-outlined text-5xl ${config.iconColor} ${config.spin ? 'animate-spin' : ''}`}
@@ -141,11 +140,9 @@ export default function PaymentResultPage() {
                     </span>
                 </div>
 
-                {/* Text */}
                 <h1 className="text-2xl font-black text-on-surface mb-3 tracking-tight">{config.title}</h1>
                 <p className="text-on-surface-variant text-sm leading-relaxed mb-10">{config.subtitle}</p>
 
-                {/* Progress dots while loading */}
                 {state === 'loading' && (
                     <div className="flex gap-2 mb-8">
                         {[0, 1, 2].map(i => (
@@ -159,7 +156,6 @@ export default function PaymentResultPage() {
                     </div>
                 )}
 
-                {/* Action button (hidden while loading) */}
                 {state !== 'loading' && (
                     <button
                         onClick={() => router.push(backPath)}
@@ -170,5 +166,23 @@ export default function PaymentResultPage() {
                 )}
             </motion.div>
         </div>
+    );
+}
+
+export default function PaymentResultPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-surface-container-low flex flex-col items-center justify-center p-6">
+                <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 flex flex-col items-center text-center shadow-2xl">
+                    <div className="w-24 h-24 bg-primary-container/10 rounded-full flex items-center justify-center mb-8">
+                        <span className="material-symbols-outlined text-5xl text-primary-container animate-spin">progress_activity</span>
+                    </div>
+                    <h1 className="text-2xl font-black text-on-surface mb-3 tracking-tight">Verificando pago...</h1>
+                    <p className="text-on-surface-variant text-sm leading-relaxed mb-10">Esto puede tardar unos segundos.</p>
+                </div>
+            </div>
+        }>
+            <PaymentResultContent />
+        </Suspense>
     );
 }

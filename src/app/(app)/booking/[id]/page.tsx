@@ -188,7 +188,6 @@ function BookingContent({ id }: { id: string }) {
     };
 
     const instructorName = session.instructors?.name || 'Instructor';
-    const instructorImg = session.instructors?.photo_url || defaultAvatar;
 
     let userBookingStatusLabel = '';
     let userBookingBadgeClass = '';
