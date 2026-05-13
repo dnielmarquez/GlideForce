@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 
-export const dynamic = 'force-dynamic';
+
 
 const defaultAvatar = "/logo.png";
 
@@ -205,14 +205,25 @@ export default function ClassesPage() {
                     <section className="space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
                         {(() => {
                             if (isLoading) {
-                                return (
-                                    <div className="flex flex-col items-center justify-center py-16 text-center opacity-60 md:col-span-2">
-                                        <span className="material-symbols-outlined text-4xl mb-4">progress_activity</span>
-                                        <h3 className="text-sm font-bold tracking-tight">Cargando clases...</h3>
+                                // Skeleton cards — page structure visible immediately
+                                return Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-surface-container animate-pulse">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="space-y-2">
+                                                <div className="h-3 w-16 bg-surface-container-high rounded-full" />
+                                                <div className="h-6 w-36 bg-surface-container-high rounded-full" />
+                                            </div>
+                                            <div className="h-5 w-14 bg-surface-container-high rounded-full" />
+                                        </div>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-10 h-10 rounded-full bg-surface-container-high shrink-0" />
+                                            <div className="h-3 w-24 bg-surface-container-high rounded-full" />
+                                        </div>
+                                        <div className="h-12 w-full bg-surface-container-high rounded-full" />
                                     </div>
-                                );
+                                ));
                             }
-                        
+
                             // Local timezone padded iso date mapping.
                             const pad = (n: number) => n.toString().padStart(2, '0');
                             const selectedDateStr = `${year}-${pad(month + 1)}-${pad(selectedDay)}`;

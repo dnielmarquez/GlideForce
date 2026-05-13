@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { getStarPricing, initStarPurchase } from '@/app/actions/stars';
 
-export const dynamic = 'force-dynamic';
+
 
 // Extend window for Wompi widget type
 declare global {
@@ -26,7 +26,7 @@ export default function StarsPage() {
     const [balance, setBalance] = useState<number>(0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [history, setHistory] = useState<any[]>([]);
-    
+    const [isLoading, setIsLoading] = useState(true);
     const [showTopUp, setShowTopUp] = useState(false);
     const [quantity, setQuantity] = useState<number>(1);
     const [priceCop, setPriceCop] = useState<number>(45000);
@@ -111,6 +111,7 @@ export default function StarsPage() {
             });
             setHistory(mappedHistory);
         }
+        setIsLoading(false);
     }, [supabase]);
 
     useEffect(() => {
@@ -257,7 +258,18 @@ export default function StarsPage() {
                             ))}
                         </div>
                         <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-                            {filteredHistory.map((item, i) => (
+                            {isLoading
+                                ? Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="bg-white p-5 rounded-2xl flex items-center gap-4 border border-surface-container animate-pulse">
+                                        <div className="w-14 h-14 rounded-full bg-surface-container-high shrink-0" />
+                                        <div className="flex-grow space-y-2">
+                                            <div className="h-4 w-32 bg-surface-container-high rounded-full" />
+                                            <div className="h-3 w-24 bg-surface-container-high rounded-full" />
+                                            <div className="h-2 w-16 bg-surface-container-high rounded-full" />
+                                        </div>
+                                    </div>
+                                ))
+                                : filteredHistory.map((item, i) => (
                                 <motion.div
                                     key={item.id}
                                     onClick={() => { if (item.classId) router.push('/booking/' + item.classId); }}
@@ -284,7 +296,7 @@ export default function StarsPage() {
                                     </div>
                                 </motion.div>
                             ))}
-                            {filteredHistory.length === 0 && (
+                            {!isLoading && filteredHistory.length === 0 && (
                                  <p className="text-sm text-center font-medium mt-8 text-on-surface-variant md:col-span-2">No tienes reservas registradas en este filtro.</p>
                             )}
                         </div>
