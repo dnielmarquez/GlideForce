@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
                         member_id:      payment.member_id,
                         amount:         payment.stars_to_credit,
                         type:           'star_purchase',
+                        payment_id:     payment.id,              // FK → payments table
                         reference_id:   payment.id,
                         reference_type: 'manual',
                         note:           `Compra vía Wompi - Ref: ${wompiReference}`,

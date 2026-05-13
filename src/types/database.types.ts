@@ -275,6 +275,7 @@ export type Database = {
           status:              BookingStatus
           stars_spent:         number
           star_refunded:       boolean
+          payment_id:          string | null   // FK → payments.id (for Wompi bookings)
           cancelled_at:        string | null
           cancellation_reason: CancellationReason | null
           notes:               string | null
@@ -288,6 +289,7 @@ export type Database = {
           status?:             BookingStatus       // default: 'confirmed'
           stars_spent?:        number              // default: 1
           star_refunded?:      boolean             // default: false
+          payment_id?:         string | null
           cancelled_at?:       string | null
           cancellation_reason?:CancellationReason | null
           notes?:              string | null
@@ -341,6 +343,7 @@ export type Database = {
           member_id:      string
           amount:         number          // positive = credit, negative = debit
           type:           StarTransactionType
+          payment_id:     string | null   // FK → payments.id (for Wompi purchases)
           reference_id:   string | null   // bookings.id or class_sessions.id
           reference_type: StarReferenceType | null
           note:           string | null
@@ -352,6 +355,7 @@ export type Database = {
           member_id:      string
           amount:         number
           type:           StarTransactionType
+          payment_id?:    string | null
           reference_id?:  string | null
           reference_type?:StarReferenceType | null
           note?:          string | null
