@@ -21,6 +21,8 @@ export type WaitlistStatus      = 'waiting' | 'offered' | 'confirmed' | 'expired
 export type StarTransactionType = 'star_purchase' | 'booking_charged' | 'cancellation_refund' | 'admin_adjustment' | 'welcome_bonus'
 export type StarReferenceType   = 'booking' | 'session' | 'manual'
 export type WaitlistMinutes     = 0 | 15 | 30 | 45
+export type PaymentPurpose      = 'star_purchase' | 'class_booking'
+export type PaymentStatus       = 'pending' | 'approved' | 'declined' | 'voided' | 'error' | 'expired'
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 
@@ -379,6 +381,8 @@ export type Database = {
           notify_push:      boolean
           updated_at:       string
           updated_by:       string | null
+          star_price_cop:   number
+          class_price_cop:  number
         }
         Insert: {
           id?:              number
@@ -396,6 +400,8 @@ export type Database = {
           notify_push?:     boolean
           updated_at?:      string
           updated_by?:      string | null
+          star_price_cop?:  number
+          class_price_cop?: number
         }
         Update: {
           cancel_time?:     number
@@ -412,6 +418,50 @@ export type Database = {
           notify_push?:     boolean
           updated_at?:      string
           updated_by?:      string | null
+          star_price_cop?:  number
+          class_price_cop?: number
+        }
+      }
+
+      // ── payments ─────────────────────────────────────────────────
+      payments: {
+        Row: {
+          id:                   string
+          member_id:            string
+          wompi_reference:      string
+          wompi_transaction_id: string | null
+          purpose:              PaymentPurpose
+          status:               PaymentStatus
+          stars_to_credit:      number | null
+          session_id:           string | null
+          machine_id:           string | null
+          amount_in_cents:      number
+          currency:             string
+          wompi_payload:        any | null
+          created_at:           string
+          fulfilled_at:         string | null
+        }
+        Insert: {
+          id?:                   string
+          member_id:             string
+          wompi_reference:       string
+          wompi_transaction_id?: string | null
+          purpose:               PaymentPurpose
+          status?:               PaymentStatus
+          stars_to_credit?:      number | null
+          session_id?:           string | null
+          machine_id?:           string | null
+          amount_in_cents:       number
+          currency?:             string
+          wompi_payload?:        any | null
+          created_at?:           string
+          fulfilled_at?:         string | null
+        }
+        Update: {
+          wompi_transaction_id?: string | null
+          status?:               PaymentStatus
+          wompi_payload?:        any | null
+          fulfilled_at?:         string | null
         }
       }
     }
