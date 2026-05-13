@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
-import { processBooking, cancelBooking } from '@/app/actions/booking';
+import { processBooking, cancelBooking, getOccupiedMachines } from '@/app/actions/booking';
 
 const defaultAvatar = "/logo.png";
 
@@ -65,15 +65,9 @@ function BookingContent({ id }: { id: string }) {
             const { data: ms } = await supabase.from('machines').select('*').eq('active', true).order('number');
             if (ms) setMachineList(ms);
 
-            // 3. Fetch Occupied Machines
-            const { data: bks } = await supabase.from('bookings')
-                .select('machine_id')
-                .eq('session_id', id)
-                .in('status', ['confirmed']);
-            if (bks) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setOccupied((bks as any[]).map(b => b.machine_id));
-            }
+            // 3. Fetch Occupied Machines via server action to bypass RLS
+            const occupiedIds = await getOccupiedMachines(id);
+            setOccupied(occupiedIds);
 
             // 4. Fetch Logged-in User Profile Stars
             const { data: { user } } = await supabase.auth.getUser();
@@ -179,13 +173,13 @@ function BookingContent({ id }: { id: string }) {
     }
 
     return (
-        <PageTransition className="bg-surface-container-low text-on-surface min-h-screen pb-32 max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <PageTransition className="bg-surface-container-low text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
             {/* Policy Modal */}
             <AnimatePresence>
                 {showPolicyModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 w-full z-[120] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                        className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -214,7 +208,7 @@ function BookingContent({ id }: { id: string }) {
                 {paymentMethod && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 w-full z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -260,7 +254,7 @@ function BookingContent({ id }: { id: string }) {
                 {showWaitlistModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 w-full z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -292,7 +286,7 @@ function BookingContent({ id }: { id: string }) {
                 {showSuccessModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 w-full z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -319,7 +313,7 @@ function BookingContent({ id }: { id: string }) {
                 {showCancelModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-y-0 w-full z-[130] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm max-w-md mx-auto left-1/2 -translate-x-1/2"
+                        className="fixed inset-0 z-[130] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -378,107 +372,113 @@ function BookingContent({ id }: { id: string }) {
             </AnimatePresence>
 
             {/* View */}
-            <main className="pt-20 pb-28 px-6 space-y-8 max-w-md mx-auto">
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-3xl font-extrabold tracking-tight">{session.title}</h2>
-                            <p className="text-primary font-semibold text-lg">{instructorName}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                            <div className="bg-primary-container/10 px-4 py-2 rounded-full">
-                                <span className="text-primary font-bold text-sm">En Vivo</span>
+            <main className="pt-20 pb-28 px-6 space-y-8 md:space-y-0 max-w-md md:max-w-none mx-auto md:px-12 md:grid md:grid-cols-12 md:gap-12 md:items-start">
+                {/* Desktop Left Column: Details */}
+                <div className="md:col-span-7 space-y-8">
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-3xl font-extrabold tracking-tight">{session.title}</h2>
+                                <p className="text-primary font-semibold text-lg">{instructorName}</p>
                             </div>
-                            {userBookingStatusLabel && (
-                                <div className={`${userBookingBadgeClass} px-3 py-1 rounded-full`}>
-                                    <span className="font-black text-[10px] uppercase tracking-widest">{userBookingStatusLabel}</span>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="bg-primary-container/10 px-4 py-2 rounded-full">
+                                    <span className="text-primary font-bold text-sm">En Vivo</span>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden shadow-sm">
-                        <img className="w-full h-full object-cover" src="/gym.webp" alt="Class preview" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <div className="flex justify-between items-end">
-                        <h3 className="text-xl font-bold tracking-tight">Selecciona tu Máquina</h3>
-                        <span className="text-xs text-on-surface-variant font-medium">{isWaitlist ? "0 disponibles" : `${available} disponibles hoy`}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        {machineList.length > 0 ? machineList.map(m => {
-                            const isMyMachine = userBooking?.machine_id === m.id && userBooking?.status === 'confirmed';
-                            const isOccupied = occupied.includes(m.id) && !isMyMachine;
-                            return (
-                                <button
-                                    key={m.id}
-                                    disabled={isOccupied || isWaitlist || !canBook}
-                                    onClick={() => setSelected(m.id)}
-                                    className={`flex flex-col items-center justify-center p-6 rounded-lg shadow-sm transition-all ${
-                                        isMyMachine ? 'border-2 border-green-500 bg-green-50/50' : 
-                                        isOccupied || isWaitlist || !canBook ? 'bg-surface-container-low opacity-50' : 
-                                        (selected === m.id ? 'border-2 border-primary-container bg-white' : 'border-2 border-transparent bg-surface-container-lowest')
-                                    }`}
-                                >
-                                    <span className={`material-symbols-outlined text-3xl mb-2 ${isMyMachine ? 'text-green-600' : ''}`} style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) || isMyMachine ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
-                                    <span className="text-[11px] font-bold">{m.label}</span>
-                                    <span className={`text-[9px] uppercase tracking-wider font-black mt-1 ${isMyMachine ? 'text-green-600' : (isOccupied || isWaitlist ? 'text-primary' : 'text-primary')}`}>
-                                        {isMyMachine ? 'Tu Máquina' : (isOccupied || isWaitlist ? 'Ocupado' : 'Disponible')}
-                                    </span>
-                                </button>
-                            );
-                        }) : Array.from({ length: machinesCount || 5 }, (_, i) => i + 1).map(m => (
-                            <div key={m} className="flex flex-col items-center justify-center p-6 rounded-lg shadow-sm bg-surface-container-low opacity-50">
-                                <span className="text-[11px] font-bold">M-0{m}</span>
-                                <span className="text-[9px] uppercase tracking-wider text-error font-black mt-1">NO CONFIGURADA</span>
+                                {userBookingStatusLabel && (
+                                    <div className={`${userBookingBadgeClass} px-3 py-1 rounded-full`}>
+                                        <span className="font-black text-[10px] uppercase tracking-widest">{userBookingStatusLabel}</span>
+                                    </div>
+                                )}
                             </div>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="bg-surface-container-high/50 p-6 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-primary-container text-white w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full"><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span></div>
-                        <div><p className="font-bold text-lg leading-tight">Tienes {stars} Estrellitas</p></div>
-                    </div>
-                </section>
-
-                <section className="space-y-4 pb-12">
-                    {!canBook ? (
-                        <div className="flex flex-col gap-3">
-                            <div className="w-full h-auto min-h-[4rem] bg-surface-container-high text-on-surface-variant rounded-xl font-bold text-sm flex flex-col items-center justify-center shadow-inner p-3 text-center">
-                                 <span>{
-                                    isFinished && (!userBooking || userBooking.status === 'cancelled') ? 'Esta clase ya finalizó.' :
-                                    userBooking?.status === 'confirmed' ? (isFinished ? 'Clase completada. ¡Gracias por asistir!' : 'Ya estás inscrito en esta clase.') :
-                                    `Esta clase está ${userBookingStatusLabel.toLowerCase()}.`
-                                 }</span>
-                                 {userBooking?.status === 'confirmed' && userBooking?.machine_id && (
-                                     <span className="text-green-700 mt-1 uppercase tracking-wider text-[11px]">Máquina asignada: {machineList.find(m => m.id === userBooking.machine_id)?.label || userBooking.machine_id}</span>
-                                 )}
-                            </div>
-                            {userBooking?.status === 'confirmed' && !isFinished && (
-                                <button onClick={() => setShowCancelModal(true)} className="w-full py-4 border-2 border-error/30 text-error rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-error/5">
-                                    <span className="material-symbols-outlined text-lg">cancel</span> Cancelar Clase
-                                </button>
-                            )}
                         </div>
-                    ) : isWaitlist ? (
-                        <button onClick={() => setShowWaitlistModal(true)} className="w-full h-16 bg-surface-container-highest text-on-surface-variant rounded-xl font-bold text-lg shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95">
-                            <span className="material-symbols-outlined">group_add</span> Entrar a lista de espera
-                        </button>
-                    ) : (
-                        <>
-                            <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform" disabled={!selected}>
-                                <span className="material-symbols-outlined">payments</span> Pagar en Línea
+                        <div className="relative w-full h-48 md:h-96 rounded-2xl overflow-hidden shadow-sm border border-surface-container">
+                            <img className="w-full h-full object-cover" src="/gym.webp" alt="Class preview" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                        </div>
+                    </section>
+                </div>
+
+                {/* Desktop Right Column: Actions */}
+                <div className="md:col-span-5 space-y-8 md:sticky md:top-24 md:bg-white md:p-8 md:rounded-3xl md:shadow-sm md:border md:border-surface-container">
+                    <section className="space-y-4">
+                        <div className="flex justify-between items-end">
+                            <h3 className="text-xl font-bold tracking-tight">Selecciona tu Máquina</h3>
+                            <span className="text-xs text-on-surface-variant font-medium">{isWaitlist ? "0 disponibles" : `${available} disponibles hoy`}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            {machineList.length > 0 ? machineList.map(m => {
+                                const isMyMachine = userBooking?.machine_id === m.id && userBooking?.status === 'confirmed';
+                                const isOccupied = occupied.includes(m.id) && !isMyMachine;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        disabled={isOccupied || isWaitlist || !canBook}
+                                        onClick={() => setSelected(m.id)}
+                                        className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm transition-all ${
+                                            isMyMachine ? 'border-2 border-green-500 bg-green-50/50' : 
+                                            isOccupied || isWaitlist || !canBook ? 'bg-surface-container opacity-50 border border-transparent' : 
+                                            (selected === m.id ? 'border-2 border-primary-container bg-primary-container/5' : 'border border-surface-container bg-white hover:border-primary-container/30')
+                                        }`}
+                                    >
+                                        <span className={`material-symbols-outlined text-3xl mb-2 ${isMyMachine ? 'text-green-600' : ''}`} style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) || isMyMachine ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
+                                        <span className="text-[11px] font-bold">{m.label}</span>
+                                        <span className={`text-[9px] uppercase tracking-wider font-black mt-1 ${isMyMachine ? 'text-green-600' : (isOccupied || isWaitlist ? 'text-primary' : 'text-primary')}`}>
+                                            {isMyMachine ? 'Tu Máquina' : (isOccupied || isWaitlist ? 'Ocupado' : 'Disponible')}
+                                        </span>
+                                    </button>
+                                );
+                            }) : Array.from({ length: machinesCount || 5 }, (_, i) => i + 1).map(m => (
+                                <div key={m} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-surface-container bg-surface-container-low opacity-50">
+                                    <span className="text-[11px] font-bold">M-0{m}</span>
+                                    <span className="text-[9px] uppercase tracking-wider text-error font-black mt-1">NO CONFIGURADA</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="bg-surface-container-low md:bg-surface-container-lowest p-6 rounded-2xl border border-surface-container flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary-container text-white w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full"><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span></div>
+                            <div><p className="font-bold text-lg leading-tight">Tienes {stars} Estrellitas</p></div>
+                        </div>
+                    </section>
+
+                    <section className="space-y-4 pb-12 md:pb-0">
+                        {!canBook ? (
+                            <div className="flex flex-col gap-3">
+                                <div className="w-full h-auto min-h-[4rem] bg-surface-container text-on-surface-variant rounded-2xl font-bold text-sm flex flex-col items-center justify-center shadow-inner p-4 text-center">
+                                     <span>{
+                                        isFinished && (!userBooking || userBooking.status === 'cancelled') ? 'Esta clase ya finalizó.' :
+                                        userBooking?.status === 'confirmed' ? (isFinished ? 'Clase completada. ¡Gracias por asistir!' : 'Ya estás inscrito en esta clase.') :
+                                        `Esta clase está ${userBookingStatusLabel.toLowerCase()}.`
+                                     }</span>
+                                     {userBooking?.status === 'confirmed' && userBooking?.machine_id && (
+                                         <span className="text-green-700 mt-2 uppercase tracking-wider text-[11px]">Máquina asignada: {machineList.find(m => m.id === userBooking.machine_id)?.label || userBooking.machine_id}</span>
+                                     )}
+                                </div>
+                                {userBooking?.status === 'confirmed' && !isFinished && (
+                                    <button onClick={() => setShowCancelModal(true)} className="w-full py-5 border-2 border-error/30 text-error rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-error/5 hover:border-error/50">
+                                        <span className="material-symbols-outlined text-lg">cancel</span> Cancelar Clase
+                                    </button>
+                                )}
+                            </div>
+                        ) : isWaitlist ? (
+                            <button onClick={() => setShowWaitlistModal(true)} className="w-full h-16 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-lg shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:bg-surface-container-highest/80">
+                                <span className="material-symbols-outlined">group_add</span> Entrar a lista de espera
                             </button>
-                            <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-primary-container/15 text-on-primary-container rounded-xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform" disabled={!selected || stars < (session.stars_cost || 1)}>
-                                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Estrellitas
-                            </button>
-                        </>
-                    )}
-                </section>
+                        ) : (
+                            <>
+                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-transform" disabled={!selected}>
+                                    <span className="material-symbols-outlined">payments</span> Pagar en Línea
+                                </button>
+                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-surface-container-high" disabled={!selected || stars < (session.stars_cost || 1)}>
+                                    <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Estrellitas
+                                </button>
+                            </>
+                        )}
+                    </section>
+                </div>
             </main>
         </PageTransition>
     );

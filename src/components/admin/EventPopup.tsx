@@ -3,15 +3,18 @@
 import type { EventPopupData } from '@/lib/admin/types';
 import { CLASS_COLORS } from '@/lib/admin/constants';
 import { useAdmin } from '@/lib/admin/AdminContext';
+import { useState } from 'react';
 import AdminIcon from './AdminIcon';
 
 interface EventPopupProps {
   data: EventPopupData;
   onClose: () => void;
-  onDelete: (id: string) => void;
+  onCancel: (id: string) => void;
+  onView: (id: string) => void;
 }
 
-export default function EventPopup({ data, onClose, onDelete }: EventPopupProps) {
+export default function EventPopup({ data, onClose, onCancel, onView }: EventPopupProps) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const { event, pos } = data;
   const { instructors } = useAdmin();
   const instr = instructors.find((i) => i.id === event.instructor);
@@ -54,12 +57,21 @@ export default function EventPopup({ data, onClose, onDelete }: EventPopupProps)
         )}
 
         <div className="event-popup-actions">
-          <button className="popup-btn">
-            <AdminIcon name="edit" size={12} /> Editar
-          </button>
-          <button className="popup-btn danger" onClick={() => onDelete(event.id)}>
-            <AdminIcon name="trash" size={12} /> Eliminar
-          </button>
+          {confirmCancel ? (
+            <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+              <button className="popup-btn" style={{ flex: 1 }} onClick={() => setConfirmCancel(false)}>No</button>
+              <button className="popup-btn danger" style={{ flex: 1 }} onClick={() => onCancel(event.id)}>Sí, cancelar</button>
+            </div>
+          ) : (
+            <>
+              <button className="popup-btn" onClick={() => onView(event.id)}>
+                <AdminIcon name="eye" size={12} /> Ver Clase
+              </button>
+              <button className="popup-btn danger" onClick={() => setConfirmCancel(true)}>
+                <AdminIcon name="x" size={12} /> Cancelar
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

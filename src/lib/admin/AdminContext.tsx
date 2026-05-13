@@ -36,27 +36,30 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const refreshClasses = useCallback(async () => {
-    // Only grab classes where status is scheduled or in_progress (omit cancelled perhaps? or fetch all based on calendar logic)
     const { data } = await supabase
       .from('class_sessions')
-      .select('*, instructors(*)')
+      .select('*, instructors(*), bookings(status)')
       .neq('status', 'cancelled');
     
     if (data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setClasses((data as any[]).map((c) => ({
-        id: c.id,
-        title: c.title,
-        description: c.description ?? undefined,
-        instructor: (c.instructors as { id: string } | null)?.id ?? '',
-        time: c.start_time.substring(0, 5), // 'HH:MM:SS' to 'HH:MM'
-        duration: c.duration_minutes,
-        date: c.date,
-        color: c.color,
-        capacity: c.capacity,
-        enrolled: 0, 
-        recurring: !!c.recurrence_id
-      })));
+      setClasses((data as any[]).map((c) => {
+        const enrolledCount = c.bookings ? c.bookings.filter((b: any) => b.status === 'confirmed').length : 0;
+        return {
+          id: c.id,
+          title: c.title,
+          description: c.description ?? undefined,
+          instructor: (c.instructors as { id: string } | null)?.id ?? '',
+          time: c.start_time.substring(0, 5), // 'HH:MM:SS' to 'HH:MM'
+          duration: c.duration_minutes,
+          date: c.date,
+          color: c.color,
+          capacity: c.capacity,
+          enrolled: enrolledCount, 
+          recurring: !!c.recurrence_id,
+          status: c.status
+        };
+      }));
     }
   }, [supabase]);
 

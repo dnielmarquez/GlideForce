@@ -21,13 +21,19 @@ const EMPTY_FORM: ClassFormData = {
 };
 
 interface Props {
+  initialDate?: string;
+  initialTime?: string;
   onClose: () => void;
   onSave: (count: number) => void;
 }
 
-export default function CreateClassModal({ onClose, onSave }: Props) {
+export default function CreateClassModal({ initialDate, initialTime, onClose, onSave }: Props) {
   const { instructors, showToast } = useAdmin();
-  const [form, setForm] = useState<ClassFormData>(EMPTY_FORM);
+  const [form, setForm] = useState<ClassFormData>({
+    ...EMPTY_FORM,
+    startDate: initialDate || EMPTY_FORM.startDate,
+    time: initialTime || EMPTY_FORM.time,
+  });
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const supabase = createClient();
