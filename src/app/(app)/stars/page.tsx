@@ -5,9 +5,17 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
-import { purchaseStars } from '@/app/actions/stars';
+import { getStarPricing, initStarPurchase } from '@/app/actions/stars';
 
 export const dynamic = 'force-dynamic';
+
+// Extend window for Wompi widget type
+declare global {
+    interface Window {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        WidgetCheckout?: any;
+    }
+}
 
 export default function StarsPage() {
     const defaultAvatar = "/logo.png";
@@ -20,8 +28,27 @@ export default function StarsPage() {
     const [history, setHistory] = useState<any[]>([]);
     
     const [showTopUp, setShowTopUp] = useState(false);
-    const [topUpAmount, setTopUpAmount] = useState<number | ''>('');
+    const [quantity, setQuantity] = useState<number>(1);
+    const [priceCop, setPriceCop] = useState<number>(45000);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [widgetError, setWidgetError] = useState<string | null>(null);
+
+    // Load Wompi widget script once
+    useEffect(() => {
+        if (document.getElementById('wompi-widget-script')) return;
+        const script = document.createElement('script');
+        script.id = 'wompi-widget-script';
+        script.src = 'https://checkout.wompi.co/widget.js';
+        script.async = true;
+        document.head.appendChild(script);
+    }, []);
+
+    // Fetch star price from settings
+    useEffect(() => {
+        getStarPricing().then(result => {
+            if ('priceCop' in result) setPriceCop(result.priceCop);
+        });
+    }, []);
 
     // Fetch Database Data Natively
     const loadData = useCallback(async () => {
@@ -128,19 +155,52 @@ export default function StarsPage() {
         scrollRef.current.scrollLeft = scrollLeft - walk;
     };
 
-    const handlePurchase = async () => {
-        if (!topUpAmount || topUpAmount <= 0) return;
+    const totalCop = quantity * priceCop;
+
+    const handleOpenWompi = async () => {
+        if (!quantity || quantity < 1) return;
         setIsProcessing(true);
-        const result = await purchaseStars(Number(topUpAmount));
-        setIsProcessing(false);
-        if (result.error) {
-            alert(result.error);
-        } else {
-            setShowTopUp(false);
-            setTopUpAmount('');
-            loadData(); // Re-sync local cache instantly
+        setWidgetError(null);
+
+        const result = await initStarPurchase(quantity);
+
+        if ('error' in result) {
+            setWidgetError(result.error);
+            setIsProcessing(false);
+            return;
         }
+
+        if (!window.WidgetCheckout) {
+            setWidgetError('La pasarela de pago no está disponible. Recarga la página.');
+            setIsProcessing(false);
+            return;
+        }
+
+        const redirectUrl = `${window.location.origin}/payment/result?ref=${result.reference}`;
+
+        const checkout = new window.WidgetCheckout({
+            currency:          result.currency,
+            amountInCents:     result.amountInCents,
+            reference:         result.reference,
+            publicKey:         result.publicKey,
+            signature:         { integrity: result.integrityHash },
+            redirectUrl:       redirectUrl,
+        });
+
+        checkout.open((response: { transaction: { status: string; reference: string } }) => {
+            setIsProcessing(false);
+            const { transaction } = response;
+            if (transaction?.status === 'APPROVED') {
+                router.push(`/payment/result?ref=${transaction.reference}`);
+            } else if (transaction?.reference) {
+                router.push(`/payment/result?ref=${transaction.reference}`);
+            }
+            // If user closed without paying, just stay on the page
+        });
     };
+
+    const formatCop = (value: number) =>
+        new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
 
     return (
         <PageTransition className="bg-surface-container-low text-on-background font-body min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
@@ -161,9 +221,9 @@ export default function StarsPage() {
                                 <p className="text-sm text-on-surface-variant/70 mt-3 font-medium leading-snug max-w-[200px]">Equivale a {balance} sesiones de entrenamiento personal</p>
                             </div>
                         </div>
-                        <button onClick={() => setShowTopUp(true)} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <button onClick={() => { setShowTopUp(true); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-                            Recargar Estrellitas
+                            Comprar Estrellitas
                         </button>
                     </section>
                 </div>
@@ -226,6 +286,7 @@ export default function StarsPage() {
                 </div>
             </main>
 
+            {/* ── Top-Up Bottom Sheet ─────────────────────────────────────────── */}
             <AnimatePresence>
                 {showTopUp && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
@@ -233,30 +294,57 @@ export default function StarsPage() {
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
                                     <h3 className="text-2xl font-black text-on-surface">Comprar Estrellitas</h3>
-                                    <p className="text-on-surface-variant text-sm font-medium">Recarga tu cuenta de manera instantánea vía pago simualdo.</p>
+                                    <p className="text-on-surface-variant text-sm font-medium">{formatCop(priceCop)} por estrellita</p>
                                 </div>
                                 <button onClick={() => setShowTopUp(false)} className="bg-surface-container-low text-on-surface-variant p-2 rounded-full hover:bg-surface-container transition-colors">
                                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>close</span>
                                 </button>
                             </div>
                             
-                            <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">Cantidad de Estrellitas</label>
-                                    <input 
-                                        type="number" 
-                                        placeholder="Ej: 5" 
-                                        value={topUpAmount} 
-                                        onChange={(e) => setTopUpAmount(parseInt(e.target.value) || '')} 
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none"
-                                    />
+                            <div className="space-y-5">
+                                {/* Quantity Stepper */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cantidad de Estrellitas</label>
+                                    <div className="flex items-center gap-4 bg-surface-container-low rounded-full px-4 py-2 border border-surface-container-high">
+                                        <button
+                                            onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-surface-container text-on-surface font-bold text-xl hover:bg-surface-container transition-colors disabled:opacity-40"
+                                            disabled={quantity <= 1}
+                                        >
+                                            −
+                                        </button>
+                                        <span className="flex-1 text-center text-3xl font-black text-on-surface">{quantity}</span>
+                                        <button
+                                            onClick={() => setQuantity(q => q + 1)}
+                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-container text-white font-bold text-xl hover:bg-primary-container/90 transition-colors"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Price Preview */}
+                                <div className="bg-surface-container-low rounded-2xl px-6 py-4 flex items-center justify-between border border-surface-container">
+                                    <span className="text-sm text-on-surface-variant font-medium">Total a pagar</span>
+                                    <span className="text-xl font-black text-on-surface">{formatCop(totalCop)}</span>
+                                </div>
+
+                                {/* Error */}
+                                {widgetError && (
+                                    <p className="text-red-500 text-sm font-medium text-center">{widgetError}</p>
+                                )}
+
+                                {/* CTA */}
                                 <button
-                                    onClick={handlePurchase}
-                                    disabled={!topUpAmount || topUpAmount <= 0 || isProcessing}
-                                    className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-transform disabled:opacity-50 mt-4"
+                                    id="btn-comprar-estrellitas"
+                                    onClick={handleOpenWompi}
+                                    disabled={isProcessing}
+                                    className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    {isProcessing ? 'Procesando...' : 'Pagar en Línea'}
+                                    {isProcessing
+                                        ? <><span className="material-symbols-outlined animate-spin text-xl">progress_activity</span> Preparando pago...</>
+                                        : <><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span> Pagar con Wompi</>
+                                    }
                                 </button>
                             </div>
                         </motion.div>

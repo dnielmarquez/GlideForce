@@ -6,6 +6,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { processBooking, cancelBooking, getOccupiedMachines } from '@/app/actions/booking';
+import { initiateBookingPayment } from '@/app/actions/payments';
+
+// Extend window for Wompi widget
+declare global { interface Window { WidgetCheckout?: any; } }
 
 const defaultAvatar = "/logo.png";
 
@@ -35,6 +39,17 @@ function BookingContent({ id }: { id: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [selected, setSelected] = useState<string | null>(null);
+    const [wompiError, setWompiError] = useState<string | null>(null);
+
+    // Load Wompi widget script once
+    useEffect(() => {
+        if (document.getElementById('wompi-widget-script')) return;
+        const s = document.createElement('script');
+        s.id = 'wompi-widget-script';
+        s.src = 'https://checkout.wompi.co/widget.js';
+        s.async = true;
+        document.head.appendChild(s);
+    }, []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -76,9 +91,11 @@ function BookingContent({ id }: { id: string }) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setStars((profile as any)?.stars_balance || 0);
 
-                const { data: myBookings } = await supabase.from('bookings').select('status, machine_id').eq('session_id', id).eq('member_id', user.id);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data: myBookings } = await (supabase as any).from('bookings').select('status, machine_id').eq('session_id', id).eq('member_id', user.id);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 if (myBookings && myBookings.length > 0) {
-                    const active = myBookings.find(b => b.status !== 'cancelled');
+                    const active = (myBookings as any[]).find((b: any) => b.status !== 'cancelled');
                     if (active) setUserBooking(active);
                 }
             } else {
@@ -116,12 +133,43 @@ function BookingContent({ id }: { id: string }) {
 
     const handleConfirmBooking = async () => {
         if (!selected || !paymentMethod) return;
+        setWompiError(null);
+
+        if (paymentMethod === 'online') {
+            setIsProcessing(true);
+            const res = await initiateBookingPayment(id, selected);
+            setIsProcessing(false);
+
+            if ('error' in res) { setWompiError(res.error); return; }
+
+            if (!window.WidgetCheckout) {
+                setWompiError('La pasarela de pago no está disponible. Recarga la página.');
+                return;
+            }
+
+            const redirectUrl = `${window.location.origin}/payment/result?ref=${res.reference}`;
+            const checkout = new window.WidgetCheckout({
+                currency:      res.currency,
+                amountInCents: res.amountInCents,
+                reference:     res.reference,
+                publicKey:     res.publicKey,
+                signature:     { integrity: res.integrityHash },
+                redirectUrl,
+            });
+            checkout.open((response: { transaction: { status: string; reference: string } }) => {
+                const ref = response?.transaction?.reference;
+                if (ref) router.push(`/payment/result?ref=${ref}`);
+            });
+            setPaymentMethod(null);
+            return;
+        }
+
+        // Stars payment
         setIsProcessing(true);
-        const res = await processBooking(id, selected, paymentMethod, isWaitlist);
+        const res = await processBooking(id, selected, 'stars', isWaitlist);
         setIsProcessing(false);
-        
-        if (res.error) {
-            alert(res.error); // Basic fallback for UI notifications
+        if ('error' in res && res.error) {
+            alert(res.error);
         } else {
             setPaymentMethod(null);
             setShowSuccessModal(true);
@@ -224,11 +272,14 @@ function BookingContent({ id }: { id: string }) {
                             <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
                                 {paymentMethod === 'stars'
                                     ? <>Al confirmar, descontaremos <strong className="text-on-surface">{session.stars_cost || 1} estrellita</strong>.<br /></>
-                                    : <>Serás redirigido a nuestra pasarela de pago para adquirir esta clase.<br /></>
+                                    : <>Serás redirigido a la pasarela de pago seguro Wompi.<br /></>
                                 }
                                 Asegúrate de leer las <br />
                                 <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
                             </p>
+                            {wompiError && (
+                                <p className="text-red-500 text-sm font-medium mb-4 bg-red-50 p-3 rounded-xl">{wompiError}</p>
+                            )}
                             <div className="w-full space-y-3">
                                 <button 
                                     className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 active:scale-95 transition-transform disabled:opacity-50" 

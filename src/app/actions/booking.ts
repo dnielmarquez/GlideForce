@@ -20,7 +20,7 @@ export async function getOccupiedMachines(sessionId: string) {
 export async function processBooking(
     sessionId: string,
     machineId: string,
-    paymentMethod: 'stars' | 'online',
+    paymentMethod: 'stars',
     isWaitlist: boolean
 ) {
     const supabase = await createClient();
@@ -55,7 +55,7 @@ export async function processBooking(
             return { error: 'Lo sentimos, esta máquina acaba de ser reservada por alguien más.' };
         }
 
-        // 4. Process Payment Modality
+        // 4. Process Payment — stars only (online is handled via Wompi webhook)
         if (paymentMethod === 'stars') {
             // Check literal balance natively in DB
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -267,4 +267,50 @@ export async function adminCancelClass(sessionId: string) {
         console.error('Admin Cancel Error: ', e);
         return { error: 'Ocurrió un error al cancelar la clase y procesar reembolsos.' };
     }
+}
+
+/**
+ * Called exclusively by the Wompi webhook handler after a confirmed
+ * APPROVED transaction event. Creates the booking row for an online payment.
+ *
+ * @param paymentId   - UUID of the payments row
+ * @param memberId    - UUID of the member
+ * @param sessionId   - UUID of the class_sessions row
+ * @param machineId   - UUID of the machines row
+ */
+export async function fulfillBookingFromWebhook(
+    paymentId: string,
+    memberId: string,
+    sessionId: string,
+    machineId: string
+) {
+    const adminSupabase = createAdminClient();
+
+    // Fetch session for stars_cost (0 for online payments — already paid in COP)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: session } = await (adminSupabase as any)
+        .from('class_sessions')
+        .select('stars_cost')
+        .eq('id', sessionId)
+        .single();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: bookingErr } = await (adminSupabase as any)
+        .from('bookings')
+        .insert({
+            session_id:  sessionId,
+            member_id:   memberId,
+            machine_id:  machineId,
+            status:      'confirmed',
+            stars_spent: 0,                         // Paid in COP, not stars
+            payment_id:  paymentId,                 // Link back to payments table
+        });
+
+    if (bookingErr) {
+        console.error('[fulfillBookingFromWebhook] Failed to insert booking:', bookingErr);
+        throw bookingErr;
+    }
+
+    revalidatePath('/classes');
+    revalidatePath(`/booking/${sessionId}`);
 }
