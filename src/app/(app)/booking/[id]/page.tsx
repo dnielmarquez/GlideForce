@@ -41,15 +41,7 @@ function BookingContent({ id }: { id: string }) {
     const [selected, setSelected] = useState<string | null>(null);
     const [wompiError, setWompiError] = useState<string | null>(null);
 
-    // Load Wompi widget script once
-    useEffect(() => {
-        if (document.getElementById('wompi-widget-script')) return;
-        const s = document.createElement('script');
-        s.id = 'wompi-widget-script';
-        s.src = 'https://checkout.wompi.co/widget.js';
-        s.async = true;
-        document.head.appendChild(s);
-    }, []);
+    // Wompi script is loaded lazily when the user confirms online payment (see handleConfirmBooking)
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -141,6 +133,22 @@ function BookingContent({ id }: { id: string }) {
             setIsProcessing(false);
 
             if ('error' in res) { setWompiError(res.error); return; }
+
+            // Load Wompi script lazily — only now that we have a real publicKey
+            await new Promise<void>((resolve) => {
+                if (window.WidgetCheckout) { resolve(); return; }
+                const existing = document.getElementById('wompi-widget-script');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(), { once: true });
+                    return;
+                }
+                const s = document.createElement('script');
+                s.id = 'wompi-widget-script';
+                s.src = 'https://checkout.wompi.co/widget.js';
+                s.async = true;
+                s.onload = () => resolve();
+                document.head.appendChild(s);
+            });
 
             if (!window.WidgetCheckout) {
                 setWompiError('La pasarela de pago no está disponible. Recarga la página.');

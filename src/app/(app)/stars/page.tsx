@@ -33,15 +33,7 @@ export default function StarsPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [widgetError, setWidgetError] = useState<string | null>(null);
 
-    // Load Wompi widget script once
-    useEffect(() => {
-        if (document.getElementById('wompi-widget-script')) return;
-        const script = document.createElement('script');
-        script.id = 'wompi-widget-script';
-        script.src = 'https://checkout.wompi.co/widget.js';
-        script.async = true;
-        document.head.appendChild(script);
-    }, []);
+    // Wompi script is loaded lazily when the user clicks to pay (see handleOpenWompi)
 
     // Fetch star price from settings
     useEffect(() => {
@@ -170,6 +162,22 @@ export default function StarsPage() {
             return;
         }
 
+        // Load Wompi script lazily — only now that we have a real publicKey
+        await new Promise<void>((resolve) => {
+            if (window.WidgetCheckout) { resolve(); return; }
+            const existing = document.getElementById('wompi-widget-script');
+            if (existing) {
+                existing.addEventListener('load', () => resolve(), { once: true });
+                return;
+            }
+            const script = document.createElement('script');
+            script.id = 'wompi-widget-script';
+            script.src = 'https://checkout.wompi.co/widget.js';
+            script.async = true;
+            script.onload = () => resolve();
+            document.head.appendChild(script);
+        });
+
         if (!window.WidgetCheckout) {
             setWidgetError('La pasarela de pago no está disponible. Recarga la página.');
             setIsProcessing(false);
@@ -190,9 +198,7 @@ export default function StarsPage() {
         checkout.open((response: { transaction: { status: string; reference: string } }) => {
             setIsProcessing(false);
             const { transaction } = response;
-            if (transaction?.status === 'APPROVED') {
-                router.push(`/payment/result?ref=${transaction.reference}`);
-            } else if (transaction?.reference) {
+            if (transaction?.reference) {
                 router.push(`/payment/result?ref=${transaction.reference}`);
             }
             // If user closed without paying, just stay on the page
