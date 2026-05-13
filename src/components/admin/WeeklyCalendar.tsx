@@ -16,7 +16,7 @@ interface WeeklyCalendarProps {
 }
 
 export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEventClick }: WeeklyCalendarProps) {
-  const today = new Date('2026-04-20');
+  const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + i);

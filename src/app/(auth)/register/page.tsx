@@ -62,62 +62,78 @@ export default function RegisterPage() {
     // ── Email confirmation screen ──────────────────────────────────────────────
     if (state === 'success') {
         return (
-            <PageTransition className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
-                <LogoHeader subtitle="Casi listo" />
-                <main className="flex-grow px-8 pb-12 flex flex-col items-center justify-center">
-                    <div className="w-full max-w-md space-y-6 text-center">
-                        {/* Icon */}
-                        <div className="mx-auto w-20 h-20 rounded-full bg-orange-50 flex items-center justify-center border-2 border-orange-100">
-                            <span className="material-symbols-outlined text-primary-container" style={{ fontSize: 40 }}>mark_email_unread</span>
-                        </div>
+            <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+                {/* Desktop Left Column */}
+                <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+                    <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">GlideForce</h1>
+                    <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
+                        Únete a nuestra comunidad.
+                    </p>
+                </div>
 
-                        <div className="space-y-2">
-                            <h2 className="text-2xl font-black tracking-tight text-on-surface">Revisa tu correo</h2>
-                            <p className="text-on-surface-variant text-sm leading-relaxed max-w-xs mx-auto">
-                                Enviamos un enlace de verificación a{' '}
-                                <span className="font-bold text-on-surface">{registeredEmail}</span>.
-                                Haz clic en el enlace para activar tu cuenta.
-                            </p>
-                        </div>
-
-                        <div className="bg-surface-container-low rounded-2xl p-5 text-left space-y-3 border border-surface-container text-sm text-on-surface-variant">
-                            <div className="flex items-start gap-3">
-                                <span className="material-symbols-outlined text-primary-container text-base mt-0.5">inbox</span>
-                                <p>Revisa tu bandeja de entrada y la carpeta de spam.</p>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <span className="material-symbols-outlined text-primary-container text-base mt-0.5">schedule</span>
-                                <p>El enlace expira en 24 horas.</p>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <span className="material-symbols-outlined text-primary-container text-base mt-0.5">lock_open</span>
-                                <p>Una vez verificado, podrás iniciar sesión normalmente.</p>
-                            </div>
-                        </div>
-
-                        <Link
-                            href="/login"
-                            className="inline-flex items-center gap-2 text-primary-container font-bold text-sm hover:underline"
-                        >
-                            <span className="material-symbols-outlined text-sm">arrow_back</span>
-                            Volver al inicio de sesión
-                        </Link>
+                {/* Mobile Header & Main Area */}
+                <div className="flex flex-col flex-grow bg-white">
+                    <div className="md:hidden">
+                        <LogoHeader subtitle="Verifica tu correo" />
                     </div>
-                </main>
-                <footer className="h-12 w-full flex items-center justify-center bg-white">
-                    <div className="w-32 h-1 bg-surface-container-high rounded-full opacity-50" />
-                </footer>
+                    <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
+                        <div className="hidden md:block text-center mb-8 mt-8">
+                            <h2 className="text-3xl font-black text-on-surface">Verifica tu correo</h2>
+                        </div>
+                        <div className="w-full max-w-md mx-auto space-y-6 text-center">
+                            <div className="bg-primary-container/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 animate-in zoom-in duration-500">
+                                <span className="material-symbols-outlined text-primary-container text-5xl">mark_email_unread</span>
+                            </div>
+                            <h2 className="text-2xl font-black text-on-surface">Revisa tu bandeja</h2>
+                            <p className="text-on-surface-variant font-medium leading-relaxed">
+                                Hemos enviado un enlace de confirmación a <span className="font-bold text-on-surface">{registeredEmail}</span>. Por favor, haz clic en él para activar tu cuenta.
+                            </p>
+                            <div className="pt-8">
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center gap-2 text-primary-container font-bold text-sm hover:underline"
+                                >
+                                    <span className="material-symbols-outlined text-sm">arrow_back</span>
+                                    Volver al inicio de sesión
+                                </Link>
+                            </div>
+                        </div>
+                    </main>
+                    <footer className="md:hidden h-12 w-full flex items-center justify-center bg-white mt-auto shrink-0">
+                        <div className="w-32 h-1 bg-surface-container-high rounded-full opacity-50" />
+                    </footer>
+                </div>
             </PageTransition>
         );
     }
 
     // ── Registration form ──────────────────────────────────────────────────────
     return (
-        <PageTransition className="min-h-screen flex flex-col bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden">
-            <LogoHeader subtitle="Crea tu cuenta" />
-            <main className="flex-grow px-8 pb-12">
-                <div className="max-w-md mx-auto space-y-8">
-                    <section className="bg-white p-8 rounded-2xl ios-shadow space-y-5 border border-surface-container">
+        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+            {/* Desktop Left Column */}
+            <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">GlideForce</h1>
+                <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
+                    Crea tu cuenta y comienza a reservar tus clases hoy mismo.
+                </p>
+            </div>
+
+            {/* Mobile Header & Main Form Area */}
+            <div className="flex flex-col flex-grow bg-white max-h-screen overflow-y-auto">
+                <div className="md:hidden">
+                    <LogoHeader subtitle="Crea tu cuenta" />
+                </div>
+                <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
+                    <div className="w-full max-w-md mx-auto space-y-8 mt-8 md:mt-0">
+                        {/* Title for desktop only */}
+                        <div className="hidden md:block text-center mb-8">
+                            <h2 className="text-3xl font-black text-on-surface">Registrarse</h2>
+                            <p className="text-on-surface-variant font-medium mt-2">Crea tu cuenta en GlideForce</p>
+                        </div>
+
+                        <section className="bg-white p-8 rounded-2xl ios-shadow space-y-5 border border-surface-container">
 
                         {/* Error banner */}
                         {error && (
@@ -259,19 +275,20 @@ export default function RegisterPage() {
                         </form>
                     </section>
 
-                    <div className="text-center">
-                        <p className="text-on-surface-variant font-medium text-sm">
-                            ¿Ya tienes cuenta?{' '}
-                            <Link className="text-primary-container font-bold hover:underline ml-1" href="/login">
-                                Inicia Sesión
-                            </Link>
-                        </p>
+                        <div className="text-center">
+                            <p className="text-on-surface-variant font-medium text-sm">
+                                ¿Ya tienes cuenta?{' '}
+                                <Link className="text-primary-container font-bold hover:underline ml-1" href="/login">
+                                    Inicia Sesión
+                                </Link>
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </main>
-            <footer className="h-12 w-full flex items-center justify-center bg-white">
-                <div className="w-32 h-1 bg-surface-container-high rounded-full opacity-50" />
-            </footer>
+                </main>
+                <footer className="md:hidden h-12 w-full flex items-center justify-center bg-white mt-auto shrink-0">
+                    <div className="w-32 h-1 bg-surface-container-high rounded-full opacity-50" />
+                </footer>
+            </div>
         </PageTransition>
     );
 }

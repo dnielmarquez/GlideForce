@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Member, MemberFormData } from '@/lib/admin/types';
-import { MEMBER_HISTORY, MEMBER_UPCOMING } from '@/lib/admin/data';
+import { createClient } from '@/utils/supabase/client';
 import AdminIcon from './AdminIcon';
 
 interface Props {
@@ -26,8 +26,72 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
   const set = <K extends keyof MemberFormData>(k: K, v: MemberFormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const history  = MEMBER_HISTORY[member.id]  ?? [];
-  const upcoming = MEMBER_UPCOMING[member.id] ?? [];
+  const [history, setHistory] = useState<any[]>([]);
+  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+
+  useEffect(() => {
+    async function loadBookings() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          status,
+          stars_spent,
+          machine_id,
+          machines ( label ),
+          class_sessions (
+            title,
+            date,
+            start_time,
+            instructors ( name )
+          )
+        `)
+        .eq('member_id', member.id);
+
+      if (data && !error) {
+         const now = new Date();
+         const upc: any[] = [];
+         const hist: any[] = [];
+         
+         data.forEach((b: any) => {
+           const session = b.class_sessions;
+           if (!session) return;
+           const sessionDate = new Date(`${session.date}T${session.start_time}`);
+           const machineLabel = b.machines?.label || 'Máquina no asig.';
+           
+           const item = {
+             id: b.id,
+             title: session.title,
+             instructor: session.instructors?.name || 'Instructor',
+             date: session.date,
+             time: session.start_time.substring(0, 5),
+             machine: machineLabel,
+             status: b.status,
+             stars: b.stars_spent || 0
+           };
+           
+           if (b.status === 'confirmed' && sessionDate >= now) {
+             upc.push(item);
+           } else {
+             if (b.status === 'completed' || (b.status === 'confirmed' && sessionDate < now)) item.status = 'completada';
+             else if (b.status === 'cancelled') item.status = 'cancelada';
+             else if (b.status === 'no_show') item.status = 'inasistencia';
+             hist.push(item);
+           }
+         });
+         
+         upc.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+         hist.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+         
+         setUpcoming(upc);
+         setHistory(hist);
+      }
+      setLoadingBookings(false);
+    }
+    loadBookings();
+  }, [member.id]);
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -166,6 +230,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
             </div>
 
             {histTab === 'upcoming' && (
+              loadingBookings ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Cargando clases...</div> :
               upcoming.length === 0
                 ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Sin clases reservadas próximamente</div>
                 : upcoming.map((c, i) => (
@@ -185,6 +250,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
             )}
 
             {histTab === 'history' && (
+              loadingBookings ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Cargando clases...</div> :
               history.length === 0
                 ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Sin historial de clases</div>
                 : history.map((c) => (

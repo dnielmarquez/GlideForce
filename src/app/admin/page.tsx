@@ -8,21 +8,24 @@ import CalendarHeader from '@/components/admin/CalendarHeader';
 import WeeklyCalendar from '@/components/admin/WeeklyCalendar';
 import MonthlyCalendar from '@/components/admin/MonthlyCalendar';
 import CreateClassModal from '@/components/admin/CreateClassModal';
+import ViewClassModal from '@/components/admin/ViewClassModal';
 import EventPopup from '@/components/admin/EventPopup';
 import Toast from '@/components/admin/Toast';
 import type { GFClass, EventPopupData } from '@/lib/admin/types';
 import { weekLabel, monthLabel, getWeekStart } from '@/lib/admin/utils';
+import { adminCancelClass } from '@/app/actions/booking';
 
-const TODAY = new Date('2026-04-20');
+const TODAY = new Date();
 
 export default function AdminDashboard() {
   const { classes, refreshClasses, toast, showToast } = useAdmin();
 
   const [calView, setCalView] = useState<'week' | 'month'>('week');
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
-  const [monthView, setMonthView] = useState({ year: 2026, month: 3 }); // April (0-indexed)
-  const [showModal, setShowModal] = useState(false);
+  const [monthView, setMonthView] = useState({ year: TODAY.getFullYear(), month: TODAY.getMonth() });
+  const [createModalData, setCreateModalData] = useState<{ date?: string; time?: string } | null>(null);
   const [popup, setPopup] = useState<EventPopupData | null>(null);
+  const [viewingClassId, setViewingClassId] = useState<string | null>(null);
 
   // ── Navigation ──────────────────────────────────────────────────────────
   const navWeek = (dir: number) => {
@@ -41,7 +44,7 @@ export default function AdminDashboard() {
   };
   const goToday = () => {
     setWeekStart(getWeekStart(TODAY));
-    setMonthView({ year: 2026, month: 3 });
+    setMonthView({ year: TODAY.getFullYear(), month: TODAY.getMonth() });
   };
 
   // ── Stats ────────────────────────────────────────────────────────────────
@@ -56,21 +59,25 @@ export default function AdminDashboard() {
 
   // ── Event handlers ───────────────────────────────────────────────────────
   const handleSave = async (count: number) => {
-    setShowModal(false);
+    setCreateModalData(null);
     await refreshClasses();
     showToast(`✓ ${count} clase${count !== 1 ? 's' : ''} creada${count !== 1 ? 's' : ''} en el calendario`);
   };
 
-  const handleDelete = async (id: string) => {
-    const supabase = createClient();
-    const { error } = await supabase.from('class_sessions').delete().eq('id', id);
-    if (!error) {
+  const handleCancel = async (id: string) => {
+    const res = await adminCancelClass(id);
+    if (res.success) {
       setPopup(null);
       await refreshClasses();
-      showToast('Clase eliminada del calendario');
+      showToast('Clase cancelada y estrellas reembolsadas');
     } else {
-      showToast('Error: ' + error.message);
+      showToast('Error: ' + res.error);
     }
+  };
+
+  const handleView = (id: string) => {
+    setPopup(null);
+    setViewingClassId(id);
   };
 
   const handleEventClick = (cls: GFClass, e: React.MouseEvent) => {
@@ -102,16 +109,29 @@ export default function AdminDashboard() {
         onPrev={() => calView === 'week' ? navWeek(-1) : navMonth(-1)}
         onNext={() => calView === 'week' ? navWeek(1)  : navMonth(1)}
         onToday={goToday}
-        onNewClass={() => setShowModal(true)}
+        onNewClass={() => setCreateModalData({})}
       />
 
       {calView === 'week'
-        ? <WeeklyCalendar weekStart={weekStart} classes={classes} onCellClick={() => setShowModal(true)} onEventClick={handleEventClick} />
-        : <MonthlyCalendar year={monthView.year} month={monthView.month} classes={classes} onDayClick={() => setShowModal(true)} onEventClick={handleEventClick} />
+        ? <WeeklyCalendar weekStart={weekStart} classes={classes} onCellClick={(d, h) => {
+            const dateStr = d.toISOString().split('T')[0];
+            const timeStr = h.toString().padStart(2, '0') + ':00';
+            setCreateModalData({ date: dateStr, time: timeStr });
+          }} onEventClick={handleEventClick} />
+        : <MonthlyCalendar year={monthView.year} month={monthView.month} classes={classes} onDayClick={(d) => {
+            const dateStr = d.toISOString().split('T')[0];
+            setCreateModalData({ date: dateStr, time: '10:00' });
+          }} onEventClick={handleEventClick} />
       }
 
-      {showModal && <CreateClassModal onClose={() => setShowModal(false)} onSave={handleSave} />}
-      {popup && <EventPopup data={popup} onClose={() => setPopup(null)} onDelete={handleDelete} />}
+      {createModalData && <CreateClassModal 
+        initialDate={createModalData.date} 
+        initialTime={createModalData.time} 
+        onClose={() => setCreateModalData(null)} 
+        onSave={handleSave} 
+      />}
+      {popup && <EventPopup data={popup} onClose={() => setPopup(null)} onCancel={handleCancel} onView={handleView} />}
+      {viewingClassId && <ViewClassModal classId={viewingClassId} onClose={() => setViewingClassId(null)} />}
       <Toast toast={toast} />
     </>
   );

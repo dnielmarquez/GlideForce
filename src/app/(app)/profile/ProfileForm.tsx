@@ -156,10 +156,10 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
             )}
 
             {/* Fields */}
-            <div className="space-y-5">
+            <div className="space-y-5 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
 
                 {/* Editable: Full Name */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-1">
                     <label className="block text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant ml-1">
                         Nombre Completo
                     </label>
@@ -176,7 +176,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
                 </div>
 
                 {/* Editable: Phone */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-1">
                     <label className="block text-[0.6875rem] font-bold uppercase tracking-widest text-on-surface-variant ml-1">
                         Celular
                     </label>
@@ -205,11 +205,13 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
                 />
 
                 {/* Read-only: Status */}
-                <ReadOnlyField
-                    label="Estado de cuenta"
-                    value={profile.status === 'active' ? 'Activo' : 'Inactivo'}
-                    icon="verified_user"
-                />
+                <div className="md:col-span-2">
+                    <ReadOnlyField
+                        label="Estado de cuenta"
+                        value={profile.status === 'active' ? 'Activo' : 'Inactivo'}
+                        icon="verified_user"
+                    />
+                </div>
             </div>
 
             {/* Actions */}

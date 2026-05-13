@@ -13,7 +13,7 @@ interface MonthlyCalendarProps {
 }
 
 export default function MonthlyCalendar({ year, month, classes, onDayClick, onEventClick }: MonthlyCalendarProps) {
-  const today = new Date('2026-04-20');
+  const today = new Date();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const startPad = firstDay.getDay();

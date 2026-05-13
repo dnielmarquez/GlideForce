@@ -4,6 +4,19 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
+export async function getOccupiedMachines(sessionId: string) {
+    const adminSupabase = createAdminClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (adminSupabase as any)
+        .from('bookings')
+        .select('machine_id')
+        .eq('session_id', sessionId)
+        .in('status', ['confirmed']);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data ? (data as any[]).map((b) => b.machine_id) : [];
+}
+
 export async function processBooking(
     sessionId: string,
     machineId: string,
@@ -186,5 +199,72 @@ export async function cancelBooking(sessionId: string) {
     } catch (e) {
         console.error('Cancellation Error: ', e);
         return { error: 'Ocurrió un error al cancelar la reserva.' };
+    }
+}
+
+export async function adminCancelClass(sessionId: string) {
+    const adminSupabase = createAdminClient();
+
+    try {
+        // 1. Mark session as cancelled
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: sessErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .update({ status: 'cancelled' })
+            .eq('id', sessionId);
+        if (sessErr) throw sessErr;
+
+        // 2. Fetch all confirmed bookings for this session
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: bookings, error: bksErr } = await (adminSupabase as any)
+            .from('bookings')
+            .select('id, member_id, stars_spent')
+            .eq('session_id', sessionId)
+            .in('status', ['confirmed']);
+        
+        if (bksErr) throw bksErr;
+
+        if (bookings && bookings.length > 0) {
+            // 3. Mark all those bookings as cancelled
+            const bookingIds = bookings.map((b: any) => b.id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: updErr } = await (adminSupabase as any)
+                .from('bookings')
+                .update({ 
+                    status: 'cancelled',
+                    cancellation_reason: 'admin',
+                    star_refunded: true,
+                    cancelled_at: new Date().toISOString()
+                })
+                .in('id', bookingIds);
+            if (updErr) throw updErr;
+
+            // 4. Refund stars for each booking
+            const transactions = bookings.filter((b: any) => b.stars_spent > 0).map((b: any) => ({
+                member_id: b.member_id,
+                amount: b.stars_spent,
+                type: 'admin_cancellation_refund',
+                reference_id: sessionId,
+                reference_type: 'session',
+                note: 'Reembolso por cancelación de clase por administrador'
+            }));
+
+            if (transactions.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { error: txErr } = await (adminSupabase as any)
+                    .from('star_transactions')
+                    .insert(transactions);
+                if (txErr) throw txErr;
+            }
+        }
+
+        revalidatePath('/classes');
+        revalidatePath('/admin');
+        revalidatePath(`/booking/${sessionId}`);
+
+        return { success: true };
+    } catch (e) {
+        console.error('Admin Cancel Error: ', e);
+        return { error: 'Ocurrió un error al cancelar la clase y procesar reembolsos.' };
     }
 }
