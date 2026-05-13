@@ -287,7 +287,7 @@ export type Database = {
           member_id:           string
           machine_id?:         string | null
           status?:             BookingStatus       // default: 'confirmed'
-          stars_spent?:        number              // default: 1
+          stars_spent?:        number              // default: 0; 0 for COP payments, >= 0 for star payments
           star_refunded?:      boolean             // default: false
           payment_id?:         string | null
           cancelled_at?:       string | null
