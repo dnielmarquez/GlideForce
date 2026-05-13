@@ -228,7 +228,7 @@ function BookingContent({ id }: { id: string }) {
     }
 
     return (
-        <PageTransition className="bg-surface-container-low text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+        <PageTransition className="bg-surface-container-low text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative overflow-hidden">
             {/* Policy Modal */}
             <AnimatePresence>
                 {showPolicyModal && (
@@ -239,7 +239,7 @@ function BookingContent({ id }: { id: string }) {
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
                         >
                             <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">Políticas de Cancelación</h2>
                             <p className="text-on-surface-variant text-sm leading-relaxed mb-8 text-left">
@@ -268,7 +268,7 @@ function BookingContent({ id }: { id: string }) {
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
                         >
                             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
                                 <span className="material-symbols-outlined text-4xl text-on-surface-variant">info</span>
@@ -527,10 +527,21 @@ function BookingContent({ id }: { id: string }) {
                             </button>
                         ) : (
                             <>
-                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-transform" disabled={!selected}>
+                                {/* Hint when no machine is selected */}
+                                {!selected && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-center text-sm font-semibold text-on-surface-variant bg-surface-container rounded-2xl py-3 px-4"
+                                    >
+                                        <span className="material-symbols-outlined text-base align-middle mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>touch_app</span>
+                                        Selecciona una máquina primero
+                                    </motion.p>
+                                )}
+                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" disabled={!selected}>
                                     <span className="material-symbols-outlined">payments</span> Pagar en Línea
                                 </button>
-                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-surface-container-high" disabled={!selected || stars < (session.stars_cost || 1)}>
+                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selected || stars < (session.stars_cost || 1)}>
                                     <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Estrellitas
                                 </button>
                             </>

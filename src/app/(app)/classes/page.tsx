@@ -49,6 +49,7 @@ export default function ClassesPage() {
     const [dbClasses, setDbClasses] = useState<any[]>([]);
     const [userBookings, setUserBookings] = useState<Record<string, boolean>>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -147,7 +148,7 @@ export default function ClassesPage() {
     }, [selectedDay]);
 
     return (
-        <PageTransition className="bg-surface-container-low font-body text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+        <PageTransition className="bg-surface-container-low font-body text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative overflow-hidden">
             <main className="pt-20 pb-28 px-6 md:px-12 w-full max-w-md md:max-w-none mx-auto md:grid md:grid-cols-12 md:gap-10">
                 
                 {/* Desktop Left Column: Header & Calendar */}
@@ -268,17 +269,22 @@ export default function ClassesPage() {
                                             <span className="font-bold text-on-surface text-sm">{profName}</span>
                                         </div>
                                         <button
-                                            disabled={isFinished}
-                                            onClick={() => router.push(`/booking/${c.id}?date=${selectedDateStr}`)}
+                                            disabled={isFinished || navigatingTo === c.id}
+                                            onClick={() => {
+                                                setNavigatingTo(c.id);
+                                                router.push(`/booking/${c.id}?date=${selectedDateStr}`);
+                                            }}
                                             className={`w-full py-4 border-2 rounded-full font-black text-sm uppercase tracking-widest transition-all ${
                                                 isFinished 
                                                 ? 'bg-surface-container-high border-transparent text-on-surface-variant cursor-not-allowed opacity-70' 
+                                                : navigatingTo === c.id
+                                                ? 'bg-primary-container border-primary-container text-white opacity-70 cursor-wait'
                                                 : userBookings[c.id]
                                                 ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600 shadow-md shadow-green-500/20'
                                                 : 'bg-primary-container/10 border-primary-container text-primary-container hover:bg-primary-container hover:text-white'
                                             }`}
                                         >
-                                            {isFinished ? 'Finalizada' : (userBookings[c.id] ? 'Reservada' : 'Reservar')}
+                                            {isFinished ? 'Finalizada' : navigatingTo === c.id ? 'Cargando...' : (userBookings[c.id] ? 'Reservada' : 'Reservar')}
                                         </button>
                                     </motion.div>
                                 );

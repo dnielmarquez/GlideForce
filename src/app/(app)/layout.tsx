@@ -9,10 +9,10 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="min-h-screen bg-[#fcf9f8]">
       <TopNavBar />
       {children}
       <BottomNavBar />
-    </>
+    </div>
   );
 }
