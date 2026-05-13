@@ -42,7 +42,7 @@ export default function SettingsPage() {
     if (!cfg) return;
     setSaving(true);
     // Don't update id or updated_by for now (or let DB handle it)
-    const { id, updated_at, ...updateData } = cfg;
+    const { id: _id, updated_at: _updated_at, ...updateData } = cfg;
     
     // updated_at trigger handles the timestamp automatically in DB
     const { error } = await supabase.from('settings').update(updateData as never).eq('id', 1);

@@ -6,15 +6,18 @@ import { useSearchParams } from 'next/navigation';
 import LogoHeader from '@/components/LogoHeader';
 import PageTransition from '@/components/PageTransition';
 import { login } from '@/app/actions/auth';
+import { Suspense } from 'react';
 
-export default function LoginPage() {
-    const [error, setError] = useState<string | null>(null);
-    const [info, setInfo] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+function LoginParamsHandler({
+    setError,
+    setInfo
+}: {
+    setError: (v: string | null) => void;
+    setInfo: (v: string | null) => void;
+}) {
     const searchParams = useSearchParams();
 
     useEffect(() => {
-        // Show messages passed via query params (e.g., after password reset or callback error)
         const errorParam = searchParams.get('error');
         const messageParam = searchParams.get('message');
         if (errorParam === 'auth_callback_failed') {
@@ -26,7 +29,15 @@ export default function LoginPage() {
         if (messageParam === 'email_confirmed') {
             setInfo('¡Correo verificado! Ya puedes iniciar sesión.');
         }
-    }, [searchParams]);
+    }, [searchParams, setError, setInfo]);
+
+    return null;
+}
+
+export default function LoginPage() {
+    const [error, setError] = useState<string | null>(null);
+    const [info, setInfo] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -43,6 +54,9 @@ export default function LoginPage() {
 
     return (
         <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+            <Suspense fallback={null}>
+                <LoginParamsHandler setError={setError} setInfo={setInfo} />
+            </Suspense>
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>

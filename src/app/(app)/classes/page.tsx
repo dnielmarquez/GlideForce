@@ -59,7 +59,8 @@ export default function ClassesPage() {
             const start = new Date(year, month, 1).toISOString().split('T')[0];
             const end = new Date(year, month + 1, 0).toISOString().split('T')[0];
             
-            const { data, error } = await supabase.from('class_sessions')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data, error } = await (supabase as any).from('class_sessions')
                .select('*, instructors(*)')
                .gte('date', start).lte('date', end)
                .neq('status', 'cancelled')
@@ -70,16 +71,19 @@ export default function ClassesPage() {
                 
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                    const sessionIds = data.map(c => c.id);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const sessionIds = (data as any[]).map((c: any) => c.id);
                     if (sessionIds.length > 0) {
-                        const { data: bks } = await supabase.from('bookings')
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const { data: bks } = await (supabase as any).from('bookings')
                             .select('session_id')
                             .eq('member_id', user.id)
                             .in('status', ['confirmed'])
                             .in('session_id', sessionIds);
                         if (bks) {
                             const bkMap: Record<string, boolean> = {};
-                            bks.forEach(b => { bkMap[b.session_id] = true; });
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            (bks as any[]).forEach((b: any) => { bkMap[b.session_id] = true; });
                             setUserBookings(bkMap);
                         }
                     }

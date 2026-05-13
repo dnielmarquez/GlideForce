@@ -29,6 +29,7 @@ export interface GFClass {
   capacity: number;
   enrolled: number;
   recurring?: boolean;
+  status?: string;
 }
 
 export interface ClassFormData {

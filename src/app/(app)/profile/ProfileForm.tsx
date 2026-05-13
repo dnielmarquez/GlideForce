@@ -35,6 +35,7 @@ function formatDate(isoString: string) {
     });
 }
 
+
 export default function ProfileForm({ profile }: ProfileFormProps) {
     const [fullName, setFullName] = useState(profile.full_name);
     const [phone, setPhone] = useState(profile.phone ?? '');
@@ -42,8 +43,6 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-    const supabase = createClient();
 
     const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
