@@ -77,7 +77,7 @@ export async function initStarPurchase(quantity: number): Promise<{
         return { error: 'Error al inicializar el pago. Intenta nuevamente.' };
     }
 
-    const publicKey = process.env.NEXT_WOMPI_PUBLIC_KEY;
+    const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
     if (!publicKey) return { error: 'Configuración de pasarela incompleta.' };
 
     return { reference, amountInCents, integrityHash, publicKey, currency };

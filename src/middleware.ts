@@ -14,6 +14,8 @@ export async function middleware(request: NextRequest) {
     const isPublicRoute = pathname === '/';
     const isCallbackRoute = pathname.startsWith('/auth/callback');
     const isAdminRoute = pathname.startsWith('/admin');
+    // Webhook endpoints must NEVER be redirected — they are called by third-party servers
+    const isWebhookRoute = pathname.startsWith('/api/webhooks');
 
     // Always let Supabase callback routes through
     if (isCallbackRoute) {
@@ -44,8 +46,8 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    // If logged out, bounce back to login (unless on root or auth pages)
-    if (!user && !isAuthRoute && !isPublicRoute) {
+    // If logged out, bounce back to login (unless on root, auth pages, or webhook routes)
+    if (!user && !isAuthRoute && !isPublicRoute && !isWebhookRoute) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
