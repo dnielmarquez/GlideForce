@@ -35,10 +35,17 @@ export default function RegisterPage() {
         setRegisteredEmail(email);
 
         const avatarFile = formData.get('avatar_file') as File | null;
-        if (avatarFile && avatarFile.size > 5 * 1024 * 1024) {
-            setError('La foto de perfil no debe superar los 5MB.');
-            setState('error');
-            return;
+        if (avatarFile && avatarFile.size > 0) {
+            if (!avatarFile.type.startsWith('image/')) {
+                setError('El archivo de perfil debe ser una imagen.');
+                setState('error');
+                return;
+            }
+            if (avatarFile.size > 5 * 1024 * 1024) {
+                setError('La foto de perfil no debe superar los 5MB.');
+                setState('error');
+                return;
+            }
         }
 
         try {
@@ -168,8 +175,14 @@ export default function RegisterPage() {
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
                                             if (file) {
-                                                if (file.size > 5 * 1024 * 1024) {
+                                                if (!file.type.startsWith('image/')) {
+                                                    setError('El archivo de perfil debe ser una imagen.');
+                                                    setAvatarPreview(null);
+                                                    e.target.value = '';
+                                                } else if (file.size > 5 * 1024 * 1024) {
                                                     setError('La foto de perfil no debe superar los 5MB.');
+                                                    setAvatarPreview(null);
+                                                    e.target.value = '';
                                                 } else {
                                                     setError(null);
                                                     setAvatarPreview(URL.createObjectURL(file));
