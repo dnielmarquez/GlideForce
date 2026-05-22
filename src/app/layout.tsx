@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'GlideForce',
-  description: 'Tu estudio de fitness premium',
+  description: 'Eleva tu Fitness',
 };
 
 export default function RootLayout({

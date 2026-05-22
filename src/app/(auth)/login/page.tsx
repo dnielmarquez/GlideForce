@@ -38,6 +38,7 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [info, setInfo] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -116,14 +117,26 @@ export default function LoginPage() {
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">
                                         Contraseña
                                     </label>
-                                    <input
-                                        name="password"
-                                        required
-                                        autoComplete="current-password"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
-                                        placeholder="••••••••"
-                                        type="password"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            name="password"
+                                            required
+                                            autoComplete="current-password"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                            placeholder="••••••••"
+                                            type={showPassword ? 'text' : 'password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center justify-center text-on-surface-variant hover:text-on-surface focus:outline-none select-none transition-colors"
+                                            tabIndex={-1}
+                                        >
+                                            <span className="material-symbols-outlined select-none text-xl">
+                                                {showPassword ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Forgot password link */}

@@ -10,6 +10,8 @@ type FormState = 'idle' | 'loading' | 'error';
 export default function ResetPasswordPage() {
     const [state, setState] = useState<FormState>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -79,15 +81,27 @@ export default function ResetPasswordPage() {
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">
                                         Nueva contraseña
                                     </label>
-                                    <input
-                                        name="password"
-                                        required
-                                        minLength={6}
-                                        autoComplete="new-password"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
-                                        placeholder="Mínimo 6 caracteres"
-                                        type="password"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            name="password"
+                                            required
+                                            minLength={6}
+                                            autoComplete="new-password"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                            placeholder="Mínimo 6 caracteres"
+                                            type={showPassword ? 'text' : 'password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center justify-center text-on-surface-variant hover:text-on-surface focus:outline-none select-none transition-colors"
+                                            tabIndex={-1}
+                                        >
+                                            <span className="material-symbols-outlined select-none text-xl">
+                                                {showPassword ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Confirm password */}
@@ -95,15 +109,27 @@ export default function ResetPasswordPage() {
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-4">
                                         Confirmar contraseña
                                     </label>
-                                    <input
-                                        name="confirmPassword"
-                                        required
-                                        minLength={6}
-                                        autoComplete="new-password"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
-                                        placeholder="Repite tu contraseña"
-                                        type="password"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            name="confirmPassword"
+                                            required
+                                            minLength={6}
+                                            autoComplete="new-password"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                            placeholder="Repite tu contraseña"
+                                            type={showConfirmPassword ? 'text' : 'password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center justify-center text-on-surface-variant hover:text-on-surface focus:outline-none select-none transition-colors"
+                                            tabIndex={-1}
+                                        >
+                                            <span className="material-symbols-outlined select-none text-xl">
+                                                {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Password requirements hint */}
