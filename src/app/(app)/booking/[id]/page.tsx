@@ -7,13 +7,18 @@ import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { processBooking, cancelBooking, getOccupiedMachines } from '@/app/actions/booking';
 import { initiateBookingPayment } from '@/app/actions/payments';
+import { validateCouponAction } from '@/app/actions/coupons';
 
 // Extend window for Wompi widget
 declare global { interface Window { WidgetCheckout?: any; } }
 
 const defaultAvatar = "/logo.png";
 
-
+const formatCOP = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency', currency: 'COP', minimumFractionDigits: 0,
+    }).format(amount);
+};
 
 function BookingContent({ id }: { id: string }) {
     const router = useRouter();
@@ -41,6 +46,50 @@ function BookingContent({ id }: { id: string }) {
     const [selected, setSelected] = useState<string | null>(null);
     const [wompiError, setWompiError] = useState<string | null>(null);
 
+    // Coupon and Price states
+    const [classPrice, setClassPrice] = useState<number>(45000);
+    const [couponCode, setCouponCode] = useState<string>('');
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState<boolean>(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; title: string; discount_type: '2_for_1' | 'percentage' | 'fixed_amount'; discount_value: number } | null>(null);
+    const [couponError, setCouponError] = useState<string | null>(null);
+    const [couponSuccess, setCouponSuccess] = useState<boolean>(false);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsValidatingCoupon(true);
+        setCouponError(null);
+        setCouponSuccess(false);
+        setAppliedCoupon(null);
+
+        try {
+            const res = await validateCouponAction(couponCode);
+            if (res.success) {
+                setAppliedCoupon(res.coupon);
+                setCouponSuccess(true);
+            } else {
+                setCouponError(res.error);
+            }
+        } catch (err) {
+            console.error(err);
+            setCouponError('Error al validar el cupón.');
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode('');
+        setAppliedCoupon(null);
+        setCouponSuccess(false);
+        setCouponError(null);
+    };
+
+    const handleClosePaymentModal = () => {
+        setPaymentMethod(null);
+        handleRemoveCoupon();
+        setWompiError(null);
+    };
+
     // Wompi script is loaded lazily when the user confirms online payment (see handleConfirmBooking)
 
     useEffect(() => {
@@ -62,11 +111,12 @@ function BookingContent({ id }: { id: string }) {
             if (sess) setSession(sess);
 
             // 2. Fetch Machine Limits and Cancel Policy from Settings & Real Machines Table
-            const { data: st } = await supabase.from('settings').select('machines_count, cancel_time').single();
+            const { data: st } = await supabase.from('settings').select('machines_count, cancel_time, class_price_cop').single();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (st) {
                 setMachinesCount((st as any).machines_count || 5);
                 setCancelTimeMinutes((st as any).cancel_time || 0);
+                setClassPrice((st as any).class_price_cop || 45000);
             }
             
             const { data: ms } = await supabase.from('machines').select('*').eq('active', true).order('number');
@@ -129,7 +179,7 @@ function BookingContent({ id }: { id: string }) {
 
         if (paymentMethod === 'online') {
             setIsProcessing(true);
-            const res = await initiateBookingPayment(id, selected);
+            const res = await initiateBookingPayment(id, selected, appliedCoupon?.code || undefined);
             setIsProcessing(false);
 
             if ('error' in res) { setWompiError(res.error); return; }
@@ -168,7 +218,7 @@ function BookingContent({ id }: { id: string }) {
                 const ref = response?.transaction?.reference;
                 if (ref) router.push(`/payment/result?ref=${ref}`);
             });
-            setPaymentMethod(null);
+            handleClosePaymentModal();
             return;
         }
 
@@ -271,19 +321,101 @@ function BookingContent({ id }: { id: string }) {
                             className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
                         >
                             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-4xl text-on-surface-variant">info</span>
+                                <span className="material-symbols-outlined text-4xl text-on-surface-variant">
+                                    {paymentMethod === 'stars' ? 'stars' : 'payments'}
+                                </span>
                             </div>
                             <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">
-                                {paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Pago Seguro'}
+                                {paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Resumen de Pago'}
                             </h2>
-                            <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-                                {paymentMethod === 'stars'
-                                    ? <>Al confirmar, descontaremos <strong className="text-on-surface">{session.stars_cost || 1} estrellita</strong>.<br /></>
-                                    : <>Serás redirigido a la pasarela de pago seguro Wompi.<br /></>
-                                }
-                                Asegúrate de leer las <br />
-                                <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
-                            </p>
+
+                            {paymentMethod === 'online' ? (
+                                <div className="w-full space-y-6 text-left mb-6">
+                                    <div className="bg-surface-container rounded-2xl p-5 space-y-3">
+                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                            <span>Subtotal</span>
+                                            <span className="text-on-surface">{formatCOP(classPrice)}</span>
+                                        </div>
+                                        {appliedCoupon && (
+                                            <div className="flex justify-between items-center text-sm font-semibold text-green-700">
+                                                <span>Descuento ({appliedCoupon.code})</span>
+                                                <span>
+                                                    {appliedCoupon.discount_type === '2_for_1' 
+                                                        ? 'Promo 2x1 (Cop 0)' 
+                                                        : `-${formatCOP(
+                                                            appliedCoupon.discount_type === 'percentage' 
+                                                                ? classPrice * (appliedCoupon.discount_value / 100) 
+                                                                : appliedCoupon.discount_value
+                                                        )}`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="h-px bg-surface-container-high my-2" />
+                                        <div className="flex justify-between items-center text-base font-black">
+                                            <span>Total a Pagar</span>
+                                            <span className="text-primary-container text-lg">
+                                                {formatCOP(Math.max(0, classPrice - (
+                                                    !appliedCoupon ? 0 : 
+                                                    appliedCoupon.discount_type === 'percentage' ? classPrice * (appliedCoupon.discount_value / 100) :
+                                                    appliedCoupon.discount_type === 'fixed_amount' ? appliedCoupon.discount_value : 0
+                                                )))}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Coupon Input */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Cupón de Descuento</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                className="flex-1 px-4 py-3 bg-surface-container rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary-container uppercase"
+                                                placeholder="ej. GLIDEFORCE20"
+                                                value={couponCode}
+                                                onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                disabled={couponSuccess || isValidatingCoupon}
+                                            />
+                                            {couponSuccess ? (
+                                                <button
+                                                    onClick={handleRemoveCoupon}
+                                                    className="px-4 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl text-sm font-bold transition-all"
+                                                >
+                                                    Quitar
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={isValidatingCoupon || !couponCode.trim()}
+                                                    className="px-5 py-3 bg-primary-container text-white hover:opacity-90 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                                                >
+                                                    {isValidatingCoupon ? '...' : 'Aplicar'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {couponError && (
+                                            <p className="text-red-500 text-xs font-semibold px-1 mt-1">⚠️ {couponError}</p>
+                                        )}
+                                        {couponSuccess && appliedCoupon && (
+                                            <p className="text-green-700 text-xs font-semibold px-1 mt-1">
+                                                ✓ Cupón "{appliedCoupon.title}" aplicado con éxito.
+                                                {appliedCoupon.discount_type === '2_for_1' && ' ¡Recibirás una estrella extra al finalizar la clase!'}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <p className="text-on-surface-variant text-center text-xs leading-relaxed">
+                                        Serás redirigido a la pasarela de pago seguro Wompi.<br />
+                                        Asegúrate de leer las <br />
+                                        <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
+                                    Al confirmar, descontaremos <strong className="text-on-surface">{session.stars_cost || 1} estrellita</strong>.<br />
+                                    Asegúrate de leer las <br />
+                                    <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
+                                </p>
+                            )}
+
                             {wompiError && (
                                 <p className="text-red-500 text-sm font-medium mb-4 bg-red-50 p-3 rounded-xl">{wompiError}</p>
                             )}
@@ -298,7 +430,7 @@ function BookingContent({ id }: { id: string }) {
                                         ? 'Estrellitas insuficientes' 
                                         : (paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Ir a Pagar'))}
                                 </button>
-                                <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" disabled={isProcessing} onClick={() => setPaymentMethod(null)}>
+                                <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" disabled={isProcessing} onClick={handleClosePaymentModal}>
                                     Cancelar
                                 </button>
                             </div>
