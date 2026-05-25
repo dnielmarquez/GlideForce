@@ -12,7 +12,6 @@ import { validateCouponAction } from '@/app/actions/coupons';
 // Extend window for Wompi widget
 declare global { interface Window { WidgetCheckout?: any; } }
 
-const defaultAvatar = "/logo.png";
 
 const formatCOP = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -396,7 +395,7 @@ function BookingContent({ id }: { id: string }) {
                                         )}
                                         {couponSuccess && appliedCoupon && (
                                             <p className="text-green-700 text-xs font-semibold px-1 mt-1">
-                                                ✓ Cupón "{appliedCoupon.title}" aplicado con éxito.
+                                                ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado con éxito.
                                                 {appliedCoupon.discount_type === '2_for_1' && ' ¡Recibirás una estrella extra al finalizar la clase!'}
                                             </p>
                                         )}
