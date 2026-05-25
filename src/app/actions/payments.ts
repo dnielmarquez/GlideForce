@@ -13,7 +13,8 @@ import { generateWompiReference, generateIntegrityHash } from '@/lib/wompi';
  */
 export async function initiateBookingPayment(
     sessionId: string,
-    machineId: string
+    machineId: string,
+    couponCode?: string
 ): Promise<{
     reference: string;
     amountInCents: number;
@@ -57,7 +58,63 @@ export async function initiateBookingPayment(
         .single();
 
     const priceCop: number = settings?.class_price_cop ?? 45000;
-    const amountInCents = priceCop * 100;
+    
+    let couponId: string | null = null;
+    let discountAmount = 0;
+
+    if (couponCode) {
+        // Validate coupon on server side
+        const cleanCode = couponCode.trim().toUpperCase();
+        const admin = createAdminClient();
+        
+        const { data: coupon, error: couponErr } = await (admin as any)
+            .from('coupons')
+            .select('*, coupon_usages(id, user_id)')
+            .eq('code', cleanCode)
+            .single();
+
+        if (couponErr || !coupon) {
+            return { error: 'Código de cupón no encontrado.' };
+        }
+
+        if (!coupon.is_active) {
+            return { error: 'Este cupón está inactivo.' };
+        }
+
+        const now = new Date();
+        if (coupon.start_date && new Date(coupon.start_date) > now) {
+            return { error: 'Este cupón no está vigente todavía.' };
+        }
+        if (coupon.end_date && new Date(coupon.end_date) < now) {
+            return { error: 'Este cupón ha expirado.' };
+        }
+
+        const usages = coupon.coupon_usages || [];
+        if (coupon.max_uses > 0 && usages.length >= coupon.max_uses) {
+            return { error: 'Este cupón ha agotado su límite de usos.' };
+        }
+
+        if (coupon.max_uses_per_user > 0) {
+            const userUsages = usages.filter((u: any) => u.user_id === user.id).length;
+            if (userUsages >= coupon.max_uses_per_user) {
+                return { error: 'Ya has utilizado este cupón el máximo de veces permitido.' };
+            }
+        }
+
+        couponId = coupon.id;
+
+        // Calculate discount
+        if (coupon.discount_type === 'percentage') {
+            discountAmount = priceCop * (Number(coupon.discount_value || 0) / 100);
+        } else if (coupon.discount_type === 'fixed_amount') {
+            discountAmount = Number(coupon.discount_value || 0);
+        } else if (coupon.discount_type === '2_for_1') {
+            discountAmount = 0; // Buy 1 get 1 class free via webhook credit of star
+        }
+    }
+
+    const finalPriceCop = Math.max(0, priceCop - discountAmount);
+    const amountInCents = Math.round(finalPriceCop * 100);
     const currency = 'COP';
 
     const reference = generateWompiReference('booking', sessionId);
@@ -77,6 +134,7 @@ export async function initiateBookingPayment(
             machine_id:      machineId,
             amount_in_cents: amountInCents,
             currency,
+            coupon_id:       couponId,
         });
 
     if (insertErr) {

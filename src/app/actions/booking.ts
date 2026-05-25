@@ -303,6 +303,58 @@ export async function fulfillBookingFromWebhook(
         throw bookingErr;
     }
 
+    // Check if a coupon was used for this payment
+    try {
+        const { data: payment } = await (adminSupabase as any)
+            .from('payments')
+            .select('coupon_id')
+            .eq('id', paymentId)
+            .single();
+
+        if (payment && payment.coupon_id) {
+            // 1. Record coupon usage
+            const { error: usageErr } = await (adminSupabase as any)
+                .from('coupon_usages')
+                .insert({
+                    coupon_id:  payment.coupon_id,
+                    user_id:    memberId,
+                    metadata:   { payment_id: paymentId }
+                });
+
+            if (usageErr) {
+                console.error('[fulfillBookingFromWebhook] Failed to insert coupon usage:', usageErr);
+            }
+
+            // 2. Query coupon type
+            const { data: coupon } = await (adminSupabase as any)
+                .from('coupons')
+                .select('discount_type')
+                .eq('id', payment.coupon_id)
+                .single();
+
+            // 3. Award 1 extra star if it was a 2_for_1 promo
+            if (coupon && coupon.discount_type === '2_for_1') {
+                const { error: txErr } = await (adminSupabase as any)
+                    .from('star_transactions')
+                    .insert({
+                        member_id:      memberId,
+                        amount:         1,
+                        type:           'welcome_bonus',
+                        payment_id:     paymentId,
+                        reference_id:   sessionId,
+                        reference_type: 'session',
+                        note:           'Promo 2x1 - Estrellita Extra por uso de cupón en Pago de Clase'
+                    });
+
+                if (txErr) {
+                    console.error('[fulfillBookingFromWebhook] Failed to credit star for 2_for_1:', txErr);
+                }
+            }
+        }
+    } catch (couponProcErr) {
+        console.error('[fulfillBookingFromWebhook] Error processing coupon during fulfillment:', couponProcErr);
+    }
+
     revalidatePath('/classes');
     revalidatePath(`/booking/${sessionId}`);
 }
