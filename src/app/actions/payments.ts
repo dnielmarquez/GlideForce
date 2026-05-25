@@ -12,7 +12,7 @@ import { generateWompiReference, generateIntegrityHash } from '@/lib/wompi';
  * @param machineId - ID of the selected machine
  */
 export async function initiateBookingPayment(
-    sessionId: string,
+    sessionIds: string[],
     machineId: string,
     couponCode?: string
 ): Promise<{
@@ -22,32 +22,42 @@ export async function initiateBookingPayment(
     publicKey: string;
     currency: string;
 } | { error: string }> {
+    if (!sessionIds || sessionIds.length === 0) {
+        return { error: 'No se seleccionaron clases para pagar.' };
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Debes iniciar sesión para reservar.' };
 
-    // Verify session exists
+    // Verify all sessions exist and are scheduled
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: session, error: sessErr } = await (supabase as any)
+    const { data: sessions, error: sessErr } = await (supabase as any)
         .from('class_sessions')
         .select('id, status')
-        .eq('id', sessionId)
-        .single();
+        .in('id', sessionIds);
 
-    if (sessErr || !session) return { error: 'Clase no encontrada.' };
-    if (session.status === 'cancelled') return { error: 'Esta clase fue cancelada.' };
+    if (sessErr || !sessions || sessions.length !== sessionIds.length) {
+        return { error: 'Una o más clases no fueron encontradas.' };
+    }
 
-    // Verify machine is still free
+    for (const s of sessions) {
+        if (s.status === 'cancelled') {
+            return { error: 'Una de las clases seleccionadas fue cancelada.' };
+        }
+    }
+
+    // Verify machine is still free in all sessions
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: taken } = await (supabase as any)
         .from('bookings')
-        .select('id')
-        .eq('session_id', sessionId)
+        .select('id, session_id')
+        .in('session_id', sessionIds)
         .eq('machine_id', machineId)
         .in('status', ['confirmed']);
 
     if (taken && taken.length > 0) {
-        return { error: 'Lo sentimos, esta máquina acaba de ser reservada por alguien más.' };
+        return { error: 'Lo sentimos, la máquina ya está ocupada en alguna de las fechas elegidas.' };
     }
 
     // Fetch class price from settings
@@ -58,9 +68,10 @@ export async function initiateBookingPayment(
         .single();
 
     const priceCop: number = settings?.class_price_cop ?? 45000;
+    const quantity = sessionIds.length;
     
     let couponId: string | null = null;
-    let discountAmount = 0;
+    let totalDiscountAmount = 0;
 
     if (couponCode) {
         // Validate coupon on server side
@@ -105,19 +116,27 @@ export async function initiateBookingPayment(
 
         // Calculate discount
         if (coupon.discount_type === 'percentage') {
-            discountAmount = priceCop * (Number(coupon.discount_value || 0) / 100);
+            const discountPerClass = priceCop * (Number(coupon.discount_value || 0) / 100);
+            totalDiscountAmount = quantity * discountPerClass;
         } else if (coupon.discount_type === 'fixed_amount') {
-            discountAmount = Number(coupon.discount_value || 0);
+            const discountPerClass = Number(coupon.discount_value || 0);
+            totalDiscountAmount = quantity * discountPerClass;
         } else if (coupon.discount_type === '2_for_1') {
-            discountAmount = 0; // Buy 1 get 1 class free via webhook credit of star
+            if (quantity === 1) {
+                totalDiscountAmount = 0; // Buy 1 get 1 class free via webhook credit of star
+            } else {
+                // Buy quantity classes, pay for quantity - 1
+                totalDiscountAmount = priceCop; 
+            }
         }
     }
 
-    const finalPriceCop = Math.max(0, priceCop - discountAmount);
-    const amountInCents = Math.round(finalPriceCop * 100);
+    const baseTotalCop = quantity * priceCop;
+    const finalTotalCop = Math.max(0, baseTotalCop - totalDiscountAmount);
+    const amountInCents = Math.round(finalTotalCop * 100);
     const currency = 'COP';
 
-    const reference = generateWompiReference('booking', sessionId);
+    const reference = generateWompiReference('booking', sessionIds[0]);
     const integrityHash = generateIntegrityHash(reference, amountInCents, currency);
 
     // Store the pending payment record
@@ -130,11 +149,12 @@ export async function initiateBookingPayment(
             wompi_reference: reference,
             purpose:         'class_booking',
             status:          'pending',
-            session_id:      sessionId,
+            session_id:      sessionIds[0],
             machine_id:      machineId,
             amount_in_cents: amountInCents,
             currency,
             coupon_id:       couponId,
+            wompi_payload:   { session_ids: sessionIds } // Store all selected recurring session IDs here!
         });
 
     if (insertErr) {
