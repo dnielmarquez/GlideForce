@@ -124,60 +124,65 @@ export async function validateCouponAction(code: string): Promise<
   | { success: true; coupon: { id: string; code: string; title: string; discount_type: '2_for_1' | 'percentage' | 'fixed_amount'; discount_value: number } }
   | { success: false; error: string }
 > {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: 'Debes iniciar sesión para usar un cupón.' };
-  }
-
-  const cleanCode = code.trim().toUpperCase();
-  const admin = createAdminClient();
-
-  const { data: coupon, error } = await (admin as any)
-    .from('coupons')
-    .select('*, coupon_usages(id, user_id)')
-    .eq('code', cleanCode)
-    .single();
-
-  if (error || !coupon) {
-    return { success: false, error: 'Código de cupón no encontrado.' };
-  }
-
-  if (!coupon.is_active) {
-    return { success: false, error: 'Este cupón se encuentra inactivo.' };
-  }
-
-  const now = new Date();
-
-  if (coupon.start_date && new Date(coupon.start_date) > now) {
-    return { success: false, error: 'Este cupón no está vigente todavía.' };
-  }
-
-  if (coupon.end_date && new Date(coupon.end_date) < now) {
-    return { success: false, error: 'Este cupón ha expirado.' };
-  }
-
-  const usages = coupon.coupon_usages || [];
-
-  if (coupon.max_uses > 0 && usages.length >= coupon.max_uses) {
-    return { success: false, error: 'Este cupón ha agotado su límite de usos.' };
-  }
-
-  if (coupon.max_uses_per_user > 0) {
-    const userUsages = usages.filter((u: any) => u.user_id === user.id).length;
-    if (userUsages >= coupon.max_uses_per_user) {
-      return { success: false, error: 'Ya has utilizado este cupón el máximo de veces permitido.' };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Debes iniciar sesión para usar un cupón.' };
     }
-  }
 
-  return {
-    success: true,
-    coupon: {
-      id: coupon.id,
-      code: coupon.code,
-      title: coupon.title,
-      discount_type: coupon.discount_type,
-      discount_value: Number(coupon.discount_value || 0),
-    },
-  };
+    const cleanCode = code.trim().toUpperCase();
+    const admin = createAdminClient();
+
+    const { data: coupon, error } = await (admin as any)
+      .from('coupons')
+      .select('*, coupon_usages(id, user_id)')
+      .eq('code', cleanCode)
+      .single();
+
+    if (error || !coupon) {
+      return { success: false, error: 'Código de cupón no encontrado.' };
+    }
+
+    if (!coupon.is_active) {
+      return { success: false, error: 'Este cupón se encuentra inactivo.' };
+    }
+
+    const now = new Date();
+
+    if (coupon.start_date && new Date(coupon.start_date) > now) {
+      return { success: false, error: 'Este cupón no está vigente todavía.' };
+    }
+
+    if (coupon.end_date && new Date(coupon.end_date) < now) {
+      return { success: false, error: 'Este cupón ha expirado.' };
+    }
+
+    const usages = coupon.coupon_usages || [];
+
+    if (coupon.max_uses > 0 && usages.length >= coupon.max_uses) {
+      return { success: false, error: 'Este cupón ha agotado su límite de usos.' };
+    }
+
+    if (coupon.max_uses_per_user > 0) {
+      const userUsages = usages.filter((u: any) => u.user_id === user.id).length;
+      if (userUsages >= coupon.max_uses_per_user) {
+        return { success: false, error: 'Ya has utilizado este cupón el máximo de veces permitido.' };
+      }
+    }
+
+    return {
+      success: true,
+      coupon: {
+        id: coupon.id,
+        code: coupon.code,
+        title: coupon.title,
+        discount_type: coupon.discount_type,
+        discount_value: Number(coupon.discount_value || 0),
+      },
+    };
+  } catch (err: any) {
+    console.error('[validateCouponAction] caught exception:', err);
+    return { success: false, error: `Error del servidor al validar el cupón: ${err?.message || err}` };
+  }
 }

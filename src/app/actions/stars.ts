@@ -26,7 +26,10 @@ export async function getStarPricing(): Promise<{ priceCop: number } | { error: 
  *
  * @param quantity - Number of stars the user wants to buy (min 1)
  */
-export async function initStarPurchase(quantity: number): Promise<{
+export async function initStarPurchase(
+    quantity: number,
+    couponCode?: string
+): Promise<{
     reference: string;
     amountInCents: number;
     integrityHash: string;
@@ -49,7 +52,65 @@ export async function initStarPurchase(quantity: number): Promise<{
         .single();
 
     const priceCop: number = settings?.star_price_cop ?? 45000;
-    const amountInCents = quantity * priceCop * 100; // Wompi uses centavos
+    
+    let couponId: string | null = null;
+    let discountAmountPerStar = 0;
+    let starsToCredit = quantity;
+
+    if (couponCode) {
+        // Validate coupon on server side
+        const cleanCode = couponCode.trim().toUpperCase();
+        const admin = createAdminClient();
+        
+        const { data: coupon, error: couponErr } = await (admin as any)
+            .from('coupons')
+            .select('*, coupon_usages(id, user_id)')
+            .eq('code', cleanCode)
+            .single();
+
+        if (couponErr || !coupon) {
+            return { error: 'Código de cupón no encontrado.' };
+        }
+
+        if (!coupon.is_active) {
+            return { error: 'Este cupón está inactivo.' };
+        }
+
+        const now = new Date();
+        if (coupon.start_date && new Date(coupon.start_date) > now) {
+            return { error: 'Este cupón no está vigente todavía.' };
+        }
+        if (coupon.end_date && new Date(coupon.end_date) < now) {
+            return { error: 'Este cupón ha expirado.' };
+        }
+
+        const usages = coupon.coupon_usages || [];
+        if (coupon.max_uses > 0 && usages.length >= coupon.max_uses) {
+            return { error: 'Este cupón ha agotado su límite de usos.' };
+        }
+
+        if (coupon.max_uses_per_user > 0) {
+            const userUsages = usages.filter((u: any) => u.user_id === user.id).length;
+            if (userUsages >= coupon.max_uses_per_user) {
+                return { error: 'Ya has utilizado este cupón el máximo de veces permitido.' };
+            }
+        }
+
+        couponId = coupon.id;
+
+        // Calculate discount or promo based on type
+        if (coupon.discount_type === '2_for_1') {
+            starsToCredit = quantity + 1; // Extra 1 star credited! Price remains unchanged.
+            discountAmountPerStar = 0;
+        } else if (coupon.discount_type === 'percentage') {
+            discountAmountPerStar = priceCop * (Number(coupon.discount_value || 0) / 100);
+        } else if (coupon.discount_type === 'fixed_amount') {
+            discountAmountPerStar = Number(coupon.discount_value || 0);
+        }
+    }
+
+    const finalPricePerStar = Math.max(0, priceCop - discountAmountPerStar);
+    const amountInCents = quantity * finalPricePerStar * 100; // Wompi uses centavos
     const currency = 'COP';
 
     const reference = generateWompiReference('star', user.id);
@@ -67,9 +128,10 @@ export async function initStarPurchase(quantity: number): Promise<{
             wompi_reference: reference,
             purpose:         'star_purchase',
             status:          'pending',
-            stars_to_credit: quantity,
+            stars_to_credit: starsToCredit,
             amount_in_cents: amountInCents,
             currency,
+            coupon_id:       couponId,
         });
 
     if (insertErr) {

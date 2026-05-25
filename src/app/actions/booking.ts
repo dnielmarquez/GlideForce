@@ -104,6 +104,8 @@ export async function processBooking(
         // Force a page re-render to reflect the new state immediately!
         revalidatePath('/classes');
         revalidatePath(`/booking/${sessionId}`);
+        revalidatePath('/profile');
+        revalidatePath('/stars');
 
         return { success: true };
     } catch (e) {
@@ -194,6 +196,7 @@ export async function cancelBooking(sessionId: string) {
         revalidatePath('/classes');
         revalidatePath(`/booking/${sessionId}`);
         revalidatePath('/stars');
+        revalidatePath('/profile');
 
         return { success: true, refunded: qualifiesForRefund };
     } catch (e) {
@@ -357,4 +360,6 @@ export async function fulfillBookingFromWebhook(
 
     revalidatePath('/classes');
     revalidatePath(`/booking/${sessionId}`);
+    revalidatePath('/profile');
+    revalidatePath('/stars');
 }

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { getStarPricing, initStarPurchase } from '@/app/actions/stars';
+import { validateCouponAction } from '@/app/actions/coupons';
 
 
 
@@ -32,6 +33,49 @@ export default function StarsPage() {
     const [priceCop, setPriceCop] = useState<number>(45000);
     const [isProcessing, setIsProcessing] = useState(false);
     const [widgetError, setWidgetError] = useState<string | null>(null);
+
+    // Coupon states
+    const [couponCode, setCouponCode] = useState<string>('');
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState<boolean>(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; title: string; discount_type: '2_for_1' | 'percentage' | 'fixed_amount'; discount_value: number } | null>(null);
+    const [couponError, setCouponError] = useState<string | null>(null);
+    const [couponSuccess, setCouponSuccess] = useState<boolean>(false);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsValidatingCoupon(true);
+        setCouponError(null);
+        setCouponSuccess(false);
+        setAppliedCoupon(null);
+
+        try {
+            const res = await validateCouponAction(couponCode);
+            if (res.success) {
+                setAppliedCoupon(res.coupon);
+                setCouponSuccess(true);
+            } else {
+                setCouponError(res.error);
+            }
+        } catch (err) {
+            console.error(err);
+            setCouponError('Error al validar el cupón.');
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode('');
+        setAppliedCoupon(null);
+        setCouponSuccess(false);
+        setCouponError(null);
+    };
+
+    const handleCloseTopUp = () => {
+        setShowTopUp(false);
+        handleRemoveCoupon();
+        setWidgetError(null);
+    };
 
     // Wompi script is loaded lazily when the user clicks to pay (see handleOpenWompi)
 
@@ -148,14 +192,23 @@ export default function StarsPage() {
         scrollRef.current.scrollLeft = scrollLeft - walk;
     };
 
-    const totalCop = quantity * priceCop;
+    let discountAmountPerStar = 0;
+    if (appliedCoupon) {
+        if (appliedCoupon.discount_type === 'percentage') {
+            discountAmountPerStar = priceCop * (appliedCoupon.discount_value / 100);
+        } else if (appliedCoupon.discount_type === 'fixed_amount') {
+            discountAmountPerStar = appliedCoupon.discount_value;
+        }
+    }
+    const finalPricePerStar = Math.max(0, priceCop - discountAmountPerStar);
+    const totalCop = quantity * finalPricePerStar;
 
     const handleOpenWompi = async () => {
         if (!quantity || quantity < 1) return;
         setIsProcessing(true);
         setWidgetError(null);
 
-        const result = await initStarPurchase(quantity);
+        const result = await initStarPurchase(quantity, appliedCoupon?.code || undefined);
 
         if ('error' in result) {
             setWidgetError(result.error);
@@ -314,7 +367,7 @@ export default function StarsPage() {
                                     <h3 className="text-2xl font-black text-on-surface">Comprar Estrellitas</h3>
                                     <p className="text-on-surface-variant text-sm font-medium">{formatCop(priceCop)} por estrellita</p>
                                 </div>
-                                <button onClick={() => setShowTopUp(false)} className="bg-surface-container-low text-on-surface-variant p-2 rounded-full hover:bg-surface-container transition-colors">
+                                <button onClick={handleCloseTopUp} className="bg-surface-container-low text-on-surface-variant p-2 rounded-full hover:bg-surface-container transition-colors">
                                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>close</span>
                                 </button>
                             </div>
@@ -341,15 +394,88 @@ export default function StarsPage() {
                                     </div>
                                 </div>
 
-                                {/* Price Preview */}
-                                <div className="bg-surface-container-low rounded-2xl px-6 py-4 flex items-center justify-between border border-surface-container">
-                                    <span className="text-sm text-on-surface-variant font-medium">Total a pagar</span>
-                                    <span className="text-xl font-black text-on-surface">{formatCop(totalCop)}</span>
+                                {/* Coupon Input */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cupón de Descuento</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            className="flex-1 px-4 py-3 bg-surface-container rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary-container uppercase"
+                                            placeholder="ej. GLIDEFORCE20"
+                                            value={couponCode}
+                                            onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                            disabled={couponSuccess || isValidatingCoupon}
+                                        />
+                                        {couponSuccess ? (
+                                            <button
+                                                onClick={handleRemoveCoupon}
+                                                className="px-4 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl text-sm font-bold transition-all shrink-0"
+                                            >
+                                                Quitar
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleApplyCoupon}
+                                                disabled={isValidatingCoupon || !couponCode.trim()}
+                                                className="px-5 py-3 bg-primary-container text-white hover:opacity-90 rounded-xl text-sm font-bold transition-all disabled:opacity-50 shrink-0"
+                                            >
+                                                {isValidatingCoupon ? '...' : 'Aplicar'}
+                                            </button>
+                                        )}
+                                    </div>
+                                    {couponError && (
+                                        <p className="text-red-500 text-xs font-semibold px-1 mt-1">⚠️ {couponError}</p>
+                                    )}
+                                    {couponSuccess && appliedCoupon && (
+                                        <p className="text-green-700 text-xs font-semibold px-1 mt-1">
+                                            ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado.
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Price Preview Breakdown */}
+                                <div className="bg-surface-container-low rounded-2xl p-5 space-y-3 border border-surface-container text-sm">
+                                    <div className="flex justify-between items-center text-on-surface-variant font-medium">
+                                        <span>Subtotal ({quantity} {quantity === 1 ? 'estrellita' : 'estrellitas'})</span>
+                                        <span>{formatCop(quantity * priceCop)}</span>
+                                    </div>
+                                    
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between items-center text-green-700 font-medium">
+                                            <span>
+                                                Descuento
+                                                {appliedCoupon.discount_type === 'percentage' && ` (${appliedCoupon.discount_value}%)`}
+                                                {appliedCoupon.discount_type === '2_for_1' && ` (Promo 2x1)`}
+                                            </span>
+                                            <span>
+                                                {appliedCoupon.discount_type === '2_for_1' 
+                                                    ? '¡1 de regalo!' 
+                                                    : `-${formatCop(quantity * discountAmountPerStar)}`
+                                                }
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="h-px bg-surface-container-high my-1" />
+
+                                    <div className="flex justify-between items-center text-base font-black">
+                                        <span>Total a pagar</span>
+                                        <span className="text-on-surface">{formatCop(totalCop)}</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center font-bold text-primary-container mt-1 bg-primary-container/5 rounded-xl px-3 py-2 text-xs">
+                                        <span className="flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
+                                            Recibirás en tu cuenta:
+                                        </span>
+                                        <span className="text-sm font-black">
+                                            {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0)} {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0) === 1 ? 'estrellita' : 'estrellitas'}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Error */}
                                 {widgetError && (
-                                    <p className="text-red-500 text-sm font-medium text-center">{widgetError}</p>
+                                    <p className="text-red-500 text-sm font-medium text-center bg-red-50 p-3 rounded-xl">⚠️ {widgetError}</p>
                                 )}
 
                                 {/* CTA */}

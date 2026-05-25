@@ -123,6 +123,21 @@ export async function POST(req: NextRequest) {
                     });
 
                 if (txErr) throw txErr;
+
+                // Log coupon usages for star purchases
+                if (payment.coupon_id) {
+                    const { error: usageErr } = await (adminSupabase as any)
+                        .from('coupon_usages')
+                        .insert({
+                            coupon_id:  payment.coupon_id,
+                            user_id:    payment.member_id,
+                            metadata:   { payment_id: payment.id }
+                        });
+                    if (usageErr) {
+                        console.error('[wompi-webhook] Failed to insert coupon usage for star purchase:', usageErr);
+                    }
+                }
+
                 revalidatePath('/stars');
 
             } else if (
