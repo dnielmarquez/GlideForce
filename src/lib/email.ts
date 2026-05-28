@@ -413,7 +413,7 @@ export async function sendClassReminderEmail(
         
         <h2 style="color: #333; font-size: 20px; font-weight: 800; margin-top: 0; text-align: left;">¡Hola ${profile.full_name}!</h2>
         <p style="font-size: 15px; color: #555; line-height: 1.6; margin-bottom: 20px; text-align: left;">
-          Te recordamos que tienes una clase programada en <strong>3 horas</strong>. ¡Estamos listos para entrenar contigo!
+          Te recordamos que tienes una clase programada para <strong>hoy</strong>. ¡Estamos listos para entrenar contigo!
         </p>
 
         <div style="background-color: #FEF0E6; border-left: 4px solid #ea7034; border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: left;">
