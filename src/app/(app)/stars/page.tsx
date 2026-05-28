@@ -281,7 +281,7 @@ export default function StarsPage() {
                                 <p className="text-sm text-on-surface-variant/70 mt-3 font-medium leading-snug max-w-[200px]">Equivale a {balance} sesiones de entrenamiento personal</p>
                             </div>
                         </div>
-                        <button onClick={() => { setShowTopUp(true); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <button onClick={() => { setShowTopUp(true); setQuantity(1); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
                             Comprar Estrellitas
                         </button>
@@ -373,24 +373,40 @@ export default function StarsPage() {
                             </div>
                             
                             <div className="space-y-5">
-                                {/* Quantity Stepper */}
+                                {/* Quantity Selector */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cantidad de Estrellitas</label>
-                                    <div className="flex items-center gap-4 bg-surface-container-low rounded-full px-4 py-2 border border-surface-container-high">
-                                        <button
-                                            onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-surface-container text-on-surface font-bold text-xl hover:bg-surface-container transition-colors disabled:opacity-40"
-                                            disabled={quantity <= 1}
-                                        >
-                                            −
-                                        </button>
-                                        <span className="flex-1 text-center text-3xl font-black text-on-surface">{quantity}</span>
-                                        <button
-                                            onClick={() => setQuantity(q => q + 1)}
-                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-container text-white font-bold text-xl hover:bg-primary-container/90 transition-colors"
-                                        >
-                                            +
-                                        </button>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[1, 4, 8, 12].map((q) => {
+                                            const isSelected = quantity === q;
+                                            return (
+                                                <button
+                                                    key={q}
+                                                    type="button"
+                                                    onClick={() => setQuantity(q)}
+                                                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                                                        isSelected
+                                                            ? 'border-primary-container bg-primary-container/5 text-on-surface shadow-sm'
+                                                            : 'border-surface-container bg-white text-on-surface-variant hover:border-primary-container/20 hover:bg-surface-container-low'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <div className="absolute top-0 right-0 bg-primary-container text-white px-2 py-0.5 rounded-bl-xl text-[9px] font-black uppercase tracking-wider">
+                                                            Pack
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-1 mt-1">
+                                                        <span className="text-2xl font-black">{q}</span>
+                                                        <span className="material-symbols-outlined text-lg text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                            stars
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[10px] font-extrabold uppercase tracking-wider mt-1 text-on-surface-variant">
+                                                        {q === 1 ? 'Estrellita' : 'Estrellitas'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
