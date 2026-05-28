@@ -6,6 +6,7 @@ import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 import { CLASS_COLORS } from '@/lib/admin/constants';
 import { adminBookSpots } from '@/app/actions/booking';
+import { formatClassTime } from '@/lib/admin/utils';
 
 interface ViewClassModalProps {
   classId: string;
@@ -191,7 +192,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
             )}
             <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
-                <AdminIcon name="clock" size={14} /> {cls.time} · {cls.duration} min
+                <AdminIcon name="clock" size={14} /> {formatClassTime(cls.time)} · {cls.duration} min
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
                 <AdminIcon name="calendar" size={14} /> {cls.date}

@@ -5,6 +5,7 @@ import { CLASS_COLORS } from '@/lib/admin/constants';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import { useState } from 'react';
 import AdminIcon from './AdminIcon';
+import { formatClassTime } from '@/lib/admin/utils';
 
 interface EventPopupProps {
   data: EventPopupData;
@@ -39,7 +40,7 @@ export default function EventPopup({ data, onClose, onCancel, onView }: EventPop
           </button>
         </div>
 
-        <div className="event-popup-row"><AdminIcon name="clock" size={12} /> {event.time} · {event.duration} min</div>
+        <div className="event-popup-row"><AdminIcon name="clock" size={12} /> {formatClassTime(event.time)} · {event.duration} min</div>
         {instr && <div className="event-popup-row"><AdminIcon name="users" size={12} /> {instr.name}</div>}
 
         <div className="event-popup-row">

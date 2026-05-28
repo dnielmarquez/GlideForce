@@ -81,6 +81,22 @@ export function formatHour(hour: number): string {
   return `${hour}am`;
 }
 
+export function formatClassTime(timeStr: string): string {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  const hour = parseInt(parts[0], 10);
+  const min = parseInt(parts[1], 10);
+  if (isNaN(hour) || isNaN(min)) return timeStr;
+  
+  const ampm = hour >= 12 ? 'pm' : 'am';
+  let displayHour = hour % 12;
+  if (displayHour === 0) displayHour = 12;
+  
+  const displayMin = min.toString().padStart(2, '0');
+  return `${displayHour}:${displayMin}${ampm}`;
+}
+
 export function getClassesForDayHour(classes: GFClass[], date: Date, hour: number): GFClass[] {
   const ds = date.toISOString().split('T')[0];
   return classes.filter((c) => {

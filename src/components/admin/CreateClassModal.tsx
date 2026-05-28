@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ClassFormData } from '@/lib/admin/types';
 import { CLASS_COLORS, DAYS_OF_WEEK, DAYS_FULL } from '@/lib/admin/constants';
-import { countRecurringPreview, isHoliday } from '@/lib/admin/utils';
+import { countRecurringPreview, isHoliday, formatClassTime } from '@/lib/admin/utils';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import { createClient } from '@/utils/supabase/client';
 import AdminIcon from './AdminIcon';
@@ -354,7 +354,7 @@ export default function CreateClassModal({ initialDate, initialTime, onClose, on
                 )}
                 <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-                    <AdminIcon name="clock" size={13} /> {form.time} · {form.duration} min
+                    <AdminIcon name="clock" size={13} /> {formatClassTime(form.time)} · {form.duration} min
                   </div>
                   {form.instructorId && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
@@ -379,7 +379,7 @@ export default function CreateClassModal({ initialDate, initialTime, onClose, on
                       ['Días', form.selectedDays.map((d) => DAYS_OF_WEEK[d]).join(', ') || '—'],
                       ['Desde', form.startDate],
                       ['Hasta', form.endDate],
-                      ['Hora', form.time],
+                      ['Hora', formatClassTime(form.time)],
                       ['Excluir festivos', form.excludeHolidays ? 'Sí' : 'No'],
                     ].map(([k, v]) => (
                       <div key={k}>

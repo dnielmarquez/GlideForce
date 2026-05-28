@@ -2,7 +2,7 @@
 
 import type { GFClass } from '@/lib/admin/types';
 import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
-import { getClassesForDate } from '@/lib/admin/utils';
+import { getClassesForDate, formatClassTime } from '@/lib/admin/utils';
 
 interface MonthlyCalendarProps {
   year: number;
@@ -57,7 +57,7 @@ export default function MonthlyCalendar({ year, month, classes, onDayClick, onEv
                     style={{ background: colorObj.bg, color: colorObj.text }}
                     onClick={(e) => { e.stopPropagation(); onEventClick(cls, e); }}
                   >
-                    {cls.time} {cls.title}
+                    {formatClassTime(cls.time)} {cls.title}
                   </div>
                 );
               })}
