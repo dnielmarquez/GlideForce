@@ -325,6 +325,28 @@ function BookingContent({ id }: { id: string }) {
         canBook = false;
     }
 
+    const formatSessionTime = (timeStr: string) => {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length < 2) return timeStr;
+        const hour = parseInt(parts[0], 10);
+        const min = parseInt(parts[1], 10);
+        if (isNaN(hour) || isNaN(min)) return timeStr;
+        
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        let displayHour = hour % 12;
+        if (displayHour === 0) displayHour = 12;
+        const displayMin = min.toString().padStart(2, '0');
+        return `${displayHour}:${displayMin}${ampm}`;
+    };
+
+    const formattedDate = session?.date ? new Date(session.date + 'T00:00:00').toLocaleDateString('es-CO', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    }) : '';
+    const capitalizedDate = formattedDate ? formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1) : '';
+
     return (
         <PageTransition className="bg-surface-container-low text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative overflow-hidden">
             {/* Policy Modal */}
@@ -699,6 +721,21 @@ function BookingContent({ id }: { id: string }) {
                             <div>
                                 <h2 className="text-3xl font-extrabold tracking-tight">{session.title}</h2>
                                 <p className="text-primary font-semibold text-lg">{instructorName}</p>
+                                
+                                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-on-surface-variant text-xs md:text-sm font-semibold mt-3">
+                                    <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high/30">
+                                        <span className="material-symbols-outlined text-primary text-base md:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            calendar_today
+                                        </span>
+                                        <span>{capitalizedDate}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high/30">
+                                        <span className="material-symbols-outlined text-primary text-base md:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            schedule
+                                        </span>
+                                        <span>{formatSessionTime(session.start_time)} · {session.duration_minutes || 60} min</span>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <div className="bg-primary-container/10 px-4 py-2 rounded-full">
