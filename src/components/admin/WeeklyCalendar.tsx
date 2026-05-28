@@ -52,7 +52,15 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
               return (
                 <div key={`${hour}-${di}`} className="cal-cell" onClick={() => onCellClick(d, hour)}>
                   {dayClasses.map((cls) => {
-                    const colorObj = CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0];
+                    const classStart = new Date(`${cls.date}T${cls.time.substring(0, 5)}:00-05:00`);
+                    const isPast = classStart.getTime() < Date.now();
+                    const colorObj = isPast ? {
+                      bg: '#F5F5F4',
+                      text: '#78716C',
+                      border: '#A8A29E',
+                      hex: '#A8A29E'
+                    } : (CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0]);
+
                     const heightPx = Math.max(56, (cls.duration / 60) * 64 - 6);
                     const instr = instructors.find((i) => i.id === cls.instructor);
                     return (

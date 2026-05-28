@@ -35,6 +35,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   const [members, setMembers] = useState<any[]>([]);
   const [machinesList, setMachinesList] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedMember, setSelectedMember] = useState<any | null>(null);
   const [selectedMachineId, setSelectedMachineId] = useState('');
   const [applyToAllRecurring, setApplyToAllRecurring] = useState(false);
   const [chargeStars, setChargeStars] = useState(false);
@@ -46,6 +47,9 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
   const [refundOption, setRefundOption] = useState<boolean>(true);
   const [isCancellingBooking, setIsCancellingBooking] = useState<boolean>(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -96,18 +100,6 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
     const fetchAdminData = async () => {
       const supabase = createClient();
       
-      // Fetch active members
-      const { data: mems } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, stars_balance')
-        .eq('role', 'member')
-        .eq('status', 'active')
-        .order('full_name', { ascending: true });
-        
-      if (mems) {
-        setMembers(mems);
-      }
-      
       // Fetch active machines
       const { data: ms } = await supabase
         .from('machines')
@@ -122,6 +114,47 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
     
     fetchAdminData();
   }, []);
+
+  // Debounced server-side query for members
+  useEffect(() => {
+    let active = true;
+    
+    const fetchMembers = async () => {
+      setIsSearching(true);
+      const supabase = createClient();
+      
+      let queryBuilder = supabase
+        .from('profiles')
+        .select('id, full_name, email, stars_balance')
+        .eq('role', 'member')
+        .eq('status', 'active');
+        
+      if (searchQuery.trim()) {
+        const queryTerm = `%${searchQuery.trim()}%`;
+        queryBuilder = queryBuilder.or(`full_name.ilike.${queryTerm},email.ilike.${queryTerm}`);
+      }
+      
+      const { data, error } = await queryBuilder
+        .order('full_name', { ascending: true })
+        .limit(30);
+        
+      if (active) {
+        if (!error && data) {
+          setMembers(data);
+        }
+        setIsSearching(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchMembers();
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   const handleAdminBook = async () => {
     if (!selectedUserId || !selectedMachineId) return;
@@ -143,7 +176,9 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       } else {
         setSuccessMsg(`✓ ¡Reserva realizada con éxito! Se crearon ${res.count} reserva(s).`);
         setSelectedUserId('');
+        setSelectedMember(null);
         setSelectedMachineId('');
+        setSearchQuery('');
         // Trigger bookings list refetch in this modal
         setRefreshTrigger(prev => prev + 1);
         // Refresh classes in calendar context so the calendar gets updated immediately!
@@ -187,7 +222,210 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 500 }}>
+      <div className="modal" style={{ maxWidth: 500, position: 'relative', overflow: isDropdownOpen ? 'hidden' : 'auto' }}>
+        
+        {/* Glassmorphic Search Overlay Dialog */}
+        {isDropdownOpen && (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 90,
+              }}
+              onClick={() => setIsDropdownOpen(false)}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(12px)',
+                zIndex: 95,
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '20px',
+                borderRadius: '20px',
+                animation: 'adm-fadeIn 0.2s ease',
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px' }}>Seleccionar Miembro</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, marginTop: 1 }}>Buscar y seleccionar usuario activo</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(false)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    border: '1.5px solid var(--border)',
+                    background: 'var(--bg)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#FEE2E2';
+                    e.currentTarget.style.color = '#DC2626';
+                    e.currentTarget.style.borderColor = '#FCA5A5';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--bg)';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                  }}
+                >
+                  <AdminIcon name="x" size={12} />
+                </button>
+              </div>
+
+              {/* Search Field */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  background: 'white',
+                  border: '1.5px solid var(--orange)',
+                  borderRadius: 10,
+                  boxShadow: '0 0 0 3px var(--orange-light)',
+                  marginBottom: 14,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--orange)' }}>
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o correo..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                  }}
+                />
+                {isSearching ? (
+                  <div
+                    className="adm-spinner"
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: '2px solid var(--orange-light)',
+                      borderTopColor: 'var(--orange)',
+                      borderRadius: '50%',
+                    }}
+                  />
+                ) : searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                  >
+                    <AdminIcon name="x" size={11} />
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Members Scrollable List */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  paddingRight: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}
+              >
+                {members.length === 0 && !isSearching ? (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', textAlign: 'center', background: 'var(--bg)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+                    <AdminIcon name="users" size={24} />
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, marginTop: 6 }}>
+                      No se encontraron miembros
+                    </span>
+                  </div>
+                ) : (
+                  members.map((m) => {
+                    const isSelected = selectedUserId === m.id;
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedUserId(m.id);
+                          setSelectedMember(m);
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          background: isSelected ? 'var(--orange-light)' : 'white',
+                          border: isSelected ? '1.5px solid var(--orange)' : '1.5px solid var(--border)',
+                          color: 'var(--text)',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = 'var(--bg)';
+                            e.currentTarget.style.borderColor = 'var(--text-light)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.background = 'white';
+                            e.currentTarget.style.borderColor = 'var(--border)';
+                          }
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: isSelected ? 'var(--orange)' : 'var(--orange-light)', color: isSelected ? 'white' : 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                            {m.full_name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isSelected ? 'var(--orange-hover)' : 'var(--text)' }}>
+                              {m.full_name}
+                            </span>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                              {m.email}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, background: isSelected ? 'rgba(234,112,52,0.1)' : 'var(--surface-high)', padding: '2px 6px', borderRadius: 6, color: isSelected ? 'var(--orange)' : 'var(--text-muted)' }}>
+                            {m.stars_balance ?? 0} ★
+                          </span>
+                          {isSelected && (
+                            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--orange)' }}>
+                              check_circle
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </>
+        )}
         {/* Header */}
         <div className="modal-header">
           <div>
@@ -452,22 +690,76 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
               </div>
             )}
 
-            <div className="form-group" style={{ marginBottom: 12 }}>
+            <div className="form-group" style={{ marginBottom: 12, position: 'relative' }}>
               <label className="form-label">Miembro <span>*</span></label>
-              <div className="form-select-wrap">
-                <select 
-                  className="form-select" 
-                  value={selectedUserId} 
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                >
-                  <option value="">-- Seleccionar Miembro --</option>
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name} ({m.email}) — Saldo: {m.stars_balance ?? 0} ★
-                    </option>
-                  ))}
-                </select>
+              
+              {/* Dropdown Trigger Box */}
+              <div 
+                onClick={() => {
+                  setIsDropdownOpen(prev => !prev);
+                  setSearchQuery('');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  background: 'var(--bg)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: 10,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                  boxShadow: isDropdownOpen ? '0 0 0 3px var(--orange-light)' : 'none',
+                  borderColor: isDropdownOpen ? 'var(--orange)' : 'var(--border)'
+                }}
+              >
+                {selectedMember ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text)' }}>{selectedMember.full_name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {selectedMember.email} — Saldo: {selectedMember.stars_balance ?? 0} ★
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)' }}>-- Seleccionar Miembro --</span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {selectedMember && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedUserId('');
+                        setSelectedMember(null);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        padding: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-high)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                    >
+                      <AdminIcon name="x" size={12} />
+                    </button>
+                  )}
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--text-muted)', transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    expand_more
+                  </span>
+                </div>
               </div>
+
             </div>
 
             <div className="form-group" style={{ marginBottom: 12 }}>
