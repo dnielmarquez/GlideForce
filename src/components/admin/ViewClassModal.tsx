@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 import { CLASS_COLORS } from '@/lib/admin/constants';
+import { adminBookSpots } from '@/app/actions/booking';
 
 interface ViewClassModalProps {
   classId: string;
@@ -18,14 +19,27 @@ interface BookingUser {
   avatar_url: string | null;
   status: string;
   booking_date: string;
+  machine_id?: string;
 }
 
 export default function ViewClassModal({ classId, onClose }: ViewClassModalProps) {
-  const { classes, instructors } = useAdmin();
+  const { classes, instructors, refreshClasses } = useAdmin();
   const cls = classes.find(c => c.id === classId);
   
   const [users, setUsers] = useState<BookingUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Administrative booking states
+  const [members, setMembers] = useState<any[]>([]);
+  const [machinesList, setMachinesList] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedMachineId, setSelectedMachineId] = useState('');
+  const [applyToAllRecurring, setApplyToAllRecurring] = useState(false);
+  const [chargeStars, setChargeStars] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -38,6 +52,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
         .select(`
           status,
           created_at,
+          machine_id,
           profiles:member_id (
             id,
             full_name,
@@ -56,6 +71,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           email: b.profiles?.email || '',
           avatar_url: b.profiles?.avatar_url || null,
           status: b.status,
+          machine_id: b.machine_id,
           booking_date: new Date(b.created_at).toLocaleString('es-ES', { 
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
           }),
@@ -66,7 +82,72 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
     };
 
     fetchBookings();
-  }, [classId, cls]);
+  }, [classId, cls, refreshTrigger]);
+
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      const supabase = createClient();
+      
+      // Fetch active members
+      const { data: mems } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, stars_balance')
+        .eq('role', 'member')
+        .eq('status', 'active')
+        .order('full_name', { ascending: true });
+        
+      if (mems) {
+        setMembers(mems);
+      }
+      
+      // Fetch active machines
+      const { data: ms } = await supabase
+        .from('machines')
+        .select('*')
+        .eq('active', true)
+        .order('number');
+        
+      if (ms) {
+        setMachinesList(ms);
+      }
+    };
+    
+    fetchAdminData();
+  }, []);
+
+  const handleAdminBook = async () => {
+    if (!selectedUserId || !selectedMachineId) return;
+    setIsSubmitting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    
+    try {
+      const res = await adminBookSpots(
+        classId,
+        selectedUserId,
+        selectedMachineId,
+        applyToAllRecurring,
+        chargeStars
+      );
+      
+      if ('error' in res) {
+        setErrorMsg(res.error);
+      } else {
+        setSuccessMsg(`✓ ¡Reserva realizada con éxito! Se crearon ${res.count} reserva(s).`);
+        setSelectedUserId('');
+        setSelectedMachineId('');
+        // Trigger bookings list refetch in this modal
+        setRefreshTrigger(prev => prev + 1);
+        // Refresh classes in calendar context so the calendar gets updated immediately!
+        await refreshClasses();
+      }
+    } catch (err: any) {
+      console.error('Error reserving spots:', err);
+      setErrorMsg('Ocurrió un error inesperado al procesar la reserva.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!cls) return null;
 
@@ -172,6 +253,133 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
               ))}
             </div>
           )}
+
+          {/* Admin Booking Form Section */}
+          <div className="form-section" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <div className="form-section-title" style={{ marginBottom: 12 }}>Reservar / Bloquear Máquina (Admin)</div>
+            
+            {errorMsg && (
+              <div style={{ 
+                padding: '10px 14px', 
+                background: '#FEE2E2', 
+                border: '1px solid #F87171', 
+                color: '#991B1B', 
+                borderRadius: 8, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <AdminIcon name="x" size={14} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {successMsg && (
+              <div style={{ 
+                padding: '10px 14px', 
+                background: '#DCFCE7', 
+                border: '1px solid #4ADE80', 
+                color: '#166534', 
+                borderRadius: 8, 
+                fontSize: 12, 
+                fontWeight: 600, 
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <AdminIcon name="check" size={14} />
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Miembro <span>*</span></label>
+              <div className="form-select-wrap">
+                <select 
+                  className="form-select" 
+                  value={selectedUserId} 
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                >
+                  <option value="">-- Seleccionar Miembro --</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} ({m.email}) — Saldo: {m.stars_balance ?? 0} ★
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Máquina / Spot <span>*</span></label>
+              <div className="form-select-wrap">
+                <select 
+                  className="form-select" 
+                  value={selectedMachineId} 
+                  onChange={(e) => setSelectedMachineId(e.target.value)}
+                >
+                  <option value="">-- Seleccionar Máquina --</option>
+                  {machinesList.map((m) => {
+                    const occupiedByUser = users.find(u => u.machine_id === m.id && u.status === 'confirmed');
+                    const isOccupied = !!occupiedByUser;
+                    return (
+                      <option key={m.id} value={m.id} disabled={isOccupied}>
+                        Máquina {m.number} {m.name ? `(${m.name})` : ''} {isOccupied ? ` - OCUPADA por ${occupiedByUser.full_name}` : ' - Libre'}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {cls.recurring && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <input 
+                  type="checkbox" 
+                  id="applyToAllRecurring" 
+                  checked={applyToAllRecurring}
+                  onChange={(e) => setApplyToAllRecurring(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="applyToAllRecurring" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
+                  Asignar a toda la serie recurrente (clases futuras)
+                </label>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <input 
+                type="checkbox" 
+                id="chargeStars" 
+                checked={chargeStars}
+                onChange={(e) => setChargeStars(e.target.checked)}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              <label htmlFor="chargeStars" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
+                Descontar estrellitas del saldo del usuario ({cls.stars_cost || 1} ★)
+              </label>
+            </div>
+
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '10px' }}
+              disabled={isSubmitting || !selectedUserId || !selectedMachineId}
+              onClick={handleAdminBook}
+            >
+              {isSubmitting ? (
+                <>Cargando...</>
+              ) : (
+                <>
+                  <AdminIcon name="plus" size={14} />
+                  Crear Reserva Administrativa
+                </>
+              )}
+            </button>
+          </div>
           
         </div>
       </div>

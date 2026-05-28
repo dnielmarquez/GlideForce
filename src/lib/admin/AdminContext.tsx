@@ -58,6 +58,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           capacity: c.capacity,
           enrolled: enrolledCount, 
           recurring: !!c.recurrence_id,
+          recurrence_id: c.recurrence_id,
+          stars_cost: c.stars_cost,
           status: c.status
         };
       }));
