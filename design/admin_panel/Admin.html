@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GlideForce — Panel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #E8682A;
+    --orange-hover: #D45A1E;
+    --orange-light: #FDF0E8;
+    --orange-mid: #F5C4A1;
+    --bg: #F5F3EF;
+    --sidebar-bg: #1C1917;
+    --sidebar-hover: #2C2926;
+    --sidebar-active: #E8682A;
+    --white: #FFFFFF;
+    --text: #1A1814;
+    --text-muted: #7A756E;
+    --text-light: #B0A89E;
+    --border: #E8E4DE;
+    --card-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* Layout */
+  .layout { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px; min-width: 220px; background: var(--sidebar-bg);
+    display: flex; flex-direction: column; padding: 0; overflow: hidden;
+    transition: width 0.2s;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-logo-icon {
+    width: 36px; height: 36px; border-radius: 10px; background: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: white; letter-spacing: -1px; flex-shrink: 0;
+  }
+  .sidebar-logo-text { font-size: 15px; font-weight: 800; color: white; letter-spacing: -0.3px; }
+  .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 500; margin-top: 1px; }
+
+  .sidebar-nav { flex: 1; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.25);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 12px 10px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px; cursor: pointer;
+    transition: background 0.15s; color: rgba(255,255,255,0.55);
+    font-size: 13.5px; font-weight: 500; user-select: none;
+  }
+  .nav-item:hover { background: var(--sidebar-hover); color: rgba(255,255,255,0.85); }
+  .nav-item.active { background: var(--orange); color: white; font-weight: 600; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto; background: var(--orange); color: white;
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px;
+    min-width: 18px; text-align: center;
+  }
+  .nav-item.active .nav-badge { background: rgba(255,255,255,0.25); }
+
+  .sidebar-bottom { padding: 16px 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 10px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sidebar-user:hover { background: var(--sidebar-hover); }
+  .sidebar-avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .sidebar-user-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+  .sidebar-user-role { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 0 28px; height: 60px; display: flex; align-items: center;
+    gap: 16px; flex-shrink: 0;
+  }
+  .topbar-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .topbar-breadcrumb { font-size: 13px; color: var(--text-muted); }
+  .topbar-breadcrumb span { color: var(--text); font-weight: 600; }
+  .topbar-spacer { flex: 1; }
+  .topbar-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 7px 12px; width: 220px;
+  }
+  .topbar-search input {
+    border: none; background: transparent; outline: none;
+    font-size: 13px; color: var(--text); font-family: inherit; width: 100%;
+  }
+  .topbar-search input::placeholder { color: var(--text-light); }
+  .topbar-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: white; cursor: pointer;
+    color: var(--text-muted); transition: all 0.15s;
+  }
+  .topbar-btn:hover { background: var(--bg); color: var(--text); border-color: var(--text-light); }
+
+  /* Content area */
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* Calendar header */
+  .cal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .cal-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+  .cal-nav-btn {
+    width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); transition: all 0.15s;
+  }
+  .cal-nav-btn:hover { background: var(--bg); color: var(--text); }
+  .cal-view-tabs {
+    display: flex; background: var(--bg); border-radius: 10px; padding: 3px; border: 1.5px solid var(--border);
+  }
+  .cal-view-tab {
+    padding: 5px 14px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; color: var(--text-muted); transition: all 0.15s; user-select: none;
+  }
+  .cal-view-tab.active { background: white; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .today-btn {
+    padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: white; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .today-btn:hover { background: var(--bg); color: var(--text); }
+  .btn-primary {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--orange); color: white;
+    border: none; border-radius: 10px; padding: 9px 18px;
+    font-size: 13.5px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: background 0.15s; margin-left: auto;
+  }
+  .btn-primary:hover { background: var(--orange-hover); }
+
+  /* Weekly calendar */
+  .cal-grid-wrap { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); overflow: hidden; }
+  .cal-day-headers { display: grid; grid-template-columns: 60px repeat(7,1fr); border-bottom: 1.5px solid var(--border); }
+  .cal-day-header {
+    padding: 10px 0; text-align: center;
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .cal-day-header .day-num {
+    display: block; font-size: 20px; font-weight: 800; color: var(--text);
+    margin-top: 2px; letter-spacing: -0.5px;
+  }
+  .cal-day-header.today .day-num {
+    background: var(--orange); color: white;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 4px auto 0;
+  }
+  .cal-time-col { border-right: 1.5px solid var(--border); }
+
+  .cal-body { display: grid; grid-template-columns: 60px repeat(7,1fr); max-height: calc(100vh - 230px); overflow-y: auto; }
+  .cal-time-slot {
+    border-right: 1.5px solid var(--border); padding: 0 8px;
+    font-size: 10.5px; font-weight: 600; color: var(--text-light);
+    height: 64px; display: flex; align-items: flex-start; padding-top: 6px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .cal-cell {
+    border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    height: 64px; position: relative; cursor: pointer; transition: background 0.1s;
+  }
+  .cal-cell:last-child { border-right: none; }
+  .cal-cell:hover { background: var(--orange-light); }
+
+  /* Class events */
+  .class-event {
+    position: absolute; left: 3px; right: 3px; top: 3px;
+    border-radius: 8px; padding: 5px 8px; cursor: pointer;
+    overflow: hidden; transition: filter 0.15s, transform 0.1s;
+    z-index: 1;
+  }
+  .class-event:hover { filter: brightness(0.95); transform: scale(1.01); z-index: 2; }
+  .class-event-title { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .class-event-time { font-size: 10px; font-weight: 500; opacity: 0.75; margin-top: 1px; }
+  .class-event-instructor { font-size: 10px; font-weight: 500; opacity: 0.75; }
+  .color-orange { background: var(--orange-light); color: var(--orange); border-left: 3px solid var(--orange); }
+  .color-teal { background: #E6F7F4; color: #0F8B76; border-left: 3px solid #0F8B76; }
+  .color-purple { background: #EFE9FD; color: #6D37C4; border-left: 3px solid #6D37C4; }
+  .color-blue { background: #E8F1FD; color: #2563EB; border-left: 3px solid #2563EB; }
+
+  /* Monthly calendar */
+  .month-grid { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); overflow: hidden; }
+  .month-day-names { display: grid; grid-template-columns: repeat(7,1fr); background: var(--bg); }
+  .month-day-name { padding: 10px; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .month-cells { display: grid; grid-template-columns: repeat(7,1fr); }
+  .month-cell { border-top: 1px solid var(--border); border-right: 1px solid var(--border); min-height: 100px; padding: 8px; cursor: pointer; transition: background 0.1s; }
+  .month-cell:nth-child(7n) { border-right: none; }
+  .month-cell:hover { background: var(--bg); }
+  .month-cell.other-month { opacity: 0.35; }
+  .month-cell.today-cell .month-cell-num { background: var(--orange); color: white; }
+  .month-cell-num { font-size: 12px; font-weight: 700; color: var(--text); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+  .month-event { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Modal overlay */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: white; border-radius: 20px; width: 620px; max-height: 90vh;
+    overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.18);
+    animation: slideUp 0.25s cubic-bezier(0.34,1.3,0.64,1);
+  }
+  @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header {
+    padding: 24px 28px 0; display: flex; align-items: flex-start; justify-content: space-between;
+    position: sticky; top: 0; background: white; z-index: 1; padding-bottom: 16px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .modal-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  .modal-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); transition: all 0.15s; font-size: 16px;
+  }
+  .modal-close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+  .modal-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+  .modal-footer {
+    padding: 16px 28px 24px; display: flex; align-items: center; justify-content: flex-end;
+    gap: 10px; border-top: 1.5px solid var(--border);
+    position: sticky; bottom: 0; background: white;
+  }
+
+  /* Form */
+  .form-section { display: flex; flex-direction: column; gap: 14px; }
+  .form-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .form-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .form-row { display: grid; gap: 12px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.01em; }
+  .form-label span { color: var(--orange); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 10px 13px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-family: inherit; font-size: 13.5px; color: var(--text);
+    outline: none; transition: border-color 0.15s, background 0.15s;
+    appearance: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--orange); background: white; box-shadow: 0 0 0 3px rgba(232,104,42,0.1);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  .form-select-wrap { position: relative; }
+  .form-select-wrap::after {
+    content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none; font-size: 12px;
+  }
+  .form-select { padding-right: 32px; }
+
+  /* Days selector */
+  .days-selector { display: flex; gap: 7px; flex-wrap: wrap; }
+  .day-pill {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all 0.15s;
+    color: var(--text-muted); user-select: none;
+  }
+  .day-pill:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-light); }
+  .day-pill.selected { background: var(--orange); color: white; border-color: var(--orange); }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; background: var(--bg); border-radius: 10px;
+    border: 1.5px solid var(--border);
+  }
+  .toggle-label { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .toggle-desc { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+  .toggle {
+    position: relative; width: 44px; height: 24px; cursor: pointer;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; border-radius: 99px; background: var(--border);
+    transition: background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--orange); }
+  .toggle-thumb {
+    position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: white; top: 3px; left: 3px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+  /* Color picker */
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-dot {
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+    border: 2.5px solid transparent; transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-dot:hover { transform: scale(1.12); }
+  .color-dot.selected { border-color: var(--text); transform: scale(1.1); }
+
+  /* Instructor card */
+  .instructor-option {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .instructor-option:hover { border-color: var(--orange); background: var(--orange-light); }
+  .instructor-option.selected { border-color: var(--orange); background: var(--orange-light); }
+  .instructor-option .instr-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--orange-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--orange); flex-shrink: 0;
+    overflow: hidden;
+  }
+  .instructor-option .instr-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .instructor-option .instr-spec { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .instructor-check { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--orange); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
+  .instructor-option.selected .instructor-check { opacity: 1; }
+
+  /* Success toast */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1C1917; color: white; padding: 12px 20px; border-radius: 12px;
+    font-size: 13.5px; font-weight: 600; z-index: 999;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    transition: transform 0.35s cubic-bezier(0.34,1.3,0.64,1), opacity 0.35s;
+    opacity: 0;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast-icon { color: #4ade80; font-size: 16px; }
+
+  /* Stats bar */
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card {
+    background: white; border-radius: var(--radius); padding: 16px 20px;
+    border: 1.5px solid var(--border); box-shadow: var(--card-shadow);
+  }
+  .stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-value { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -1px; margin-top: 4px; }
+  .stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+  .stat-orange { color: var(--orange); }
+
+  /* Event detail popup */
+  .event-popup {
+    position: fixed; background: white; border-radius: 14px;
+    padding: 16px 18px; width: 240px; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    border: 1.5px solid var(--border); z-index: 50;
+    animation: fadeIn 0.15s ease;
+  }
+  .event-popup-title { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .event-popup-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 6px; font-weight: 500; }
+  .event-popup-badge {
+    display: inline-flex; align-items: center; padding: 3px 8px;
+    border-radius: 99px; font-size: 10.5px; font-weight: 700;
+    margin-top: 10px;
+  }
+  .event-popup-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .popup-btn {
+    flex: 1; padding: 7px 0; border-radius: 8px; font-size: 12px; font-weight: 700;
+    cursor: pointer; border: 1.5px solid var(--border); background: var(--bg);
+    color: var(--text); font-family: inherit; transition: all 0.15s;
+  }
+  .popup-btn:hover { background: var(--border); }
+  .popup-btn.danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+  .popup-btn.danger:hover { background: #fecaca; }
+
+  /* Tweak panel */
+  .tweak-panel {
+    position: fixed; bottom: 24px; right: 24px; width: 260px;
+    background: white; border-radius: 16px; border: 1.5px solid var(--border);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12); padding: 18px; z-index: 90;
+    display: none;
+  }
+  .tweak-panel.visible { display: block; animation: slideUp 0.2s ease; }
+  .tweak-title { font-size: 13px; font-weight: 800; margin-bottom: 14px; color: var(--text); }
+  .tweak-item { margin-bottom: 12px; }
+  .tweak-item label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tweak-colors { display: flex; gap: 6px; }
+  .tweak-color-btn { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; }
+  .tweak-color-btn:hover { transform: scale(1.15); }
+  .tweak-color-btn.active { border-color: var(--text); }
+  .tweak-radio { display: flex; gap: 6px; }
+  .tweak-radio-btn {
+    flex: 1; padding: 5px; border-radius: 7px; font-size: 11px; font-weight: 600;
+    text-align: center; cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-muted); transition: all 0.15s;
+  }
+  .tweak-radio-btn.active { background: var(--orange); color: white; border-color: var(--orange); }
+
+  .btn-secondary {
+    display: flex; align-items: center; gap: 7px;
+    background: white; color: var(--text);
+    border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: var(--bg); border-color: var(--text-light); }
+  .btn-cancel { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--text-muted); transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--border); color: var(--text); }
+
+  .chip {
+    display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 700; background: var(--orange-light); color: var(--orange);
+  }
+  .chip.purple { background: #EFE9FD; color: #6D37C4; }
+  .chip.teal { background: #E6F7F4; color: #0F8B76; }
+  .chip.blue { background: #E8F1FD; color: #2563EB; }
+</style>
+<template id="__bundler_thumbnail" data-bg-color="#1C1917">
+  <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+    <rect width="28" height="80" fill="#2C2926"/>
+    <rect x="6" y="10" width="16" height="4" rx="2" fill="#E8682A"/>
+    <rect x="6" y="20" width="16" height="3" rx="1.5" fill="rgba(255,255,255,0.2)"/>
+    <rect x="6" y="26" width="16" height="3" rx="1.5" fill="rgba(255,255,255,0.2)"/>
+    <rect x="6" y="32" width="16" height="3" rx="1.5" fill="rgba(255,255,255,0.2)"/>
+    <rect x="32" y="0" width="88" height="80" fill="#F5F3EF"/>
+    <rect x="36" y="8" width="76" height="14" rx="3" fill="white"/>
+    <rect x="36" y="26" width="36" height="22" rx="3" fill="white"/>
+    <rect x="76" y="26" width="36" height="22" rx="3" fill="white"/>
+    <rect x="36" y="52" width="76" height="22" rx="3" fill="white"/>
+    <rect x="40" y="56" width="30" height="3" rx="1.5" fill="#E8682A" opacity="0.7"/>
+    <rect x="40" y="62" width="20" height="2" rx="1" fill="#B0A89E"/>
+    <rect x="40" y="30" width="18" height="2" rx="1" fill="#E8682A"/>
+    <rect x="40" y="35" width="12" height="2" rx="1" fill="#B0A89E"/>
+    <rect x="80" y="30" width="18" height="2" rx="1" fill="#0F8B76"/>
+    <rect x="80" y="35" width="12" height="2" rx="1" fill="#B0A89E"/>
+  </svg>
+</template>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── Data ────────────────────────────────────────────────────────────────
+const INSTRUCTORS = [
+  { id: 1, name: 'Tania Janek', specialty: 'HIIT · Yoga Flow', initials: 'TJ', color: '#E8682A' },
+  { id: 2, name: 'María López', specialty: 'Pilates · Stretching', initials: 'ML', color: '#0F8B76' },
+  { id: 3, name: 'Carlos Ruiz', specialty: 'Funcional · Crossfit', initials: 'CR', color: '#6D37C4' },
+  { id: 4, name: 'Laura Gómez', specialty: 'Yoga · Meditación', initials: 'LG', color: '#2563EB' },
+];
+
+const CLASS_COLORS = [
+  { key: 'orange', label: 'Naranja', bg: '#FDF0E8', text: '#E8682A', border: '#E8682A', hex: '#E8682A' },
+  { key: 'teal', label: 'Verde', bg: '#E6F7F4', text: '#0F8B76', border: '#0F8B76', hex: '#0F8B76' },
+  { key: 'purple', label: 'Morado', bg: '#EFE9FD', text: '#6D37C4', border: '#6D37C4', hex: '#6D37C4' },
+  { key: 'blue', label: 'Azul', bg: '#E8F1FD', text: '#2563EB', border: '#2563EB', hex: '#2563EB' },
+  { key: 'rose', label: 'Rosa', bg: '#FDE8F0', text: '#C4376D', border: '#C4376D', hex: '#C4376D' },
+];
+
+const DAYS_OF_WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAYS_FULL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// Colombian holidays 2026 (simplified)
+const HOLIDAYS_2026 = ['2026-01-01','2026-01-12','2026-03-23','2026-04-02','2026-04-03','2026-05-01','2026-05-18','2026-06-08','2026-06-29','2026-07-20','2026-08-07','2026-08-17','2026-10-12','2026-11-02','2026-11-16','2026-12-08','2026-12-25'];
+
+function isHoliday(date) {
+  return HOLIDAYS_2026.includes(date.toISOString().split('T')[0]);
+}
+
+function generateRecurringClasses(form) {
+  const classes = [];
+  const start = new Date(form.startDate + 'T00:00:00');
+  const end = new Date(form.endDate + 'T00:00:00');
+  const selectedDays = form.selectedDays; // array of 0-6
+  let cur = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (selectedDays.includes(dow)) {
+      if (form.excludeHolidays && isHoliday(cur)) {
+        cur.setDate(cur.getDate() + 1);
+        continue;
+      }
+      const dateStr = cur.toISOString().split('T')[0];
+      classes.push({
+        id: `${Date.now()}-${dateStr}-${dow}`,
+        title: form.title,
+        description: form.description,
+        instructor: form.instructorId,
+        time: form.time,
+        duration: parseInt(form.duration),
+        date: dateStr,
+        color: form.color,
+        capacity: parseInt(form.capacity),
+        enrolled: 0,
+        recurring: true,
+      });
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return classes;
+}
+
+// Initial seed classes
+const seedClasses = (() => {
+  const today = new Date('2026-04-20');
+  const classes = [];
+  const week = [-2,-1,0,1,2,3,4];
+  week.forEach(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    const ds = d.toISOString().split('T')[0];
+    const dow = d.getDay();
+    if ([1,3,5].includes(dow)) {
+      classes.push({ id: `seed-${ds}-1`, title: 'HIIT Burn', instructor: 1, time: '10:00', duration: 45, date: ds, color: 'orange', capacity: 12, enrolled: dow===1?8:5, recurring: true, description: 'Entrenamiento de alta intensidad.' });
+    }
+    if ([2,4].includes(dow)) {
+      classes.push({ id: `seed-${ds}-2`, title: 'Yoga Flow', instructor: 1, time: '08:00', duration: 60, date: ds, color: 'teal', capacity: 10, enrolled: 7, recurring: true, description: 'Yoga vinyasa al ritmo de la respiración.' });
+    }
+    if ([1,4].includes(dow)) {
+      classes.push({ id: `seed-${ds}-3`, title: 'Pilates Core', instructor: 2, time: '17:00', duration: 50, date: ds, color: 'purple', capacity: 8, enrolled: 6, recurring: true, description: 'Fortalecimiento de core con Pilates.' });
+    }
+    if ([3].includes(dow)) {
+      classes.push({ id: `seed-${ds}-4`, title: 'Funcional', instructor: 3, time: '07:00', duration: 45, date: ds, color: 'blue', capacity: 15, enrolled: 10, recurring: true, description: 'Entrenamiento funcional de fuerza.' });
+    }
+  });
+  return classes;
+})();
+
+// ─── Icons ────────────────────────────────────────────────────────────────
+const Icon = ({ name, size = 16 }) => {
+  const icons = {
+    calendar: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    classes: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    home: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    users: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+    bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+    chevLeft: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>,
+    chevRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+    clock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    repeat: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+    trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
+    edit: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+    star: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    dumbbell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><rect x="2" y="5" width="4" height="14" rx="1"/><rect x="18" y="5" width="4" height="14" rx="1"/><line x1="6" y1="12" x2="18" y2="12"/></svg>,
+    layout: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/></svg>,
+  };
+  return icons[name] || null;
+};
+
+// ─── Toggle component ────────────────────────────────────────────────────
+const Toggle = ({ checked, onChange }) => (
+  <label className="toggle">
+    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+    <div className="toggle-track" />
+    <div className="toggle-thumb" />
+  </label>
+);
+
+// ─── Create Class Modal ───────────────────────────────────────────────────
+const EMPTY_FORM = {
+  title: '', description: '', instructorId: null,
+  time: '10:00', duration: '45', capacity: '12',
+  startDate: '2026-04-21', endDate: '2026-06-30',
+  selectedDays: [1, 3, 5],
+  isRecurring: true,
+  excludeHolidays: true,
+  color: 'orange',
+};
+
+function CreateClassModal({ onClose, onSave }) {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [step, setStep] = useState(1);
+
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const toggleDay = (d) => {
+    set('selectedDays', form.selectedDays.includes(d)
+      ? form.selectedDays.filter(x => x !== d)
+      : [...form.selectedDays, d].sort());
+  };
+
+  const previewCount = () => {
+    if (!form.isRecurring || !form.startDate || !form.endDate || form.selectedDays.length === 0) return 0;
+    const start = new Date(form.startDate + 'T00:00:00');
+    const end = new Date(form.endDate + 'T00:00:00');
+    let count = 0;
+    let cur = new Date(start);
+    while (cur <= end) {
+      if (form.selectedDays.includes(cur.getDay())) {
+        if (!form.excludeHolidays || !isHoliday(cur)) count++;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  };
+
+  const handleSave = () => {
+    const classes = form.isRecurring
+      ? generateRecurringClasses(form)
+      : [{ id: `${Date.now()}`, title: form.title, description: form.description, instructor: form.instructorId, time: form.time, duration: parseInt(form.duration), date: form.startDate, color: form.color, capacity: parseInt(form.capacity), enrolled: 0 }];
+    onSave(classes);
+  };
+
+  const isValid = form.title.trim() && form.instructorId && form.selectedDays.length > 0;
+
+  const colorObj = CLASS_COLORS.find(c => c.key === form.color);
+
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">Nueva Clase</div>
+            <div className="modal-subtitle">
+              {step === 1 ? 'Información general de la clase' : step === 2 ? 'Horario y recurrencia' : 'Confirmar y crear'}
+              <span style={{ marginLeft: 8, color: 'var(--text-light)', fontWeight: 500, fontSize: 12 }}>Paso {step} de 3</span>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}><Icon name="x" size={14}/></button>
+        </div>
+
+        {/* Step indicators */}
+        <div style={{ padding: '14px 28px 0', display: 'flex', gap: 6 }}>
+          {[1,2,3].map(s => (
+            <div key={s} style={{
+              height: 4, flex: 1, borderRadius: 99,
+              background: s <= step ? 'var(--orange)' : 'var(--border)',
+              transition: 'background 0.3s',
+              cursor: s < step ? 'pointer' : 'default',
+            }} onClick={() => s < step && setStep(s)} />
+          ))}
+        </div>
+
+        <div className="modal-body">
+          {step === 1 && (
+            <>
+              <div className="form-section">
+                <div className="form-section-title">Información de la clase</div>
+                <div className="form-group">
+                  <label className="form-label">Título de la clase <span>*</span></label>
+                  <input className="form-input" placeholder="ej. HIIT Burn, Yoga Flow…" value={form.title} onChange={e => set('title', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Descripción</label>
+                  <textarea className="form-textarea" placeholder="Describe brevemente la clase, nivel de dificultad, qué esperar…" value={form.description} onChange={e => set('description', e.target.value)} />
+                </div>
+                <div className="form-row cols-2">
+                  <div className="form-group">
+                    <label className="form-label">Duración (min) <span>*</span></label>
+                    <div className="form-select-wrap">
+                      <select className="form-select" value={form.duration} onChange={e => set('duration', e.target.value)}>
+                        {[30,45,50,60,75,90].map(d => <option key={d} value={d}>{d} minutos</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Capacidad máx.</label>
+                    <input className="form-input" type="number" min="1" max="50" value={form.capacity} onChange={e => set('capacity', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <div className="form-section-title">Profesora</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {INSTRUCTORS.map(instr => (
+                    <div key={instr.id} className={`instructor-option${form.instructorId === instr.id ? ' selected' : ''}`} onClick={() => set('instructorId', instr.id)}>
+                      <div className="instr-avatar" style={{ background: instr.color + '22', color: instr.color }}>
+                        {instr.initials}
+                      </div>
+                      <div>
+                        <div className="instr-name">{instr.name}</div>
+                        <div className="instr-spec">{instr.specialty}</div>
+                      </div>
+                      <div className="instructor-check" style={{ background: instr.color }}>
+                        <Icon name="check" size={10} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-section">
+                <div className="form-section-title">Color en calendario</div>
+                <div className="color-picker">
+                  {CLASS_COLORS.map(c => (
+                    <div key={c.key} className={`color-dot${form.color === c.key ? ' selected' : ''}`}
+                      style={{ background: c.hex }}
+                      title={c.label}
+                      onClick={() => set('color', c.key)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div className="form-section">
+                <div className="form-section-title">Horario</div>
+                <div className="form-row cols-2">
+                  <div className="form-group">
+                    <label className="form-label">Hora de inicio <span>*</span></label>
+                    <input className="form-input" type="time" value={form.time} onChange={e => set('time', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Fecha de inicio <span>*</span></label>
+                    <input className="form-input" type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <div className="form-section-title">Recurrencia</div>
+                <div className="toggle-row">
+                  <div>
+                    <div className="toggle-label">Clase recurrente</div>
+                    <div className="toggle-desc">Se creará en múltiples fechas automáticamente</div>
+                  </div>
+                  <Toggle checked={form.isRecurring} onChange={v => set('isRecurring', v)} />
+                </div>
+
+                {form.isRecurring && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">Días de la semana <span>*</span></label>
+                      <div className="days-selector">
+                        {DAYS_OF_WEEK.map((d, i) => (
+                          <div key={i} className={`day-pill${form.selectedDays.includes(i) ? ' selected' : ''}`} onClick={() => toggleDay(i)}>
+                            {d}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6, fontWeight: 500 }}>
+                        {form.selectedDays.length === 0 ? 'Selecciona al menos un día' : `Seleccionados: ${form.selectedDays.map(d => DAYS_FULL[d]).join(', ')}`}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Fecha de fin <span>*</span></label>
+                      <input className="form-input" type="date" value={form.endDate} min={form.startDate} onChange={e => set('endDate', e.target.value)} />
+                    </div>
+
+                    <div className="toggle-row">
+                      <div>
+                        <div className="toggle-label">Excluir festivos</div>
+                        <div className="toggle-desc">No se crearán clases en días festivos de Colombia</div>
+                      </div>
+                      <Toggle checked={form.excludeHolidays} onChange={v => set('excludeHolidays', v)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              {/* Preview card */}
+              <div style={{ background: colorObj?.bg || 'var(--orange-light)', borderRadius: 14, padding: '18px 20px', borderLeft: `4px solid ${colorObj?.hex || 'var(--orange)'}` }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: colorObj?.text || 'var(--orange)', letterSpacing: '-0.3px' }}>{form.title || 'Sin título'}</div>
+                {form.description && <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5, fontWeight: 500 }}>{form.description}</div>}
+                <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+                    <Icon name="clock" size={13}/> {form.time} · {form.duration} min
+                  </div>
+                  {form.instructorId && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+                      <Icon name="users" size={13}/> {INSTRUCTORS.find(i=>i.id===form.instructorId)?.name}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+                    👥 Capacidad: {form.capacity}
+                  </div>
+                </div>
+              </div>
+
+              {form.isRecurring && (
+                <div style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <Icon name="repeat" size={15}/>
+                    <span style={{ fontWeight: 700, fontSize: 13.5 }}>Resumen de recurrencia</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    {[
+                      ['Días', form.selectedDays.map(d => DAYS_OF_WEEK[d]).join(', ') || '—'],
+                      ['Desde', form.startDate],
+                      ['Hasta', form.endDate],
+                      ['Hora', form.time],
+                      ['Excluir festivos', form.excludeHolidays ? 'Sí' : 'No'],
+                    ].map(([k, v]) => (
+                      <div key={k}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginTop: 2 }}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--orange-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Total de clases a crear</span>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--orange)' }}>{previewCount()}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          {step > 1 && <button className="btn-cancel" onClick={() => setStep(s => s - 1)}>← Atrás</button>}
+          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          {step < 3
+            ? <button className="btn-primary" onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title.trim() || !form.instructorId)}>
+                Siguiente →
+              </button>
+            : <button className="btn-primary" onClick={handleSave} disabled={!isValid}>
+                <Icon name="plus" size={14}/>
+                Crear {previewCount() > 1 ? `${previewCount()} clases` : 'clase'}
+              </button>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Event popup ──────────────────────────────────────────────────────────
+function EventPopup({ event, pos, onClose, onDelete, instructors }) {
+  const instr = instructors.find(i => i.id === event.instructor);
+  const colorObj = CLASS_COLORS.find(c => c.key === event.color) || CLASS_COLORS[0];
+  const pct = Math.round((event.enrolled / event.capacity) * 100);
+  return (
+    <div className="event-popup" style={{ top: pos.y, left: pos.x }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="event-popup-title" style={{ color: colorObj.text }}>{event.title}</div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}><Icon name="x" size={13}/></button>
+      </div>
+      <div className="event-popup-row"><Icon name="clock" size={12}/> {event.time} · {event.duration} min</div>
+      {instr && <div className="event-popup-row"><Icon name="users" size={12}/> {instr.name}</div>}
+      <div className="event-popup-row">
+        <Icon name="dumbbell" size={12}/>
+        {event.enrolled}/{event.capacity} inscritas
+        <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 99, marginLeft: 6, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: colorObj.hex, borderRadius: 99 }} />
+        </div>
+      </div>
+      {event.recurring && <span className="chip" style={{ background: colorObj.bg, color: colorObj.text, marginTop: 8, display: 'inline-flex' }}><Icon name="repeat" size={10}/>&nbsp;Recurrente</span>}
+      <div className="event-popup-actions">
+        <button className="popup-btn"><Icon name="edit" size={12}/> Editar</button>
+        <button className="popup-btn danger" onClick={() => onDelete(event.id)}><Icon name="trash" size={12}/> Eliminar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Weekly Calendar ──────────────────────────────────────────────────────
+function WeeklyCalendar({ weekStart, classes, onCellClick, onEventClick }) {
+  const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+  const today = new Date('2026-04-20');
+
+  const getClassesForDayHour = (date, hour) => {
+    const ds = date.toISOString().split('T')[0];
+    return classes.filter(c => {
+      if (c.date !== ds) return false;
+      const h = parseInt(c.time.split(':')[0]);
+      return h === hour;
+    });
+  };
+
+  return (
+    <div className="cal-grid-wrap">
+      <div className="cal-day-headers">
+        <div className="cal-day-header" />
+        {days.map((d, i) => {
+          const isToday = d.toDateString() === today.toDateString();
+          return (
+            <div key={i} className={`cal-day-header${isToday ? ' today' : ''}`}>
+              {DAYS_OF_WEEK[d.getDay()]}
+              {isToday
+                ? <span className="day-num" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d.getDate()}</span>
+                : <span className="day-num">{d.getDate()}</span>
+              }
+            </div>
+          );
+        })}
+      </div>
+      <div className="cal-body">
+        {hours.map(hour => (
+          <React.Fragment key={hour}>
+            <div className="cal-time-slot">{hour > 12 ? `${hour-12}pm` : hour === 12 ? '12pm' : `${hour}am`}</div>
+            {days.map((d, di) => {
+              const dayClasses = getClassesForDayHour(d, hour);
+              return (
+                <div key={di} className="cal-cell" onClick={() => onCellClick(d, hour)}>
+                  {dayClasses.map(cls => {
+                    const colorObj = CLASS_COLORS.find(c => c.key === cls.color) || CLASS_COLORS[0];
+                    const heightPx = Math.max(56, (cls.duration / 60) * 64 - 6);
+                    const instr = INSTRUCTORS.find(i => i.id === cls.instructor);
+                    return (
+                      <div key={cls.id}
+                        className="class-event"
+                        style={{ background: colorObj.bg, color: colorObj.text, borderLeft: `3px solid ${colorObj.hex}`, height: heightPx }}
+                        onClick={e => { e.stopPropagation(); onEventClick(cls, e); }}
+                      >
+                        <div className="class-event-title">{cls.title}</div>
+                        <div className="class-event-time">{cls.time} · {cls.duration}m</div>
+                        {instr && <div className="class-event-instructor">{instr.name.split(' ')[0]}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Monthly Calendar ─────────────────────────────────────────────────────
+function MonthlyCalendar({ year, month, classes, onDayClick, onEventClick }) {
+  const today = new Date('2026-04-20');
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startPad = firstDay.getDay();
+  const cells = [];
+  for (let i = 0; i < startPad; i++) {
+    const d = new Date(year, month, -startPad + i + 1);
+    cells.push({ date: d, otherMonth: true });
+  }
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    cells.push({ date: new Date(year, month, d), otherMonth: false });
+  }
+  const remaining = 42 - cells.length;
+  for (let d = 1; d <= remaining; d++) {
+    cells.push({ date: new Date(year, month + 1, d), otherMonth: true });
+  }
+
+  const getClassesForDate = (date) => {
+    const ds = date.toISOString().split('T')[0];
+    return classes.filter(c => c.date === ds);
+  };
+
+  return (
+    <div className="month-grid">
+      <div className="month-day-names">
+        {DAYS_OF_WEEK.map(d => <div key={d} className="month-day-name">{d}</div>)}
+      </div>
+      <div className="month-cells">
+        {cells.map((cell, i) => {
+          const isToday = cell.date.toDateString() === today.toDateString();
+          const dayCls = getClassesForDate(cell.date);
+          return (
+            <div key={i} className={`month-cell${cell.otherMonth ? ' other-month' : ''}${isToday ? ' today-cell' : ''}`} onClick={() => onDayClick(cell.date)}>
+              <div className="month-cell-num">{cell.date.getDate()}</div>
+              {dayCls.slice(0, 3).map(cls => {
+                const colorObj = CLASS_COLORS.find(c => c.key === cls.color) || CLASS_COLORS[0];
+                return (
+                  <div key={cls.id} className="month-event"
+                    style={{ background: colorObj.bg, color: colorObj.text }}
+                    onClick={e => { e.stopPropagation(); onEventClick(cls, e); }}
+                  >
+                    {cls.time} {cls.title}
+                  </div>
+                );
+              })}
+              {dayCls.length > 3 && <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>+{dayCls.length - 3} más</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Seed members ────────────────────────────────────────────────────────
+const SEED_MEMBERS = [
+  { id: 1, name: 'Valentina Torres', email: 'vale@gmail.com', phone: '+57 311 234 5678', stars: 18, avatar: null, initials: 'VT', color: '#E8682A', joined: '2025-08-14', status: 'activa' },
+  { id: 2, name: 'Camila Restrepo', email: 'camila.r@hotmail.com', phone: '+57 300 876 5432', stars: 7, avatar: null, initials: 'CR', color: '#0F8B76', joined: '2025-11-03', status: 'activa' },
+  { id: 3, name: 'Luciana Martínez', email: 'luma@gmail.com', phone: '+57 315 000 1122', stars: 32, avatar: null, initials: 'LM', color: '#6D37C4', joined: '2025-06-20', status: 'activa' },
+  { id: 4, name: 'Daniela Ospina', email: 'dani.ospina@empresa.com', phone: '+57 320 555 9988', stars: 3, avatar: null, initials: 'DO', color: '#2563EB', joined: '2026-01-08', status: 'activa' },
+  { id: 5, name: 'Sofía Herrera', email: 'sofi.h@gmail.com', phone: '+57 310 444 7766', stars: 0, avatar: null, initials: 'SH', color: '#C4376D', joined: '2026-02-15', status: 'inactiva' },
+  { id: 6, name: 'Isabella Gómez', email: 'isa.gomez@gmail.com', phone: '+57 312 678 9900', stars: 24, avatar: null, initials: 'IG', color: '#E8682A', joined: '2025-09-01', status: 'activa' },
+  { id: 7, name: 'Mariana Cárdenas', email: 'mari.c@outlook.com', phone: '+57 317 333 4455', stars: 11, avatar: null, initials: 'MC', color: '#0F8B76', joined: '2025-12-20', status: 'activa' },
+  { id: 8, name: 'Ana Lucía Pérez', email: 'analucia@gmail.com', phone: '+57 301 789 2233', stars: 5, avatar: null, initials: 'AP', color: '#6D37C4', joined: '2026-03-10', status: 'activa' },
+];
+
+const MEMBER_HISTORY = {
+  1: [
+    { id: 'h1', title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-18', time: '10:00', status: 'completada', stars: 1 },
+    { id: 'h2', title: 'Yoga Flow', instructor: 'Tania Janek', date: '2026-04-15', time: '08:00', status: 'completada', stars: 1 },
+    { id: 'h3', title: 'Pilates Core', instructor: 'María López', date: '2026-04-10', time: '17:00', status: 'cancelada', stars: 0 },
+    { id: 'h4', title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-07', time: '10:00', status: 'completada', stars: 1 },
+  ],
+  2: [
+    { id: 'h5', title: 'Yoga Flow', instructor: 'Tania Janek', date: '2026-04-16', time: '08:00', status: 'completada', stars: 1 },
+    { id: 'h6', title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-14', time: '10:00', status: 'cancelada', stars: 0 },
+  ],
+  3: [
+    { id: 'h7', title: 'Funcional', instructor: 'Carlos Ruiz', date: '2026-04-19', time: '07:00', status: 'completada', stars: 1 },
+    { id: 'h8', title: 'Pilates Core', instructor: 'María López', date: '2026-04-17', time: '17:00', status: 'completada', stars: 1 },
+    { id: 'h9', title: 'Yoga Flow', instructor: 'Tania Janek', date: '2026-04-15', time: '08:00', status: 'completada', stars: 1 },
+    { id: 'h10', title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-11', time: '10:00', status: 'completada', stars: 1 },
+    { id: 'h11', title: 'Funcional', instructor: 'Carlos Ruiz', date: '2026-04-08', time: '07:00', status: 'completada', stars: 1 },
+  ],
+};
+for (let i = 4; i <= 8; i++) MEMBER_HISTORY[i] = [];
+
+const MEMBER_UPCOMING = {
+  1: [{ title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-21', time: '10:00', machine: 'M-03' }],
+  2: [{ title: 'Yoga Flow', instructor: 'Tania Janek', date: '2026-04-22', time: '08:00', machine: 'M-01' }, { title: 'Pilates Core', instructor: 'María López', date: '2026-04-24', time: '17:00', machine: 'M-05' }],
+  3: [{ title: 'Funcional', instructor: 'Carlos Ruiz', date: '2026-04-22', time: '07:00', machine: 'M-02' }],
+  4: [], 5: [], 6: [{ title: 'HIIT Burn', instructor: 'Tania Janek', date: '2026-04-21', time: '10:00', machine: 'M-07' }],
+  7: [{ title: 'Yoga Flow', instructor: 'Tania Janek', date: '2026-04-23', time: '08:00', machine: 'M-04' }],
+  8: [],
+};
+
+// ─── Member Detail Modal ──────────────────────────────────────────────────
+function MemberDetailModal({ member, onClose, onSave, isEdit: initEdit }) {
+  const [isEdit, setIsEdit] = useState(initEdit || false);
+  const [form, setForm] = useState({ name: member.name, email: member.email, phone: member.phone, stars: member.stars, status: member.status });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const history = MEMBER_HISTORY[member.id] || [];
+  const upcoming = MEMBER_UPCOMING[member.id] || [];
+  const [histTab, setHistTab] = useState('upcoming');
+
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" style={{ width: 580 }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: member.color + '22', color: member.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, flexShrink: 0 }}>
+              {member.initials}
+            </div>
+            <div>
+              <div className="modal-title" style={{ fontSize: 17 }}>{member.name}</div>
+              <div className="modal-subtitle">{member.email} · Miembro desde {member.joined}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setIsEdit(e => !e)} className={isEdit ? 'btn-primary' : 'btn-secondary'} style={{ padding: '7px 14px', fontSize: 12.5 }}>
+              <Icon name={isEdit ? 'check' : 'edit'} size={13}/> {isEdit ? 'Editando' : 'Editar'}
+            </button>
+            <button className="modal-close" onClick={onClose}><Icon name="x" size={14}/></button>
+          </div>
+        </div>
+
+        <div className="modal-body">
+          {/* Info section */}
+          <div className="form-section">
+            <div className="form-section-title">Información personal</div>
+            <div className="form-row cols-2">
+              <div className="form-group">
+                <label className="form-label">Nombre completo</label>
+                {isEdit
+                  ? <input className="form-input" value={form.name} onChange={e => set('name', e.target.value)} />
+                  : <div style={{ padding: '10px 13px', background: 'var(--bg)', borderRadius: 10, fontSize: 13.5, fontWeight: 600, border: '1.5px solid var(--border)' }}>{member.name}</div>
+                }
+              </div>
+              <div className="form-group">
+                <label className="form-label">Estado</label>
+                {isEdit
+                  ? <div className="form-select-wrap"><select className="form-select" value={form.status} onChange={e => set('status', e.target.value)}><option value="activa">Activa</option><option value="inactiva">Inactiva</option></select></div>
+                  : <div style={{ padding: '10px 13px', background: member.status === 'activa' ? '#E6F7F4' : 'var(--bg)', borderRadius: 10, fontSize: 13.5, fontWeight: 700, border: '1.5px solid', borderColor: member.status === 'activa' ? '#0F8B76' : 'var(--border)', color: member.status === 'activa' ? '#0F8B76' : 'var(--text-muted)' }}>{member.status === 'activa' ? '● Activa' : '○ Inactiva'}</div>
+                }
+              </div>
+            </div>
+            <div className="form-row cols-2">
+              <div className="form-group">
+                <label className="form-label">Correo electrónico</label>
+                {isEdit
+                  ? <input className="form-input" type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+                  : <div style={{ padding: '10px 13px', background: 'var(--bg)', borderRadius: 10, fontSize: 13.5, fontWeight: 600, border: '1.5px solid var(--border)' }}>{member.email}</div>
+                }
+              </div>
+              <div className="form-group">
+                <label className="form-label">Celular</label>
+                {isEdit
+                  ? <input className="form-input" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} />
+                  : <div style={{ padding: '10px 13px', background: 'var(--bg)', borderRadius: 10, fontSize: 13.5, fontWeight: 600, border: '1.5px solid var(--border)' }}>{member.phone}</div>
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* Stars */}
+          <div className="form-section">
+            <div className="form-section-title">Estrellitas</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 18px', background: 'var(--orange-light)', borderRadius: 12, border: '1.5px solid var(--orange-mid)' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="star" size={22}/>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Balance actual</div>
+                {isEdit ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                    <button onClick={() => set('stars', Math.max(0, form.stars - 1))} style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--orange-mid)', background: 'white', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-1px', minWidth: 40, textAlign: 'center' }}>{form.stars}</span>
+                    <button onClick={() => set('stars', form.stars + 1)} style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--orange-mid)', background: 'white', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 600 }}>estrellitas</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-1px', marginTop: 2 }}>
+                    {member.stars} <span style={{ fontSize: 14, fontWeight: 600 }}>estrellitas</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 600 }}>Equivale a</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--orange)' }}>{isEdit ? form.stars : member.stars} sesiones</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs: upcoming / history */}
+          <div className="form-section">
+            <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 10, padding: 3, border: '1.5px solid var(--border)', marginBottom: 14 }}>
+              {[['upcoming','Clases reservadas'],['history','Historial de clases']].map(([k,l]) => (
+                <div key={k} onClick={() => setHistTab(k)}
+                  style={{ flex: 1, textAlign: 'center', padding: '7px 0', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                    background: histTab === k ? 'white' : 'transparent', color: histTab === k ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: histTab === k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none' }}>
+                  {l} {histTab === k && <span style={{ marginLeft: 4, background: 'var(--orange)', color: 'white', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 99 }}>{k==='upcoming' ? upcoming.length : history.length}</span>}
+                </div>
+              ))}
+            </div>
+
+            {histTab === 'upcoming' && (
+              upcoming.length === 0
+                ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Sin clases reservadas próximamente</div>
+                : upcoming.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'var(--orange-light)', borderRadius: 10, marginBottom: 8, border: '1.5px solid var(--orange-mid)' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}><Icon name="calendar" size={16}/></div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{c.title}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>{c.instructor} · {c.date} · {c.time} · {c.machine}</div>
+                    </div>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, background: 'var(--orange)', color: 'white', padding: '3px 9px', borderRadius: 99 }}>Reservada</span>
+                  </div>
+                ))
+            )}
+
+            {histTab === 'history' && (
+              history.length === 0
+                ? <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500 }}>Sin historial de clases</div>
+                : history.map((c) => (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'var(--bg)', borderRadius: 10, marginBottom: 8, border: '1.5px solid var(--border)' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: c.status === 'completada' ? '#E6F7F4' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.status === 'completada' ? '#0F8B76' : '#DC2626', flexShrink: 0 }}>
+                      <Icon name={c.status === 'completada' ? 'check' : 'x'} size={15}/>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5 }}>{c.title}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>{c.instructor} · {c.date} · {c.time}</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: c.status === 'completada' ? '#E6F7F4' : '#FEE2E2', color: c.status === 'completada' ? '#0F8B76' : '#DC2626' }}>{c.status}</span>
+                      {c.stars > 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--orange)' }}>−1 ★</span>}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+
+        {isEdit && (
+          <div className="modal-footer">
+            <button className="btn-cancel" onClick={() => setIsEdit(false)}>Cancelar</button>
+            <button className="btn-primary" onClick={() => { onSave(member.id, form); onClose(); }}>
+              <Icon name="check" size={14}/> Guardar cambios
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Members View ─────────────────────────────────────────────────────────
+function MembersView({ classes, showToast }) {
+  const [members, setMembers] = useState(SEED_MEMBERS);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('todas');
+  const [selected, setSelected] = useState(null);
+  const [openEdit, setOpenEdit] = useState(false);
+
+  const filtered = members.filter(m => {
+    const q = search.toLowerCase();
+    const matchSearch = m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.phone.includes(q);
+    const matchFilter = filter === 'todas' || m.status === filter;
+    return matchSearch && matchFilter;
+  });
+
+  const handleSave = (id, form) => {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, ...form, stars: parseInt(form.stars) } : m));
+    showToast('Cambios guardados correctamente');
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Miembros</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>{members.length} miembros registrados</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="topbar-search" style={{ width: 240 }}>
+            <Icon name="search" size={14}/>
+            <input placeholder="Buscar por nombre, correo…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div className="cal-view-tabs">
+            {[['todas','Todas'],['activa','Activas'],['inactiva','Inactivas']].map(([k,l]) => (
+              <div key={k} className={`cal-view-tab${filter===k?' active':''}`} onClick={() => setFilter(k)}>{l}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', overflow: 'hidden' }}>
+        {/* Table header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 2fr 1.5fr 80px 80px 100px', padding: '11px 20px', background: 'var(--bg)', borderBottom: '1.5px solid var(--border)', gap: 12 }}>
+          {['Miembro','Correo','Celular','Estrellitas','Estado','Acciones'].map(h => (
+            <div key={h} style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</div>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', fontSize: 13.5, fontWeight: 500 }}>
+            No se encontraron miembros que coincidan con la búsqueda.
+          </div>
+        )}
+
+        {filtered.map((m, i) => (
+          <div key={m.id} style={{ display: 'grid', gridTemplateColumns: '2.5fr 2fr 1.5fr 80px 80px 100px', padding: '14px 20px', gap: 12, alignItems: 'center', borderBottom: i < filtered.length-1 ? '1px solid var(--border)' : 'none', transition: 'background 0.1s', cursor: 'default' }}
+            onMouseEnter={e => e.currentTarget.style.background='var(--bg)'}
+            onMouseLeave={e => e.currentTarget.style.background='white'}
+          >
+            {/* Avatar + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: m.color + '22', color: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                {m.initials}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{m.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 500, marginTop: 1 }}>Desde {m.joined}</div>
+              </div>
+            </div>
+            {/* Email */}
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</div>
+            {/* Phone */}
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>{m.phone}</div>
+            {/* Stars */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: m.stars > 0 ? 'var(--orange)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="star" size={12}/>
+              </div>
+              <span style={{ fontWeight: 800, fontSize: 14, color: m.stars > 0 ? 'var(--orange)' : 'var(--text-muted)' }}>{m.stars}</span>
+            </div>
+            {/* Status */}
+            <div>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: m.status==='activa'?'#E6F7F4':'var(--bg)', color: m.status==='activa'?'#0F8B76':'var(--text-muted)', border: '1.5px solid', borderColor: m.status==='activa'?'#0F8B76':'var(--border)' }}>
+                {m.status === 'activa' ? 'Activa' : 'Inactiva'}
+              </span>
+            </div>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button title="Ver detalles" onClick={() => { setSelected(m); setOpenEdit(false); }}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background='var(--orange-light)'; e.currentTarget.style.color='var(--orange)'; e.currentTarget.style.borderColor='var(--orange)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='var(--bg)'; e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.borderColor='var(--border)'; }}>
+                <Icon name="layout" size={13}/>
+              </button>
+              <button title="Editar" onClick={() => { setSelected(m); setOpenEdit(true); }}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background='#E8F1FD'; e.currentTarget.style.color='#2563EB'; e.currentTarget.style.borderColor='#2563EB'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='var(--bg)'; e.currentTarget.style.color='var(--text-muted)'; e.currentTarget.style.borderColor='var(--border)'; }}>
+                <Icon name="edit" size={13}/>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {selected && (
+        <MemberDetailModal
+          member={selected}
+          isEdit={openEdit}
+          onClose={() => setSelected(null)}
+          onSave={(id, form) => { handleSave(id, form); setSelected(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────
+function App() {
+  const [activeNav, setActiveNav] = useState('calendar');
+  const [calView, setCalView] = useState('week');
+  const [showModal, setShowModal] = useState(false);
+  const [classes, setClasses] = useState(seedClasses);
+  const [toast, setToast] = useState({ show: false, msg: '' });
+  const [popup, setPopup] = useState(null);
+  const [tweakOpen, setTweakOpen] = useState(false);
+  const [tweakDensity, setTweakDensity] = useState('comfortable');
+
+  // ── Settings state ──────────────────────────────────────────────────────
+  const [settings, setSettings] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('gf_settings')) || {}; } catch { return {}; }
+  });
+  const DEFAULT_SETTINGS = {
+    cancelDays: 2,
+    waitlistHours: 1,
+    waitlistMinutes: 30,
+    machines: 5,
+    studioName: 'GlideForce Fitness Studio',
+    contactEmail: 'admin@glideforce.com',
+    currency: 'COP',
+    timezone: 'America/Bogota',
+    bookingOpen: true,
+    waitlistEnabled: true,
+    notifyEmail: true,
+    notifyPush: true,
+  };
+  const cfg = { ...DEFAULT_SETTINGS, ...settings };
+  const setCfg = (key, val) => setSettings(prev => {
+    const next = { ...DEFAULT_SETTINGS, ...prev, [key]: val };
+    localStorage.setItem('gf_settings', JSON.stringify(next));
+    return next;
+  });
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const saveSettings = () => { localStorage.setItem('gf_settings', JSON.stringify(cfg)); setSettingsSaved(true); showToast('Configuración guardada correctamente'); setTimeout(() => setSettingsSaved(false), 2000); };
+
+  const today = new Date('2026-04-20');
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  });
+  const [monthView, setMonthView] = useState({ year: 2026, month: 3 });
+
+  // Load from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('gf_classes');
+    if (saved) try { setClasses(JSON.parse(saved)); } catch(e){}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('gf_classes', JSON.stringify(classes));
+  }, [classes]);
+
+  // Tweaks
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweakOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweakOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const showToast = (msg) => {
+    setToast({ show: true, msg });
+    setTimeout(() => setToast({ show: false, msg: '' }), 3200);
+  };
+
+  const handleSave = (newClasses) => {
+    setClasses(prev => [...prev, ...newClasses]);
+    setShowModal(false);
+    showToast(`✓ ${newClasses.length} clase${newClasses.length !== 1 ? 's' : ''} creada${newClasses.length !== 1 ? 's' : ''} en el calendario`);
+  };
+
+  const handleDelete = (id) => {
+    setClasses(prev => prev.filter(c => c.id !== id));
+    setPopup(null);
+    showToast('Clase eliminada del calendario');
+  };
+
+  const handleEventClick = (cls, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    let x = rect.right + 8;
+    let y = rect.top;
+    if (x + 250 > window.innerWidth) x = rect.left - 258;
+    if (y + 280 > window.innerHeight) y = window.innerHeight - 290;
+    setPopup({ event: cls, pos: { x, y } });
+  };
+
+  // Stats
+  const thisWeekClasses = classes.filter(c => {
+    const d = new Date(c.date + 'T00:00:00');
+    const ws = new Date(weekStart);
+    const we = new Date(weekStart); we.setDate(we.getDate() + 6);
+    return d >= ws && d <= we;
+  });
+  const totalEnrolled = classes.reduce((a, c) => a + c.enrolled, 0);
+  const totalCapacity = classes.reduce((a, c) => a + c.capacity, 0);
+
+  const weekLabel = () => {
+    const we = new Date(weekStart); we.setDate(we.getDate() + 6);
+    const sameMonth = weekStart.getMonth() === we.getMonth();
+    if (sameMonth) return `${weekStart.getDate()}–${we.getDate()} ${MONTH_NAMES[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
+    return `${weekStart.getDate()} ${MONTH_NAMES[weekStart.getMonth()].slice(0,3)} – ${we.getDate()} ${MONTH_NAMES[we.getMonth()].slice(0,3)} ${we.getFullYear()}`;
+  };
+
+  const monthLabel = () => `${MONTH_NAMES[monthView.month]} ${monthView.year}`;
+
+  const navWeek = (dir) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + dir * 7);
+    setWeekStart(d);
+  };
+  const navMonth = (dir) => {
+    setMonthView(prev => {
+      let m = prev.month + dir;
+      let y = prev.year;
+      if (m > 11) { m = 0; y++; }
+      if (m < 0) { m = 11; y--; }
+      return { year: y, month: m };
+    });
+  };
+  const goToday = () => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - d.getDay());
+    setWeekStart(d);
+    setMonthView({ year: 2026, month: 3 });
+  };
+
+  return (
+    <div className="layout">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">G</div>
+          <div>
+            <div className="sidebar-logo-text">GlideForce</div>
+            <div className="sidebar-logo-sub">Panel Admin</div>
+          </div>
+        </div>
+        <nav className="sidebar-nav">
+          <div className="sidebar-section-label">Principal</div>
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: 'home' },
+            { id: 'calendar', label: 'Calendario', icon: 'calendar' },
+            { id: 'classes', label: 'Clases', icon: 'dumbbell', badge: classes.length },
+          ].map(item => (
+            <div key={item.id} className={`nav-item${activeNav === item.id ? ' active' : ''}`} onClick={() => setActiveNav(item.id)}>
+              <Icon name={item.icon} size={16}/>
+              {item.label}
+              {item.badge !== undefined && <span className="nav-badge">{item.badge}</span>}
+            </div>
+          ))}
+          <div className="sidebar-section-label">Gestión</div>
+          {[
+            { id: 'instructors', label: 'Profesoras', icon: 'users' },
+            { id: 'members', label: 'Miembros', icon: 'star' },
+            { id: 'settings', label: 'Configuración', icon: 'settings' },
+          ].map(item => (
+            <div key={item.id} className={`nav-item${activeNav === item.id ? ' active' : ''}`} onClick={() => setActiveNav(item.id)}>
+              <Icon name={item.icon} size={16}/>
+              {item.label}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">A</div>
+            <div>
+              <div className="sidebar-user-name">Admin</div>
+              <div className="sidebar-user-role">Administrador</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="main">
+        {/* Topbar */}
+        <div className="topbar">
+          <div className="topbar-breadcrumb">
+            GlideForce &rsaquo; <span>{activeNav === 'calendar' ? 'Calendario' : activeNav === 'classes' ? 'Clases' : activeNav === 'settings' ? 'Configuración' : 'Dashboard'}</span>
+          </div>
+          <div className="topbar-spacer" />
+          <div className="topbar-search">
+            <Icon name="search" size={14}/>
+            <input placeholder="Buscar clase, profesora…" />
+          </div>
+          <button className="topbar-btn"><Icon name="bell" size={15}/></button>
+        </div>
+
+        {/* Content */}
+        <div className="content">
+
+          {/* ── SETTINGS VIEW ─────────────────────────────────────────── */}
+          {activeNav === 'settings' && (
+            <div style={{ maxWidth: 760 }}>
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 }}>Configuración General</div>
+                <div style={{ fontSize: 13.5, color: 'var(--text-muted)', fontWeight: 500 }}>Ajusta las políticas y parámetros de operación del estudio</div>
+              </div>
+
+              {/* ── Información del estudio */}
+              <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--orange-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--orange)' }}>
+                    <Icon name="home" size={16}/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Información del estudio</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Datos básicos de tu cuenta</div>
+                  </div>
+                </div>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Nombre del estudio</label>
+                      <input className="form-input" value={cfg.studioName} onChange={e => setCfg('studioName', e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Correo de contacto</label>
+                      <input className="form-input" type="email" value={cfg.contactEmail} onChange={e => setCfg('contactEmail', e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Moneda</label>
+                      <div className="form-select-wrap">
+                        <select className="form-select" value={cfg.currency} onChange={e => setCfg('currency', e.target.value)}>
+                          <option value="COP">COP — Peso Colombiano</option>
+                          <option value="USD">USD — Dólar Americano</option>
+                          <option value="EUR">EUR — Euro</option>
+                          <option value="MXN">MXN — Peso Mexicano</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Zona horaria</label>
+                      <div className="form-select-wrap">
+                        <select className="form-select" value={cfg.timezone} onChange={e => setCfg('timezone', e.target.value)}>
+                          <option value="America/Bogota">America/Bogotá (UTC-5)</option>
+                          <option value="America/Mexico_City">America/Ciudad de México (UTC-6)</option>
+                          <option value="America/Lima">America/Lima (UTC-5)</option>
+                          <option value="America/Buenos_Aires">America/Buenos Aires (UTC-3)</option>
+                          <option value="America/New_York">America/Nueva York (UTC-4)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Política de cancelación */}
+              <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FDE8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C4376D' }}>
+                    <Icon name="repeat" size={16}/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Política de cancelación</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Tiempo mínimo antes de la clase para cancelar sin penalización</div>
+                  </div>
+                </div>
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Días de anticipación para cancelar</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
+                        Los usuarios podrán cancelar su reserva hasta <strong>{cfg.cancelDays} día{cfg.cancelDays !== 1 ? 's' : ''}</strong> antes del inicio de la clase sin perder su estrellita.
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        <button onClick={() => setCfg('cancelDays', Math.max(0, cfg.cancelDays - 1))}
+                          style={{ width: 40, height: 48, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>−</button>
+                        <div style={{ width: 64, textAlign: 'center', fontSize: 28, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-1px' }}>{cfg.cancelDays}</div>
+                        <button onClick={() => setCfg('cancelDays', Math.min(30, cfg.cancelDays + 1))}
+                          style={{ width: 40, height: 48, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.1s' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>+</button>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Días</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 16 }}>
+                    <input type="range" min="0" max="30" value={cfg.cancelDays}
+                      onChange={e => setCfg('cancelDays', parseInt(e.target.value))}
+                      style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: 4 }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-light)', fontWeight: 600, marginTop: 4 }}>
+                      <span>0 días (sin política)</span><span>15 días</span><span>30 días</span>
+                    </div>
+                  </div>
+                  {cfg.cancelDays === 0 && (
+                    <div style={{ marginTop: 12, padding: '10px 14px', background: '#FDE8F0', borderRadius: 10, fontSize: 12.5, color: '#C4376D', fontWeight: 600 }}>
+                      ⚠️ Sin política activa — los usuarios pueden cancelar en cualquier momento sin consecuencias.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Lista de espera */}
+              <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: '#EFE9FD', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6D37C4' }}>
+                      <Icon name="clock" size={16}/>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14 }}>Lista de espera</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Tiempo máximo que una usuaria tiene para confirmar su lugar</div>
+                    </div>
+                  </div>
+                  <Toggle checked={cfg.waitlistEnabled} onChange={v => setCfg('waitlistEnabled', v)} />
+                </div>
+                <div style={{ padding: '20px 24px', opacity: cfg.waitlistEnabled ? 1 : 0.4, pointerEvents: cfg.waitlistEnabled ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                    Tiempo máximo de confirmación: <span style={{ color: 'var(--orange)', fontWeight: 800 }}>{cfg.waitlistHours}h {cfg.waitlistMinutes}min</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
+                    {/* Hours */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Horas</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        <button onClick={() => setCfg('waitlistHours', Math.max(0, cfg.waitlistHours - 1))}
+                          style={{ width: 40, height: 52, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>−</button>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: 30, fontWeight: 800, color: '#6D37C4', letterSpacing: '-1px' }}>{String(cfg.waitlistHours).padStart(2,'0')}</div>
+                        <button onClick={() => setCfg('waitlistHours', Math.min(72, cfg.waitlistHours + 1))}
+                          style={{ width: 40, height: 52, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>+</button>
+                      </div>
+                      <input type="range" min="0" max="72" value={cfg.waitlistHours}
+                        onChange={e => setCfg('waitlistHours', parseInt(e.target.value))}
+                        style={{ width: '100%', accentColor: '#6D37C4', cursor: 'pointer', marginTop: 10 }} />
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
+                    {/* Minutes */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Minutos</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        <button onClick={() => setCfg('waitlistMinutes', cfg.waitlistMinutes === 0 ? 45 : cfg.waitlistMinutes - 15)}
+                          style={{ width: 40, height: 52, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>−</button>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: 30, fontWeight: 800, color: '#6D37C4', letterSpacing: '-1px' }}>{String(cfg.waitlistMinutes).padStart(2,'0')}</div>
+                        <button onClick={() => setCfg('waitlistMinutes', cfg.waitlistMinutes === 45 ? 0 : cfg.waitlistMinutes + 15)}
+                          style={{ width: 40, height: 52, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 20, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>+</button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                        {[0, 15, 30, 45].map(m => (
+                          <div key={m} onClick={() => setCfg('waitlistMinutes', m)}
+                            style={{ flex: 1, textAlign: 'center', padding: '4px 0', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', background: cfg.waitlistMinutes === m ? '#6D37C4' : 'var(--bg)', color: cfg.waitlistMinutes === m ? 'white' : 'var(--text-muted)', border: '1.5px solid', borderColor: cfg.waitlistMinutes === m ? '#6D37C4' : 'var(--border)', transition: 'all 0.15s' }}>
+                            :{String(m).padStart(2,'0')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: '#EFE9FD', borderRadius: 10, fontSize: 12.5, color: '#6D37C4', fontWeight: 600 }}>
+                    Cuando un cupo se libere, la siguiente usuaria en lista de espera tendrá <strong>{cfg.waitlistHours}h {cfg.waitlistMinutes}min</strong> para confirmar antes de pasar al siguiente.
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Máquinas disponibles */}
+              <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: '#E6F7F4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F8B76' }}>
+                    <Icon name="dumbbell" size={16}/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Máquinas disponibles</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Número total de puestos/máquinas en el estudio</div>
+                  </div>
+                </div>
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Total de máquinas en el estudio</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
+                        Este número determina cuántos puestos se muestran al reservar. Actualmente hay <strong style={{ color: '#0F8B76' }}>{cfg.machines} máquinas</strong> disponibles.
+                      </div>
+                      <div style={{ marginTop: 14 }}>
+                        <input type="range" min="1" max="50" value={cfg.machines}
+                          onChange={e => setCfg('machines', parseInt(e.target.value))}
+                          style={{ width: '100%', accentColor: '#0F8B76', cursor: 'pointer' }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-light)', fontWeight: 600, marginTop: 4 }}>
+                          <span>1</span><span>25</span><span>50</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Machine counter */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                        <button onClick={() => setCfg('machines', Math.max(1, cfg.machines - 1))}
+                          style={{ width: 44, height: 56, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 22, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>−</button>
+                        <div style={{ width: 72, textAlign: 'center', fontSize: 34, fontWeight: 800, color: '#0F8B76', letterSpacing: '-1px' }}>{cfg.machines}</div>
+                        <button onClick={() => setCfg('machines', Math.min(50, cfg.machines + 1))}
+                          style={{ width: 44, height: 56, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 22, fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onMouseEnter={e => e.target.style.background='var(--border)'}
+                          onMouseLeave={e => e.target.style.background='transparent'}>+</button>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Máquinas</div>
+                    </div>
+                  </div>
+                  {/* Machine grid preview */}
+                  <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg)', borderRadius: 12, border: '1.5px solid var(--border)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Vista previa — cómo se verá en la app</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {Array.from({ length: Math.min(cfg.machines, 30) }, (_, i) => (
+                        <div key={i} style={{ width: 36, height: 36, borderRadius: 8, background: i === 0 ? 'var(--orange)' : 'white', border: `1.5px solid ${i === 0 ? 'var(--orange)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: i === 0 ? 'white' : 'var(--text-muted)' }}>
+                          M-{String(i+1).padStart(2,'0')}
+                        </div>
+                      ))}
+                      {cfg.machines > 30 && <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>+{cfg.machines-30}</div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Reservas y notificaciones */}
+              <div style={{ background: 'white', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', marginBottom: 24, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 24px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: '#E8F1FD', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                    <Icon name="bell" size={16}/>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>Reservas y notificaciones</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Controla el comportamiento de reservas y alertas</div>
+                  </div>
+                </div>
+                <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {[
+                    { key: 'bookingOpen', label: 'Reservas abiertas', desc: 'Las usuarias pueden reservar clases desde la app' },
+                    { key: 'notifyEmail', label: 'Notificaciones por correo', desc: 'Enviar confirmaciones y recordatorios por email' },
+                    { key: 'notifyPush', label: 'Notificaciones push', desc: 'Enviar alertas push cuando una clase se libera o modifica' },
+                  ].map(({ key, label, desc }) => (
+                    <div key={key} className="toggle-row" style={{ marginBottom: 8 }}>
+                      <div>
+                        <div className="toggle-label">{label}</div>
+                        <div className="toggle-desc">{desc}</div>
+                      </div>
+                      <Toggle checked={cfg[key]} onChange={v => setCfg(key, v)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button className="btn-cancel" onClick={() => setSettings({})}>Restaurar defaults</button>
+                <button className="btn-primary" onClick={saveSettings} style={{ minWidth: 160, justifyContent: 'center' }}>
+                  {settingsSaved ? <><Icon name="check" size={15}/> Guardado</> : <><Icon name="settings" size={15}/> Guardar cambios</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── INSTRUCTORS — En construcción */}
+          {activeNav === 'instructors' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '65vh', gap: 20, textAlign: 'center' }}>
+              <div style={{ width: 96, height: 96, borderRadius: 24, background: 'var(--orange-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', color: 'var(--text)' }}>En construcción</div>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, fontWeight: 500, maxWidth: 340 }}>
+                  La gestión de profesoras estará disponible muy pronto. Aquí podrás agregar, editar y administrar el equipo de instructoras del estudio.
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'var(--orange-light)', borderRadius: 99, fontSize: 13, fontWeight: 700, color: 'var(--orange)' }}>
+                <Icon name="repeat" size={13}/> Próximamente
+              </div>
+            </div>
+          )}
+
+          {/* ── MEMBERS VIEW */}
+          {activeNav === 'members' && <MembersView classes={classes} showToast={showToast} />}
+
+          {activeNav !== 'settings' && activeNav !== 'instructors' && activeNav !== 'members' && <>
+          {/* Stats */}
+          <div className="stats-bar">
+            <div className="stat-card">
+              <div className="stat-label">Clases esta semana</div>
+              <div className="stat-value">{thisWeekClasses.length}</div>
+              <div className="stat-sub">en el calendario</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Total de clases</div>
+              <div className="stat-value">{classes.length}</div>
+              <div className="stat-sub">programadas</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Inscritas</div>
+              <div className="stat-value stat-orange">{totalEnrolled}</div>
+              <div className="stat-sub">de {totalCapacity} cupos</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Ocupación</div>
+              <div className="stat-value">{totalCapacity > 0 ? Math.round((totalEnrolled/totalCapacity)*100) : 0}<span style={{fontSize:16,fontWeight:700,color:'var(--text-muted)'}}>%</span></div>
+              <div className="stat-sub">promedio</div>
+            </div>
+          </div>
+
+          {/* Calendar header */}
+          <div className="cal-header">
+            <div className="cal-title">{calView === 'week' ? weekLabel() : monthLabel()}</div>
+            <button className="cal-nav-btn" onClick={() => calView === 'week' ? navWeek(-1) : navMonth(-1)}>
+              <Icon name="chevLeft" size={14}/>
+            </button>
+            <button className="cal-nav-btn" onClick={() => calView === 'week' ? navWeek(1) : navMonth(1)}>
+              <Icon name="chevRight" size={14}/>
+            </button>
+            <button className="today-btn" onClick={goToday}>Hoy</button>
+            <div className="cal-view-tabs">
+              {['week','month'].map(v => (
+                <div key={v} className={`cal-view-tab${calView === v ? ' active' : ''}`} onClick={() => setCalView(v)}>
+                  {v === 'week' ? 'Semana' : 'Mes'}
+                </div>
+              ))}
+            </div>
+            <button className="btn-primary" onClick={() => setShowModal(true)}>
+              <Icon name="plus" size={15}/> Nueva Clase
+            </button>
+          </div>
+
+          {calView === 'week'
+            ? <WeeklyCalendar weekStart={weekStart} classes={classes} onCellClick={() => setShowModal(true)} onEventClick={handleEventClick} />
+            : <MonthlyCalendar year={monthView.year} month={monthView.month} classes={classes} onDayClick={() => setShowModal(true)} onEventClick={handleEventClick} />
+          }
+          </>}
+        </div>
+      </div>
+
+      {/* Modal */}
+      {showModal && <CreateClassModal onClose={() => setShowModal(false)} onSave={handleSave} />}
+
+      {/* Event popup */}
+      {popup && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setPopup(null)} />
+          <EventPopup event={popup.event} pos={popup.pos} onClose={() => setPopup(null)} onDelete={handleDelete} instructors={INSTRUCTORS} />
+        </>
+      )}
+
+      {/* Toast */}
+      <div className={`toast${toast.show ? ' show' : ''}`}>
+        <span className="toast-icon">✓</span>
+        {toast.msg}
+      </div>
+
+      {/* Tweaks */}
+      <div className={`tweak-panel${tweakOpen ? ' visible' : ''}`}>
+        <div className="tweak-title">Tweaks</div>
+        <div className="tweak-item">
+          <label>Vista por defecto</label>
+          <div className="tweak-radio">
+            {['week','month'].map(v => (
+              <div key={v} className={`tweak-radio-btn${calView === v ? ' active' : ''}`} onClick={() => setCalView(v)}>
+                {v === 'week' ? 'Semana' : 'Mes'}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="tweak-item">
+          <label>Acción rápida</label>
+          <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: 12 }} onClick={() => { setShowModal(true); }}>
+            <Icon name="plus" size={13}/> Abrir modal de clase
+          </button>
+        </div>
+        <div className="tweak-item">
+          <label>Limpiar clases</label>
+          <button className="btn-cancel" style={{ width: '100%', fontSize: 12, textAlign: 'center' }} onClick={() => { setClasses([]); showToast('Calendario limpiado'); }}>
+            Borrar todas las clases
+          </button>
+        </div>
+        <div className="tweak-item">
+          <label>Restaurar demo</label>
+          <button className="btn-cancel" style={{ width: '100%', fontSize: 12, textAlign: 'center' }} onClick={() => { setClasses(seedClasses); showToast('Datos de demo restaurados'); }}>
+            Restaurar datos
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
