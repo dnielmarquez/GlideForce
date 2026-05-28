@@ -38,22 +38,18 @@ export async function GET(request: NextRequest) {
 
     if (bErr) throw bErr;
 
-    const now = new Date();
+    // Colombia America/Bogota is UTC-5 all year round
+    // Calculate current Colombia date string YYYY-MM-DD
+    const bogotaDateStr = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
     const remindersToSend = [];
 
-    // 3. Filter bookings starting in ~3 hours in Colombia Time (UTC-5)
+    // 3. Filter bookings scheduled for today in Colombia Time (UTC-5)
     if (bookings && bookings.length > 0) {
       for (const b of bookings) {
         const session = b.class_sessions;
         if (!session) continue;
 
-        // Colombia America/Bogota is UTC-5 all year round
-        const classStart = new Date(`${session.date}T${session.start_time}-05:00`);
-        const diffMinutes = (classStart.getTime() - now.getTime()) / 60000;
-
-        // Target starting time: 3 hours (180 minutes)
-        // Check window: between 2h 45m (165m) and 3h 15m (195m)
-        if (diffMinutes >= 165 && diffMinutes <= 195) {
+        if (session.date === bogotaDateStr) {
           remindersToSend.push(b);
         }
       }
