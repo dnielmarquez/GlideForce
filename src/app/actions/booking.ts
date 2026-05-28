@@ -474,3 +474,146 @@ export async function getRecurringSessionsForBooking(
         return { error: 'Error al consultar sesiones recurrentes.' };
     }
 }
+
+/**
+ * Allows administrators to manually book/block a machine/spot for a specific member.
+ * Can be applied to the current session only or to the whole recurring series.
+ * Supports choosing whether the booking is free or deducts 1 star from the user.
+ */
+export async function adminBookSpots(
+    sessionId: string,
+    memberId: string,
+    machineId: string,
+    applyToAllRecurring: boolean,
+    chargeStars: boolean = false
+): Promise<{ success: true; count: number } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        // 1. Fetch current session recurrence
+        const { data: currentSession, error: sErr } = await (supabase as any)
+            .from('class_sessions')
+            .select('recurrence_id, date, stars_cost')
+            .eq('id', sessionId)
+            .single();
+
+        if (sErr || !currentSession) return { error: 'Clase no encontrada.' };
+
+        let sessionIdsToBook = [sessionId];
+
+        if (applyToAllRecurring && currentSession.recurrence_id) {
+            // Find all upcoming scheduled sessions of the same recurrence sequence starting from current session date
+            const { data: futureSessions } = await (supabase as any)
+                .from('class_sessions')
+                .select('id')
+                .eq('recurrence_id', currentSession.recurrence_id)
+                .eq('status', 'scheduled')
+                .gte('date', currentSession.date);
+
+            if (futureSessions && futureSessions.length > 0) {
+                sessionIdsToBook = futureSessions.map((s: any) => s.id);
+            }
+        }
+
+        // 2. Fetch occupied machines in these sessions to check availability
+        const { data: activeBookings } = await (supabase as any)
+            .from('bookings')
+            .select('session_id, machine_id, member_id')
+            .in('session_id', sessionIdsToBook)
+            .in('status', ['confirmed']);
+
+        const bookingsList = activeBookings || [];
+
+        // Check availability and compile insertable bookings
+        const bookingsToInsert = [];
+
+        for (const sid of sessionIdsToBook) {
+            // If the user already has a booking in this session, skip it
+            const userAlreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
+            if (userAlreadyBooked) {
+                continue;
+            }
+
+            // If the machine is already occupied in this session, skip it
+            const machineOccupied = bookingsList.some((b: any) => b.session_id === sid && b.machine_id === machineId);
+            if (machineOccupied) {
+                continue;
+            }
+
+            bookingsToInsert.push({
+                session_id: sid,
+                member_id: memberId,
+                machine_id: machineId,
+                status: 'confirmed',
+                stars_spent: chargeStars ? (currentSession.stars_cost || 1) : 0,
+            });
+        }
+
+        if (bookingsToInsert.length === 0) {
+            return { error: 'El usuario ya tiene reservas o la máquina está ocupada en todas las fechas seleccionadas.' };
+        }
+
+        // 3. Process stars charge if enabled
+        if (chargeStars) {
+            // Get user profile balance
+            const { data: memberProfile } = await (supabase as any)
+                .from('profiles')
+                .select('stars_balance')
+                .eq('id', memberId)
+                .single();
+
+            const totalStarsCost = bookingsToInsert.length * (currentSession.stars_cost || 1);
+
+            if (!memberProfile || memberProfile.stars_balance < totalStarsCost) {
+                return { error: `El usuario no tiene estrellas suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
+            }
+
+            const adminSupabase = createAdminClient();
+            // Debit the user's stars
+            const { error: txErr } = await (adminSupabase as any)
+                .from('star_transactions')
+                .insert({
+                    member_id: memberId,
+                    amount: -totalStarsCost,
+                    type: 'booking_charged',
+                    reference_id: sessionId,
+                    reference_type: 'session',
+                    note: `Reserva administrativa forzada de ${bookingsToInsert.length} clases`
+                });
+
+            if (txErr) throw txErr;
+        }
+
+        const adminSupabase = createAdminClient();
+        const { error: insertErr } = await (adminSupabase as any)
+            .from('bookings')
+            .insert(bookingsToInsert);
+
+        if (insertErr) throw insertErr;
+
+        revalidatePath('/classes');
+        for (const sid of sessionIdsToBook) {
+            revalidatePath(`/booking/${sid}`);
+        }
+        revalidatePath('/profile');
+        revalidatePath('/stars');
+        revalidatePath('/admin');
+
+        return { success: true, count: bookingsToInsert.length };
+    } catch (e) {
+        console.error('[adminBookSpots] Error:', e);
+        return { error: 'Ocurrió un error al procesar las reservas administrativas.' };
+    }
+}
