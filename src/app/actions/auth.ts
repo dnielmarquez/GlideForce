@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { headers } from 'next/headers'
+import { sendRegistrationNotificationToAdmin } from '@/lib/email'
 
 // Maps raw Supabase error messages to user-friendly Spanish messages
 function mapAuthError(message: string): string {
@@ -143,6 +144,13 @@ export async function signup(formData: FormData) {
         avatar_url: finalAvatarUrl
       })
       .eq('id', authData.user.id)
+      
+    // Trigger registration email notification to admin asynchronously
+    sendRegistrationNotificationToAdmin({
+      full_name: full_name.trim(),
+      email,
+      phone: phone ? phone.trim() : null
+    });
   }
 
   // Return success — the UI will show the "check your email" screen

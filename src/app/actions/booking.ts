@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { sendBookingEmails, sendCancellationNotificationToAdmin } from '@/lib/email';
 
 export async function getOccupiedMachines(sessionId: string) {
     const adminSupabase = createAdminClient();
@@ -113,6 +114,9 @@ export async function processBooking(
         
         if (bookingErr) throw bookingErr;
 
+        // Trigger email confirmation asynchronously
+        sendBookingEmails(user.id, sessionIds, machineId, true);
+
         // Force a page re-render to reflect the new state immediately!
         revalidatePath('/classes');
         for (const sid of sessionIds) {
@@ -189,6 +193,9 @@ export async function cancelBooking(sessionId: string) {
             .eq('id', booking.id);
 
         if (updErr) throw updErr;
+
+        // Trigger cancellation email to admin asynchronously
+        sendCancellationNotificationToAdmin(user.id, sessionId, qualifiesForRefund);
 
         // 6. Process refund if applicable
         if (qualifiesForRefund && booking.stars_spent > 0) {
@@ -343,6 +350,9 @@ export async function fulfillBookingFromWebhook(
         console.error('[fulfillBookingFromWebhook] Failed to insert bookings:', bookingErr);
         throw bookingErr;
     }
+
+    // Trigger email confirmation asynchronously
+    sendBookingEmails(memberId, sessionIdsToBook, machineId, true);
 
     // Check if a coupon was used for this payment
     try {
@@ -611,6 +621,9 @@ export async function adminBookSpots(
             .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
 
         if (insertErr) throw insertErr;
+
+        // Trigger email confirmation asynchronously (no admin notification, admin performed it!)
+        sendBookingEmails(memberId, sessionIdsToBook, machineId, false);
 
         revalidatePath('/classes');
         for (const sid of sessionIdsToBook) {
