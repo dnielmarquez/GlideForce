@@ -93,20 +93,23 @@ export async function processBooking(
             if (txErr) throw txErr;
         }
 
-        // 5. Finally, insert the booking locks!
+        // 5. Finally, insert or update the booking locks!
         const bookingsToInsert = sessions.map((s: any) => ({
             session_id: s.id,
             member_id: user.id,
             machine_id: machineId,
             status: 'confirmed',
             stars_spent: s.stars_cost || 1,
+            cancelled_at: null,
+            cancellation_reason: null,
+            star_refunded: false
         }));
 
         const adminSupabase = createAdminClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: bookingErr } = await (adminSupabase as any)
             .from('bookings')
-            .insert(bookingsToInsert);
+            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
         
         if (bookingErr) throw bookingErr;
 
@@ -318,7 +321,7 @@ export async function fulfillBookingFromWebhook(
         ? payload.session_ids
         : [sessionId];
 
-    // Insert booking records for all selected sessions
+    // Insert or update booking records for all selected sessions
     const bookingsToInsert = sessionIdsToBook.map(sid => ({
         session_id:  sid,
         member_id:   memberId,
@@ -326,12 +329,15 @@ export async function fulfillBookingFromWebhook(
         status:      'confirmed',
         stars_spent: 0,          // Paid in COP, not stars
         payment_id:  paymentId,  // FK → payments table
+        cancelled_at: null,
+        cancellation_reason: null,
+        star_refunded: false
     }));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: bookingErr } = await (adminSupabase as any)
         .from('bookings')
-        .insert(bookingsToInsert);
+        .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
 
     if (bookingErr) {
         console.error('[fulfillBookingFromWebhook] Failed to insert bookings:', bookingErr);
@@ -558,6 +564,9 @@ export async function adminBookSpots(
                 machine_id: machineId,
                 status: 'confirmed',
                 stars_spent: chargeStars ? (currentSession.stars_cost || 1) : 0,
+                cancelled_at: null,
+                cancellation_reason: null,
+                star_refunded: false
             });
         }
 
@@ -599,7 +608,7 @@ export async function adminBookSpots(
         const adminSupabase = createAdminClient();
         const { error: insertErr } = await (adminSupabase as any)
             .from('bookings')
-            .insert(bookingsToInsert);
+            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
 
         if (insertErr) throw insertErr;
 
@@ -617,3 +626,79 @@ export async function adminBookSpots(
         return { error: 'Ocurrió un error al procesar las reservas administrativas.' };
     }
 }
+
+export async function adminCancelBooking(
+    bookingId: string,
+    refundStar: boolean
+): Promise<{ success: true } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        // Fetch booking to verify existence and get details
+        const { data: booking, error: bkErr } = await (supabase as any)
+            .from('bookings')
+            .select('id, status, member_id, session_id')
+            .eq('id', bookingId)
+            .single();
+
+        if (bkErr || !booking) {
+            return { error: 'Reserva no encontrada.' };
+        }
+
+        if (booking.status === 'cancelled') {
+            return { error: 'Esta reserva ya está cancelada.' };
+        }
+
+        const adminSupabase = createAdminClient();
+
+        // 1. Mark booking as cancelled
+        const { error: updErr } = await (adminSupabase as any)
+            .from('bookings')
+            .update({
+                status: 'cancelled',
+                cancellation_reason: 'admin',
+                star_refunded: refundStar,
+                cancelled_at: new Date().toISOString()
+            })
+            .eq('id', bookingId);
+
+        if (updErr) throw updErr;
+
+        // 2. Refund 1 star if requested
+        if (refundStar) {
+            const { error: txErr } = await (adminSupabase as any)
+                .from('star_transactions')
+                .insert({
+                    member_id: booking.member_id,
+                    amount: 1, // always give exactly 1 star only!
+                    type: 'admin_adjustment',
+                    reference_id: booking.session_id,
+                    reference_type: 'session',
+                    note: 'Reembolso administrativo manual (1 estrella)'
+                });
+            if (txErr) console.error('Error processing admin refund:', txErr);
+        }
+
+        revalidatePath('/classes');
+        revalidatePath(`/booking/${booking.session_id}`);
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (e) {
+        console.error('[adminCancelBooking] Error:', e);
+        return { error: 'Ocurrió un error al procesar la cancelación administrativa.' };
+    }
+}
+

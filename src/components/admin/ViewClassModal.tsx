@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 import { CLASS_COLORS } from '@/lib/admin/constants';
-import { adminBookSpots } from '@/app/actions/booking';
+import { adminBookSpots, adminCancelBooking } from '@/app/actions/booking';
 import { formatClassTime } from '@/lib/admin/utils';
 
 interface ViewClassModalProps {
@@ -15,6 +15,7 @@ interface ViewClassModalProps {
 
 interface BookingUser {
   id: string;
+  booking_id: string;
   full_name: string;
   email: string;
   avatar_url: string | null;
@@ -41,6 +42,10 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState<'confirmed' | 'cancelled'>('confirmed');
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [refundOption, setRefundOption] = useState<boolean>(true);
+  const [isCancellingBooking, setIsCancellingBooking] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -51,6 +56,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       const { data, error } = await supabase
         .from('bookings')
         .select(`
+          id,
           status,
           created_at,
           machine_id,
@@ -68,6 +74,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formattedUsers = data.map((b: any) => ({
           id: b.profiles?.id || Math.random().toString(),
+          booking_id: b.id,
           full_name: b.profiles?.full_name || 'Usuario desconocido',
           email: b.profiles?.email || '',
           avatar_url: b.profiles?.avatar_url || null,
@@ -149,6 +156,28 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       setIsSubmitting(false);
     }
   };
+  
+  const handleAdminCancelUserBooking = async (bookingId: string) => {
+    setIsCancellingBooking(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await adminCancelBooking(bookingId, refundOption);
+      if ('error' in res && res.error) {
+        setErrorMsg(res.error);
+      } else {
+        setSuccessMsg('✓ Reserva cancelada con éxito.');
+        setCancellingBookingId(null);
+        setRefreshTrigger(prev => prev + 1);
+        await refreshClasses();
+      }
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      setErrorMsg('Ocurrió un error inesperado al cancelar la reserva.');
+    } finally {
+      setIsCancellingBooking(false);
+    }
+  };
 
   if (!cls) return null;
 
@@ -215,43 +244,169 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
             </div>
           </div>
 
-          {/* Bookings List */}
-          <div className="form-section-title" style={{ marginBottom: 12 }}>Usuarios Inscritos ({users.length})</div>
+          {/* Bookings List Section with Tab Selector */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div className="form-section-title" style={{ margin: 0 }}>Usuarios Inscritos</div>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--surface-high)', padding: 3, borderRadius: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('confirmed');
+                  setCancellingBookingId(null);
+                }}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'confirmed' ? 'white' : 'transparent',
+                  color: activeTab === 'confirmed' ? 'var(--text)' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'confirmed' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Confirmados ({users.filter(u => u.status === 'confirmed').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('cancelled');
+                  setCancellingBookingId(null);
+                }}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeTab === 'cancelled' ? 'white' : 'transparent',
+                  color: activeTab === 'cancelled' ? 'var(--text)' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'cancelled' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Cancelados ({users.filter(u => u.status === 'cancelled').length})
+              </button>
+            </div>
+          </div>
           
           {isLoading ? (
             <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14, fontWeight: 500 }}>
               Cargando inscritos...
             </div>
-          ) : users.length === 0 ? (
+          ) : users.filter(u => u.status === activeTab).length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center', background: 'var(--surface-high)', borderRadius: 12, border: '1px dashed var(--border)' }}>
                <AdminIcon name="users" size={24} />
-               <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>No hay usuarios inscritos en esta clase.</div>
+               <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
+                 {activeTab === 'confirmed' 
+                   ? 'No hay usuarios con reserva confirmada en esta clase.' 
+                   : 'No hay reservas canceladas en esta clase.'
+                 }
+               </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
-              {users.map((user, idx) => (
-                <div key={`${user.id}-${idx}`} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, gap: 12 }}>
-                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--orange-light)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, overflow: 'hidden', flexShrink: 0 }}>
-                     {user.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                     ) : (
-                        user.full_name.substring(0, 2).toUpperCase()
-                     )}
-                   </div>
-                   <div style={{ flex: 1, minWidth: 0 }}>
-                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name}</div>
-                     <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
-                   </div>
-                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      {user.status === 'confirmed' ? (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>Confirmado</span>
-                      ) : (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', background: 'var(--surface-high)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>{user.status}</span>
-                      )}
-                      <div style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 500 }}>{user.booking_date}</div>
-                   </div>
-                </div>
-              ))}
+              {users.filter(u => u.status === activeTab).map((user, idx) => {
+                const isThisBookingCancelling = cancellingBookingId === user.booking_id;
+                
+                if (isThisBookingCancelling) {
+                  return (
+                    <div key={`${user.id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px', background: '#FEF2F2', border: '1.5px solid #FCA5A5', borderRadius: 10, gap: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>
+                        ¿Cancelar reserva de {user.full_name}?
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input 
+                          type="checkbox" 
+                          id="refundStarCheck"
+                          checked={refundOption}
+                          onChange={(e) => setRefundOption(e.target.checked)}
+                          style={{ width: 16, height: 16, cursor: 'pointer' }}
+                        />
+                        <label htmlFor="refundStarCheck" style={{ fontSize: 12, fontWeight: 600, color: '#991B1B', cursor: 'pointer', userSelect: 'none' }}>
+                          Reembolsar 1 estrella al usuario
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button 
+                          type="button" 
+                          disabled={isCancellingBooking}
+                          style={{ padding: '6px 12px', fontSize: 11.5, background: 'var(--surface-high)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                          onClick={() => setCancellingBookingId(null)}
+                        >
+                          Atrás
+                        </button>
+                        <button 
+                          type="button" 
+                          disabled={isCancellingBooking}
+                          style={{ padding: '6px 12px', fontSize: 11.5, background: '#DC2626', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, flex: 1 }}
+                          onClick={() => handleAdminCancelUserBooking(user.booking_id)}
+                        >
+                          {isCancellingBooking ? 'Cancelando...' : 'Confirmar Cancelación'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={`${user.id}-${idx}`} style={{ display: 'flex', alignItems: 'center', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, gap: 12 }}>
+                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--orange-light)', color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, overflow: 'hidden', flexShrink: 0 }}>
+                       {user.avatar_url ? (
+                          <img src={user.avatar_url} alt={user.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       ) : (
+                          user.full_name.substring(0, 2).toUpperCase()
+                       )}
+                     </div>
+                     <div style={{ flex: 1, minWidth: 0 }}>
+                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name}</div>
+                       <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
+                     </div>
+                     
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                       <div style={{ textAlign: 'right' }}>
+                          {user.status === 'confirmed' ? (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>Confirmado</span>
+                          ) : (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', background: 'var(--surface-high)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>{user.status}</span>
+                          )}
+                          <div style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 500 }}>{user.booking_date}</div>
+                       </div>
+                       
+                       {user.status === 'confirmed' && (
+                         <button
+                           type="button"
+                           title="Cancelar reserva"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setCancellingBookingId(user.booking_id);
+                             setRefundOption(true); // default to refunding 1 star
+                           }}
+                           style={{
+                             background: 'none',
+                             border: 'none',
+                             cursor: 'pointer',
+                             color: 'var(--red)',
+                             padding: '4px',
+                             display: 'flex',
+                             alignItems: 'center',
+                             justifyContent: 'center',
+                             borderRadius: '6px',
+                             transition: 'background 0.2s',
+                           }}
+                           onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'}
+                           onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                         >
+                           <AdminIcon name="x" size={14} />
+                         </button>
+                       )}
+                     </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
