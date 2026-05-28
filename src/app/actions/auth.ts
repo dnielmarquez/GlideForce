@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { headers } from 'next/headers'
+import { sendRegistrationNotificationToAdmin } from '@/lib/email'
 
 // Maps raw Supabase error messages to user-friendly Spanish messages
 function mapAuthError(message: string): string {
@@ -47,6 +48,25 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
+    if (error.message.toLowerCase().includes('email not confirmed')) {
+      const headersList = await headers()
+      const origin = headersList.get('origin') ?? ''
+      
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: data.email,
+        options: {
+          emailRedirectTo: `${origin}/auth/callback`,
+        }
+      })
+      
+      if (resendError) {
+        console.error('Failed to resend confirmation email:', resendError)
+        return { error: 'Debes verificar tu correo electrónico antes de iniciar sesión. Intentamos reenviar el correo de verificación pero falló. Espera unos minutos.' }
+      }
+      
+      return { emailNotConfirmed: true, email: data.email }
+    }
     return { error: mapAuthError(error.message) }
   }
 
@@ -124,6 +144,13 @@ export async function signup(formData: FormData) {
         avatar_url: finalAvatarUrl
       })
       .eq('id', authData.user.id)
+      
+    // Trigger registration email notification to admin asynchronously
+    sendRegistrationNotificationToAdmin({
+      full_name: full_name.trim(),
+      email,
+      phone: phone ? phone.trim() : null
+    });
   }
 
   // Return success — the UI will show the "check your email" screen

@@ -5,6 +5,7 @@ import { CLASS_COLORS } from '@/lib/admin/constants';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import { useState } from 'react';
 import AdminIcon from './AdminIcon';
+import { formatClassTime } from '@/lib/admin/utils';
 
 interface EventPopupProps {
   data: EventPopupData;
@@ -20,6 +21,8 @@ export default function EventPopup({ data, onClose, onCancel, onView }: EventPop
   const instr = instructors.find((i) => i.id === event.instructor);
   const colorObj = CLASS_COLORS.find((c) => c.key === event.color) ?? CLASS_COLORS[0];
   const pct = Math.round((event.enrolled / event.capacity) * 100);
+  const classStart = new Date(`${event.date}T${event.time.substring(0, 5)}:00-05:00`);
+  const isPast = classStart.getTime() < Date.now();
 
   return (
     <>
@@ -39,7 +42,7 @@ export default function EventPopup({ data, onClose, onCancel, onView }: EventPop
           </button>
         </div>
 
-        <div className="event-popup-row"><AdminIcon name="clock" size={12} /> {event.time} · {event.duration} min</div>
+        <div className="event-popup-row"><AdminIcon name="clock" size={12} /> {formatClassTime(event.time)} · {event.duration} min</div>
         {instr && <div className="event-popup-row"><AdminIcon name="users" size={12} /> {instr.name}</div>}
 
         <div className="event-popup-row">
@@ -50,11 +53,18 @@ export default function EventPopup({ data, onClose, onCancel, onView }: EventPop
           </div>
         </div>
 
-        {event.recurring && (
-          <span className="chip" style={{ background: colorObj.bg, color: colorObj.text, marginTop: 8, display: 'inline-flex' }}>
-            <AdminIcon name="repeat" size={10} />&nbsp;Recurrente
-          </span>
-        )}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+          {event.recurring && (
+            <span className="chip" style={{ background: colorObj.bg, color: colorObj.text, display: 'inline-flex' }}>
+              <AdminIcon name="repeat" size={10} />&nbsp;Recurrente
+            </span>
+          )}
+          {isPast && (
+            <span className="chip" style={{ background: '#F5F5F4', color: '#78716C', display: 'inline-flex' }}>
+              <AdminIcon name="clock" size={10} />&nbsp;Pasada
+            </span>
+          )}
+        </div>
 
         <div className="event-popup-actions">
           {confirmCancel ? (

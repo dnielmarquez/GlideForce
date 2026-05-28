@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import type { Member, MemberFormData } from '@/lib/admin/types';
 import { createClient } from '@/utils/supabase/client';
 import AdminIcon from './AdminIcon';
+import { formatClassTime } from '@/lib/admin/utils';
 
 interface Props {
   member: Member;
@@ -246,7 +247,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{c.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
-                        {c.instructor} · {c.date} · {c.time} · {c.machine}
+                        {c.instructor} · {c.date} · {formatClassTime(c.time)} · {c.machine}
                       </div>
                     </div>
                     <span style={{ fontSize: 10.5, fontWeight: 700, background: 'var(--orange)', color: 'white', padding: '3px 9px', borderRadius: 99 }}>Reservada</span>
@@ -265,7 +266,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13.5 }}>{c.title}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>{c.instructor} · {c.date} · {c.time}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>{c.instructor} · {c.date} · {formatClassTime(c.time)}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                       <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: c.status === 'completada' ? '#E6F7F4' : '#FEE2E2', color: c.status === 'completada' ? '#0F8B76' : '#DC2626' }}>

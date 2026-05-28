@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
-import { processBooking, cancelBooking, getOccupiedMachines } from '@/app/actions/booking';
+import { processBooking, cancelBooking, getOccupiedMachines, getRecurringSessionsForBooking } from '@/app/actions/booking';
 import { initiateBookingPayment } from '@/app/actions/payments';
 import { validateCouponAction } from '@/app/actions/coupons';
 
@@ -53,6 +53,10 @@ function BookingContent({ id }: { id: string }) {
     const [couponError, setCouponError] = useState<string | null>(null);
     const [couponSuccess, setCouponSuccess] = useState<boolean>(false);
 
+    // Recurring booking states
+    const [eligibleRecurringSessions, setEligibleRecurringSessions] = useState<any[]>([]);
+    const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([id]);
+
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) return;
         setIsValidatingCoupon(true);
@@ -87,6 +91,7 @@ function BookingContent({ id }: { id: string }) {
         setPaymentMethod(null);
         handleRemoveCoupon();
         setWompiError(null);
+        setSelectedSessionIds([id]);
     };
 
     // Wompi script is loaded lazily when the user confirms online payment (see handleConfirmBooking)
@@ -150,6 +155,23 @@ function BookingContent({ id }: { id: string }) {
         loadData();
     }, [id]);
 
+    useEffect(() => {
+        if (selected && session?.recurrence_id) {
+            getRecurringSessionsForBooking(id, selected).then(res => {
+                if (res && 'sessions' in res && res.sessions) {
+                    setEligibleRecurringSessions(res.sessions);
+                    setSelectedSessionIds([id]); // Default to only current class
+                } else {
+                    setEligibleRecurringSessions([]);
+                    setSelectedSessionIds([id]);
+                }
+            });
+        } else {
+            setEligibleRecurringSessions([]);
+            setSelectedSessionIds([id]);
+        }
+    }, [selected, session?.recurrence_id, id]);
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-surface-container-low flex flex-col items-center justify-center text-on-surface-variant">
@@ -178,7 +200,7 @@ function BookingContent({ id }: { id: string }) {
 
         if (paymentMethod === 'online') {
             setIsProcessing(true);
-            const res = await initiateBookingPayment(id, selected, appliedCoupon?.code || undefined);
+            const res = await initiateBookingPayment(selectedSessionIds, selected, appliedCoupon?.code || undefined);
             setIsProcessing(false);
 
             if ('error' in res) { setWompiError(res.error); return; }
@@ -223,7 +245,7 @@ function BookingContent({ id }: { id: string }) {
 
         // Stars payment
         setIsProcessing(true);
-        const res = await processBooking(id, selected, 'stars', isWaitlist);
+        const res = await processBooking(selectedSessionIds, selected, 'stars', isWaitlist);
         setIsProcessing(false);
         if ('error' in res && res.error) {
             alert(res.error);
@@ -245,6 +267,33 @@ function BookingContent({ id }: { id: string }) {
     };
 
     const instructorName = session.instructors?.name || 'Instructor';
+
+    const qty = selectedSessionIds.length;
+    const baseTotalCop = qty * classPrice;
+    
+    let totalDiscountAmount = 0;
+    let discountLabel = 'Descuento';
+    
+    if (appliedCoupon) {
+        if (appliedCoupon.discount_type === 'percentage') {
+            const discountPerClass = classPrice * (appliedCoupon.discount_value / 100);
+            totalDiscountAmount = qty * discountPerClass;
+            discountLabel = `Descuento (${appliedCoupon.discount_value}%)`;
+        } else if (appliedCoupon.discount_type === 'fixed_amount') {
+            const discountPerClass = appliedCoupon.discount_value;
+            totalDiscountAmount = qty * discountPerClass;
+            discountLabel = `Descuento (${appliedCoupon.code})`;
+        } else if (appliedCoupon.discount_type === '2_for_1') {
+            discountLabel = `Promo 2x1 (${appliedCoupon.code})`;
+            if (qty === 1) {
+                totalDiscountAmount = 0;
+            } else {
+                totalDiscountAmount = classPrice;
+            }
+        }
+    }
+    
+    const finalTotalCop = Math.max(0, baseTotalCop - totalDiscountAmount);
 
     let userBookingStatusLabel = '';
     let userBookingBadgeClass = '';
@@ -275,6 +324,28 @@ function BookingContent({ id }: { id: string }) {
     } else if (isFinished) {
         canBook = false;
     }
+
+    const formatSessionTime = (timeStr: string) => {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length < 2) return timeStr;
+        const hour = parseInt(parts[0], 10);
+        const min = parseInt(parts[1], 10);
+        if (isNaN(hour) || isNaN(min)) return timeStr;
+        
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        let displayHour = hour % 12;
+        if (displayHour === 0) displayHour = 12;
+        const displayMin = min.toString().padStart(2, '0');
+        return `${displayHour}:${displayMin}${ampm}`;
+    };
+
+    const formattedDate = session?.date ? new Date(session.date + 'T00:00:00').toLocaleDateString('es-CO', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    }) : '';
+    const capitalizedDate = formattedDate ? formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1) : '';
 
     return (
         <PageTransition className="bg-surface-container-low text-on-surface min-h-screen w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative overflow-hidden">
@@ -328,36 +399,97 @@ function BookingContent({ id }: { id: string }) {
                                 {paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Resumen de Pago'}
                             </h2>
 
+                            {/* Recurring sessions selector */}
+                            {eligibleRecurringSessions.length > 1 && (
+                                <div className="w-full mb-6 text-left space-y-3 bg-surface-container rounded-2xl p-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-[10px] font-extrabold uppercase tracking-widest text-on-surface-variant">
+                                            Reservar varias clases
+                                        </label>
+                                        <span className="bg-primary-container/10 text-primary-container text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                            Recurrente
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-3 justify-between bg-white rounded-xl p-2 border border-surface-container-high">
+                                        <button
+                                            onClick={() => {
+                                                const currentQty = selectedSessionIds.length;
+                                                const newQty = Math.max(1, currentQty - 1);
+                                                setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
+                                            }}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container text-on-surface font-bold text-lg hover:bg-surface-container-high transition-colors disabled:opacity-40"
+                                            disabled={selectedSessionIds.length <= 1}
+                                        >
+                                            −
+                                        </button>
+                                        <div className="text-center">
+                                            <span className="text-lg font-black text-on-surface">{selectedSessionIds.length}</span>
+                                            <span className="text-[11px] text-on-surface-variant font-medium block">
+                                                {selectedSessionIds.length === 1 ? 'clase seleccionada' : 'clases seleccionadas'}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const currentQty = selectedSessionIds.length;
+                                                const newQty = Math.min(eligibleRecurringSessions.length, currentQty + 1);
+                                                setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
+                                            }}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary-container text-white font-bold text-lg hover:opacity-90 transition-colors disabled:opacity-40"
+                                            disabled={selectedSessionIds.length >= eligibleRecurringSessions.length}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+
+                                    {/* Compact list of selected sessions */}
+                                    <div className="space-y-1 max-h-24 overflow-y-auto no-scrollbar pt-1 pr-1 border-t border-surface-container-high">
+                                        {eligibleRecurringSessions.slice(0, selectedSessionIds.length).map((s: any, idx: number) => {
+                                            const formattedDate = new Date(s.date + 'T00:00:00').toLocaleDateString('es-CO', {
+                                                weekday: 'short', day: 'numeric', month: 'short'
+                                            });
+                                            return (
+                                                <div key={s.id} className="flex justify-between items-center text-xs text-on-surface font-semibold bg-white/50 px-2.5 py-1.5 rounded-lg border border-surface-container-high/30">
+                                                    <span className="flex items-center gap-1.5 text-on-surface-variant">
+                                                        <span className="material-symbols-outlined text-xs text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                            event
+                                                        </span>
+                                                        {idx === 0 ? 'Esta clase' : `Clase ${idx + 1}`}
+                                                    </span>
+                                                    <span className="text-on-surface font-black uppercase text-[10px]">
+                                                        {formattedDate}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {paymentMethod === 'online' ? (
                                 <div className="w-full space-y-6 text-left mb-6">
                                     <div className="bg-surface-container rounded-2xl p-5 space-y-3">
                                         <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
-                                            <span>Subtotal</span>
-                                            <span className="text-on-surface">{formatCOP(classPrice)}</span>
+                                            <span>Subtotal ({qty} {qty === 1 ? 'clase' : 'clases'})</span>
+                                            <span className="text-on-surface">{formatCOP(baseTotalCop)}</span>
                                         </div>
-                                        {appliedCoupon && (
+                                        {appliedCoupon && totalDiscountAmount > 0 && (
                                             <div className="flex justify-between items-center text-sm font-semibold text-green-700">
-                                                <span>Descuento ({appliedCoupon.code})</span>
-                                                <span>
-                                                    {appliedCoupon.discount_type === '2_for_1' 
-                                                        ? 'Promo 2x1 (Cop 0)' 
-                                                        : `-${formatCOP(
-                                                            appliedCoupon.discount_type === 'percentage' 
-                                                                ? classPrice * (appliedCoupon.discount_value / 100) 
-                                                                : appliedCoupon.discount_value
-                                                        )}`}
-                                                </span>
+                                                <span>{discountLabel}</span>
+                                                <span>-{formatCOP(totalDiscountAmount)}</span>
+                                            </div>
+                                        )}
+                                        {appliedCoupon && appliedCoupon.discount_type === '2_for_1' && qty === 1 && (
+                                            <div className="flex justify-between items-center text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-lg">
+                                                <span>🎁 Promo 2x1 Activa</span>
+                                                <span>1 estrella de regalo</span>
                                             </div>
                                         )}
                                         <div className="h-px bg-surface-container-high my-2" />
                                         <div className="flex justify-between items-center text-base font-black">
                                             <span>Total a Pagar</span>
                                             <span className="text-primary-container text-lg">
-                                                {formatCOP(Math.max(0, classPrice - (
-                                                    !appliedCoupon ? 0 : 
-                                                    appliedCoupon.discount_type === 'percentage' ? classPrice * (appliedCoupon.discount_value / 100) :
-                                                    appliedCoupon.discount_type === 'fixed_amount' ? appliedCoupon.discount_value : 0
-                                                )))}
+                                                {formatCOP(finalTotalCop)}
                                             </span>
                                         </div>
                                     </div>
@@ -396,7 +528,7 @@ function BookingContent({ id }: { id: string }) {
                                         {couponSuccess && appliedCoupon && (
                                             <p className="text-green-700 text-xs font-semibold px-1 mt-1">
                                                 ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado con éxito.
-                                                {appliedCoupon.discount_type === '2_for_1' && ' ¡Recibirás una estrella extra al finalizar la clase!'}
+                                                {appliedCoupon.discount_type === '2_for_1' && qty === 1 && ' ¡Recibirás una estrella extra al finalizar la clase!'}
                                             </p>
                                         )}
                                     </div>
@@ -408,11 +540,31 @@ function BookingContent({ id }: { id: string }) {
                                     </p>
                                 </div>
                             ) : (
-                                <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-                                    Al confirmar, descontaremos <strong className="text-on-surface">{session.stars_cost || 1} estrellita</strong>.<br />
-                                    Asegúrate de leer las <br />
-                                    <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
-                                </p>
+                                <div className="w-full space-y-4 mb-6">
+                                    <div className="bg-surface-container rounded-2xl p-5 space-y-3 text-left">
+                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                            <span>Clases a reservar</span>
+                                            <span className="text-on-surface font-black">{qty}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                            <span>Costo por clase</span>
+                                            <span className="text-on-surface font-black">{session.stars_cost || 1} {session.stars_cost === 1 ? 'estrellita' : 'estrellitas'}</span>
+                                        </div>
+                                        <div className="h-px bg-surface-container-high my-2" />
+                                        <div className="flex justify-between items-center text-base font-black">
+                                            <span>Total Estrellitas</span>
+                                            <span className="text-primary-container text-lg flex items-center gap-1">
+                                                {qty * (session.stars_cost || 1)}
+                                                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p className="text-on-surface-variant text-center text-xs leading-relaxed">
+                                        Al confirmar, descontaremos <strong className="text-on-surface">{qty * (session.stars_cost || 1)} estrellitas</strong> de tu balance actual.<br />
+                                        Asegúrate de leer las <br />
+                                        <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
+                                    </p>
+                                </div>
                             )}
 
                             {wompiError && (
@@ -421,11 +573,11 @@ function BookingContent({ id }: { id: string }) {
                             <div className="w-full space-y-3">
                                 <button 
                                     className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 active:scale-95 transition-transform disabled:opacity-50" 
-                                    disabled={(paymentMethod === 'stars' && stars < (session.stars_cost || 1)) || isProcessing}
+                                    disabled={(paymentMethod === 'stars' && stars < (qty * (session.stars_cost || 1))) || isProcessing}
                                     onClick={handleConfirmBooking}
                                 >
                                     {isProcessing ? 'Procesando...' : 
-                                        (paymentMethod === 'stars' && stars < (session.stars_cost || 1) 
+                                        (paymentMethod === 'stars' && stars < (qty * (session.stars_cost || 1)) 
                                         ? 'Estrellitas insuficientes' 
                                         : (paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Ir a Pagar'))}
                                 </button>
@@ -569,6 +721,21 @@ function BookingContent({ id }: { id: string }) {
                             <div>
                                 <h2 className="text-3xl font-extrabold tracking-tight">{session.title}</h2>
                                 <p className="text-primary font-semibold text-lg">{instructorName}</p>
+                                
+                                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-on-surface-variant text-xs md:text-sm font-semibold mt-3">
+                                    <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high/30">
+                                        <span className="material-symbols-outlined text-primary text-base md:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            calendar_today
+                                        </span>
+                                        <span>{capitalizedDate}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-surface-container px-3 py-1.5 rounded-full border border-surface-container-high/30">
+                                        <span className="material-symbols-outlined text-primary text-base md:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            schedule
+                                        </span>
+                                        <span>{formatSessionTime(session.start_time)} · {session.duration_minutes || 60} min</span>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <div className="bg-primary-container/10 px-4 py-2 rounded-full">

@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { sendBookingEmails, sendCancellationNotificationToAdmin } from '@/lib/email';
 
 export async function getOccupiedMachines(sessionId: string) {
     const adminSupabase = createAdminClient();
@@ -18,11 +19,15 @@ export async function getOccupiedMachines(sessionId: string) {
 }
 
 export async function processBooking(
-    sessionId: string,
+    sessionIds: string[],
     machineId: string,
     paymentMethod: 'stars',
     isWaitlist: boolean
 ) {
+    if (!sessionIds || sessionIds.length === 0) {
+        return { error: 'No se seleccionaron clases para reservar.' };
+    }
+
     const supabase = await createClient();
 
     // 1. Authenticate user strictly on server
@@ -34,25 +39,26 @@ export async function processBooking(
     try {
         // 2. Fetch session details securely to prevent client spoofing 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: session, error: sessErr } = await (supabase as any)
+        const { data: sessions, error: sessErr } = await (supabase as any)
             .from('class_sessions')
-            .select('stars_cost, capacity')
-            .eq('id', sessionId)
-            .single();
+            .select('id, stars_cost, capacity')
+            .in('id', sessionIds);
 
-        if (sessErr || !session) return { error: 'Clase no encontrada.' };
+        if (sessErr || !sessions || sessions.length !== sessionIds.length) {
+            return { error: 'Una o más clases no fueron encontradas.' };
+        }
 
         // 3. Double check the machine isn't literally just taken
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: takenCheck } = await (supabase as any)
             .from('bookings')
-            .select('id')
-            .eq('session_id', sessionId)
+            .select('id, session_id')
+            .in('session_id', sessionIds)
             .eq('machine_id', machineId)
             .in('status', ['confirmed']);
 
         if (takenCheck && takenCheck.length > 0 && !isWaitlist) {
-            return { error: 'Lo sentimos, esta máquina acaba de ser reservada por alguien más.' };
+            return { error: 'Lo sentimos, la máquina ya está ocupada en alguna de las fechas elegidas.' };
         }
 
         // 4. Process Payment — stars only (online is handled via Wompi webhook)
@@ -65,9 +71,9 @@ export async function processBooking(
                 .eq('id', user.id)
                 .single();
             
-            const cost = session?.stars_cost || 1;
+            const totalCost = sessions.reduce((sum: number, s: any) => sum + (s.stars_cost || 1), 0);
 
-            if (!profile || profile.stars_balance < cost) {
+            if (!profile || profile.stars_balance < totalCost) {
                 return { error: 'No tienes estrellas suficientes (Verificación del servidor).' };
             }
 
@@ -79,31 +85,43 @@ export async function processBooking(
                 .from('star_transactions')
                 .insert({
                     member_id: user.id,
-                    amount: -cost,
+                    amount: -totalCost,
                     type: 'booking_charged',
-                    reference_id: sessionId,
-                    reference_type: 'session'
+                    reference_id: sessionIds[0],
+                    reference_type: 'session',
+                    note: `Reserva de ${sessionIds.length} clases recurrentes`
                 });
             if (txErr) throw txErr;
         }
 
-        // 5. Finally, insert the booking lock!
+        // 5. Finally, insert or update the booking locks!
+        const bookingsToInsert = sessions.map((s: any) => ({
+            session_id: s.id,
+            member_id: user.id,
+            machine_id: machineId,
+            status: 'confirmed',
+            stars_spent: s.stars_cost || 1,
+            cancelled_at: null,
+            cancellation_reason: null,
+            star_refunded: false
+        }));
+
+        const adminSupabase = createAdminClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: bookingErr } = await (supabase as any)
+        const { error: bookingErr } = await (adminSupabase as any)
             .from('bookings')
-            .insert({
-                session_id: sessionId,
-                member_id: user.id,
-                machine_id: machineId,
-                status: 'confirmed', // MVP Logic
-                stars_spent: session?.stars_cost || 1,
-            });
+            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
         
         if (bookingErr) throw bookingErr;
 
+        // Trigger email confirmation asynchronously
+        sendBookingEmails(user.id, sessionIds, machineId, true);
+
         // Force a page re-render to reflect the new state immediately!
         revalidatePath('/classes');
-        revalidatePath(`/booking/${sessionId}`);
+        for (const sid of sessionIds) {
+            revalidatePath(`/booking/${sid}`);
+        }
         revalidatePath('/profile');
         revalidatePath('/stars');
 
@@ -175,6 +193,9 @@ export async function cancelBooking(sessionId: string) {
             .eq('id', booking.id);
 
         if (updErr) throw updErr;
+
+        // Trigger cancellation email to admin asynchronously
+        sendCancellationNotificationToAdmin(user.id, sessionId, qualifiesForRefund);
 
         // 6. Process refund if applicable
         if (qualifiesForRefund && booking.stars_spent > 0) {
@@ -289,32 +310,53 @@ export async function fulfillBookingFromWebhook(
 ) {
     const adminSupabase = createAdminClient();
 
+    // Fetch the payment record to see if it has multi-session IDs in wompi_payload
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: payment, error: payErr } = await (adminSupabase as any)
+        .from('payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+
+    if (payErr || !payment) {
+        console.error('[fulfillBookingFromWebhook] Payment not found:', paymentId);
+        throw new Error('Payment not found');
+    }
+
+    const payload = payment.wompi_payload as any;
+    const sessionIdsToBook: string[] = (payload && Array.isArray(payload.session_ids))
+        ? payload.session_ids
+        : [sessionId];
+
+    // Insert or update booking records for all selected sessions
+    const bookingsToInsert = sessionIdsToBook.map(sid => ({
+        session_id:  sid,
+        member_id:   memberId,
+        machine_id:  machineId,
+        status:      'confirmed',
+        stars_spent: 0,          // Paid in COP, not stars
+        payment_id:  paymentId,  // FK → payments table
+        cancelled_at: null,
+        cancellation_reason: null,
+        star_refunded: false
+    }));
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: bookingErr } = await (adminSupabase as any)
         .from('bookings')
-        .insert({
-            session_id:  sessionId,
-            member_id:   memberId,
-            machine_id:  machineId,
-            status:      'confirmed',
-            stars_spent: 0,          // Paid in COP, not stars
-            payment_id:  paymentId,  // FK → payments table
-        });
+        .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
 
     if (bookingErr) {
-        console.error('[fulfillBookingFromWebhook] Failed to insert booking:', bookingErr);
+        console.error('[fulfillBookingFromWebhook] Failed to insert bookings:', bookingErr);
         throw bookingErr;
     }
 
+    // Trigger email confirmation asynchronously
+    sendBookingEmails(memberId, sessionIdsToBook, machineId, true);
+
     // Check if a coupon was used for this payment
     try {
-        const { data: payment } = await (adminSupabase as any)
-            .from('payments')
-            .select('coupon_id')
-            .eq('id', paymentId)
-            .single();
-
-        if (payment && payment.coupon_id) {
+        if (payment.coupon_id) {
             // 1. Record coupon usage
             const { error: usageErr } = await (adminSupabase as any)
                 .from('coupon_usages')
@@ -335,8 +377,8 @@ export async function fulfillBookingFromWebhook(
                 .eq('id', payment.coupon_id)
                 .single();
 
-            // 3. Award 1 extra star if it was a 2_for_1 promo
-            if (coupon && coupon.discount_type === '2_for_1') {
+            // 3. Award 1 extra star if it was a 2_for_1 promo AND only 1 session was booked
+            if (coupon && coupon.discount_type === '2_for_1' && sessionIdsToBook.length === 1) {
                 const { error: txErr } = await (adminSupabase as any)
                     .from('star_transactions')
                     .insert({
@@ -359,7 +401,317 @@ export async function fulfillBookingFromWebhook(
     }
 
     revalidatePath('/classes');
-    revalidatePath(`/booking/${sessionId}`);
+    for (const sid of sessionIdsToBook) {
+        revalidatePath(`/booking/${sid}`);
+    }
     revalidatePath('/profile');
     revalidatePath('/stars');
 }
+
+/**
+ * Fetches all scheduled future sessions of the same recurrence sequence
+ * where the user does not have a booking and the specific machine is free.
+ * The first item in the returned array is the current session itself.
+ */
+export async function getRecurringSessionsForBooking(
+    sessionId: string,
+    machineId: string
+): Promise<{ sessions: any[] } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Debes iniciar sesión para verificar disponibilidad.' };
+
+    try {
+        // 1. Fetch current session recurrence info
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: currentSession, error: sErr } = await (supabase as any)
+            .from('class_sessions')
+            .select('recurrence_id, date, start_time')
+            .eq('id', sessionId)
+            .single();
+
+        if (sErr || !currentSession) return { error: 'Clase no encontrada.' };
+
+        // If not a recurring class, just return the current session itself
+        if (!currentSession.recurrence_id) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: fullSess } = await (supabase as any)
+                .from('class_sessions')
+                .select('id, title, date, start_time, duration_minutes')
+                .eq('id', sessionId)
+                .single();
+            return { sessions: fullSess ? [fullSess] : [] };
+        }
+
+        // 2. Fetch all upcoming scheduled sessions in the same recurrence sequence starting from the current session's date
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: futureSessions, error: fsErr } = await (supabase as any)
+            .from('class_sessions')
+            .select('id, title, date, start_time, duration_minutes')
+            .eq('recurrence_id', currentSession.recurrence_id)
+            .eq('status', 'scheduled')
+            .gte('date', currentSession.date)
+            .order('date', { ascending: true });
+
+        if (fsErr || !futureSessions || futureSessions.length === 0) {
+            return { sessions: [] };
+        }
+
+        // 3. Fetch active confirmed bookings for these session IDs to verify user and machine availability
+        const sessionIds = futureSessions.map((s: any) => s.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: bookings } = await (supabase as any)
+            .from('bookings')
+            .select('session_id, member_id, machine_id')
+            .in('session_id', sessionIds)
+            .in('status', ['confirmed']);
+
+        const activeBookings = bookings || [];
+
+        // 4. Filter sessions based on availability of the user and the specific machine
+        const eligibleSessions = futureSessions.filter((session: any) => {
+            // Always include the primary/selected session itself
+            if (session.id === sessionId) return true;
+
+            // User cannot have an active booking in the session
+            const userBooked = activeBookings.some((b: any) => b.session_id === session.id && b.member_id === user.id);
+            if (userBooked) return false;
+
+            // The specific machine cannot be occupied in the session
+            const machineOccupied = activeBookings.some((b: any) => b.session_id === session.id && b.machine_id === machineId);
+            if (machineOccupied) return false;
+
+            return true;
+        });
+
+        return { sessions: eligibleSessions };
+    } catch (e) {
+        console.error('[getRecurringSessionsForBooking] Error:', e);
+        return { error: 'Error al consultar sesiones recurrentes.' };
+    }
+}
+
+/**
+ * Allows administrators to manually book/block a machine/spot for a specific member.
+ * Can be applied to the current session only or to the whole recurring series.
+ * Supports choosing whether the booking is free or deducts 1 star from the user.
+ */
+export async function adminBookSpots(
+    sessionId: string,
+    memberId: string,
+    machineId: string,
+    applyToAllRecurring: boolean,
+    chargeStars: boolean = false
+): Promise<{ success: true; count: number } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        // 1. Fetch current session recurrence
+        const { data: currentSession, error: sErr } = await (supabase as any)
+            .from('class_sessions')
+            .select('recurrence_id, date, stars_cost')
+            .eq('id', sessionId)
+            .single();
+
+        if (sErr || !currentSession) return { error: 'Clase no encontrada.' };
+
+        let sessionIdsToBook = [sessionId];
+
+        if (applyToAllRecurring && currentSession.recurrence_id) {
+            // Find all upcoming scheduled sessions of the same recurrence sequence starting from current session date
+            const { data: futureSessions } = await (supabase as any)
+                .from('class_sessions')
+                .select('id')
+                .eq('recurrence_id', currentSession.recurrence_id)
+                .eq('status', 'scheduled')
+                .gte('date', currentSession.date);
+
+            if (futureSessions && futureSessions.length > 0) {
+                sessionIdsToBook = futureSessions.map((s: any) => s.id);
+            }
+        }
+
+        // 2. Fetch occupied machines in these sessions to check availability
+        const { data: activeBookings } = await (supabase as any)
+            .from('bookings')
+            .select('session_id, machine_id, member_id')
+            .in('session_id', sessionIdsToBook)
+            .in('status', ['confirmed']);
+
+        const bookingsList = activeBookings || [];
+
+        // Check availability and compile insertable bookings
+        const bookingsToInsert = [];
+
+        for (const sid of sessionIdsToBook) {
+            // If the user already has a booking in this session, skip it
+            const userAlreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
+            if (userAlreadyBooked) {
+                continue;
+            }
+
+            // If the machine is already occupied in this session, skip it
+            const machineOccupied = bookingsList.some((b: any) => b.session_id === sid && b.machine_id === machineId);
+            if (machineOccupied) {
+                continue;
+            }
+
+            bookingsToInsert.push({
+                session_id: sid,
+                member_id: memberId,
+                machine_id: machineId,
+                status: 'confirmed',
+                stars_spent: chargeStars ? (currentSession.stars_cost || 1) : 0,
+                cancelled_at: null,
+                cancellation_reason: null,
+                star_refunded: false
+            });
+        }
+
+        if (bookingsToInsert.length === 0) {
+            return { error: 'El usuario ya tiene reservas o la máquina está ocupada en todas las fechas seleccionadas.' };
+        }
+
+        // 3. Process stars charge if enabled
+        if (chargeStars) {
+            // Get user profile balance
+            const { data: memberProfile } = await (supabase as any)
+                .from('profiles')
+                .select('stars_balance')
+                .eq('id', memberId)
+                .single();
+
+            const totalStarsCost = bookingsToInsert.length * (currentSession.stars_cost || 1);
+
+            if (!memberProfile || memberProfile.stars_balance < totalStarsCost) {
+                return { error: `El usuario no tiene estrellas suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
+            }
+
+            const adminSupabase = createAdminClient();
+            // Debit the user's stars
+            const { error: txErr } = await (adminSupabase as any)
+                .from('star_transactions')
+                .insert({
+                    member_id: memberId,
+                    amount: -totalStarsCost,
+                    type: 'booking_charged',
+                    reference_id: sessionId,
+                    reference_type: 'session',
+                    note: `Reserva administrativa forzada de ${bookingsToInsert.length} clases`
+                });
+
+            if (txErr) throw txErr;
+        }
+
+        const adminSupabase = createAdminClient();
+        const { error: insertErr } = await (adminSupabase as any)
+            .from('bookings')
+            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+
+        if (insertErr) throw insertErr;
+
+        // Trigger email confirmation asynchronously (no admin notification, admin performed it!)
+        sendBookingEmails(memberId, sessionIdsToBook, machineId, false);
+
+        revalidatePath('/classes');
+        for (const sid of sessionIdsToBook) {
+            revalidatePath(`/booking/${sid}`);
+        }
+        revalidatePath('/profile');
+        revalidatePath('/stars');
+        revalidatePath('/admin');
+
+        return { success: true, count: bookingsToInsert.length };
+    } catch (e) {
+        console.error('[adminBookSpots] Error:', e);
+        return { error: 'Ocurrió un error al procesar las reservas administrativas.' };
+    }
+}
+
+export async function adminCancelBooking(
+    bookingId: string,
+    refundStar: boolean
+): Promise<{ success: true } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        // Fetch booking to verify existence and get details
+        const { data: booking, error: bkErr } = await (supabase as any)
+            .from('bookings')
+            .select('id, status, member_id, session_id')
+            .eq('id', bookingId)
+            .single();
+
+        if (bkErr || !booking) {
+            return { error: 'Reserva no encontrada.' };
+        }
+
+        if (booking.status === 'cancelled') {
+            return { error: 'Esta reserva ya está cancelada.' };
+        }
+
+        const adminSupabase = createAdminClient();
+
+        // 1. Mark booking as cancelled
+        const { error: updErr } = await (adminSupabase as any)
+            .from('bookings')
+            .update({
+                status: 'cancelled',
+                cancellation_reason: 'admin',
+                star_refunded: refundStar,
+                cancelled_at: new Date().toISOString()
+            })
+            .eq('id', bookingId);
+
+        if (updErr) throw updErr;
+
+        // 2. Refund 1 star if requested
+        if (refundStar) {
+            const { error: txErr } = await (adminSupabase as any)
+                .from('star_transactions')
+                .insert({
+                    member_id: booking.member_id,
+                    amount: 1, // always give exactly 1 star only!
+                    type: 'admin_adjustment',
+                    reference_id: booking.session_id,
+                    reference_type: 'session',
+                    note: 'Reembolso administrativo manual (1 estrella)'
+                });
+            if (txErr) console.error('Error processing admin refund:', txErr);
+        }
+
+        revalidatePath('/classes');
+        revalidatePath(`/booking/${booking.session_id}`);
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (e) {
+        console.error('[adminCancelBooking] Error:', e);
+        return { error: 'Ocurrió un error al procesar la cancelación administrativa.' };
+    }
+}
+

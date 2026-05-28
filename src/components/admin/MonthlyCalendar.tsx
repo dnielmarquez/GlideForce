@@ -2,7 +2,7 @@
 
 import type { GFClass } from '@/lib/admin/types';
 import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
-import { getClassesForDate } from '@/lib/admin/utils';
+import { getClassesForDate, formatClassTime } from '@/lib/admin/utils';
 
 interface MonthlyCalendarProps {
   year: number;
@@ -49,7 +49,15 @@ export default function MonthlyCalendar({ year, month, classes, onDayClick, onEv
             >
               <div className="month-cell-num">{cell.date.getDate()}</div>
               {dayCls.slice(0, 3).map((cls) => {
-                const colorObj = CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0];
+                const classStart = new Date(`${cls.date}T${cls.time.substring(0, 5)}:00-05:00`);
+                const isPast = classStart.getTime() < Date.now();
+                const colorObj = isPast ? {
+                  bg: '#F5F5F4',
+                  text: '#78716C',
+                  border: '#A8A29E',
+                  hex: '#A8A29E'
+                } : (CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0]);
+
                 return (
                   <div
                     key={cls.id}
@@ -57,7 +65,7 @@ export default function MonthlyCalendar({ year, month, classes, onDayClick, onEv
                     style={{ background: colorObj.bg, color: colorObj.text }}
                     onClick={(e) => { e.stopPropagation(); onEventClick(cls, e); }}
                   >
-                    {cls.time} {cls.title}
+                    {formatClassTime(cls.time)} {cls.title}
                   </div>
                 );
               })}

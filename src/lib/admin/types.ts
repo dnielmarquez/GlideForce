@@ -29,6 +29,8 @@ export interface GFClass {
   capacity: number;
   enrolled: number;
   recurring?: boolean;
+  recurrence_id?: string | null;
+  stars_cost?: number;
   status?: string;
 }
 

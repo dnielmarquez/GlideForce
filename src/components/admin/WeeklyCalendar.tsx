@@ -2,7 +2,7 @@
 
 import type { GFClass } from '@/lib/admin/types';
 import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
-import { getClassesForDayHour, formatHour } from '@/lib/admin/utils';
+import { getClassesForDayHour, formatHour, formatClassTime } from '@/lib/admin/utils';
 import { useAdmin } from '@/lib/admin/AdminContext';
 
 
@@ -52,7 +52,15 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
               return (
                 <div key={`${hour}-${di}`} className="cal-cell" onClick={() => onCellClick(d, hour)}>
                   {dayClasses.map((cls) => {
-                    const colorObj = CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0];
+                    const classStart = new Date(`${cls.date}T${cls.time.substring(0, 5)}:00-05:00`);
+                    const isPast = classStart.getTime() < Date.now();
+                    const colorObj = isPast ? {
+                      bg: '#F5F5F4',
+                      text: '#78716C',
+                      border: '#A8A29E',
+                      hex: '#A8A29E'
+                    } : (CLASS_COLORS.find((c) => c.key === cls.color) ?? CLASS_COLORS[0]);
+
                     const heightPx = Math.max(56, (cls.duration / 60) * 64 - 6);
                     const instr = instructors.find((i) => i.id === cls.instructor);
                     return (
@@ -68,7 +76,7 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
                         onClick={(e) => { e.stopPropagation(); onEventClick(cls, e); }}
                       >
                         <div className="class-event-title">{cls.title}</div>
-                        <div className="class-event-time">{cls.time} · {cls.duration}m</div>
+                        <div className="class-event-time">{formatClassTime(cls.time)} · {cls.duration}m</div>
                         {instr && <div className="class-event-instr">{instr.name.split(' ')[0]}</div>}
                       </div>
                     );
