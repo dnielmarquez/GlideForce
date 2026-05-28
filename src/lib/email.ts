@@ -378,3 +378,86 @@ export async function sendCancellationNotificationToAdmin(
     console.error('[EmailService] Error in sendCancellationNotificationToAdmin:', err);
   }
 }
+
+/**
+ * 4. Class Reminder Email to User (3 Hours Before)
+ */
+export async function sendClassReminderEmail(
+  memberId: string,
+  session: any,
+  machineLabel: string
+) {
+  const adminSupabase = createAdminClient() as any;
+
+  try {
+    // Fetch User Profile
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', memberId)
+      .single();
+
+    if (!profile) throw new Error('User profile not found for reminder email.');
+
+    const formattedDate = formatEmailDate(session.date);
+    const formattedTime = formatEmailTime(session.start_time);
+    const instructorName = session.instructors?.name || 'Instructor';
+
+    const reminderHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #ea7034; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce</h1>
+          <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Recordatorio de Clase</p>
+        </div>
+        <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
+        
+        <h2 style="color: #333; font-size: 20px; font-weight: 800; margin-top: 0; text-align: left;">¡Hola ${profile.full_name}!</h2>
+        <p style="font-size: 15px; color: #555; line-height: 1.6; margin-bottom: 20px; text-align: left;">
+          Te recordamos que tienes una clase programada en <strong>3 horas</strong>. ¡Estamos listos para entrenar contigo!
+        </p>
+
+        <div style="background-color: #FEF0E6; border-left: 4px solid #ea7034; border-radius: 12px; padding: 18px; margin-bottom: 20px; text-align: left;">
+          <h3 style="color: #ea7034; font-size: 16px; font-weight: 800; margin: 0 0 10px 0;">${session.title}</h3>
+          <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #555;">
+            <tr>
+              <td style="padding: 4px 0; font-weight: 700; width: 100px;">Profesora:</td>
+              <td style="padding: 4px 0;">${instructorName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; font-weight: 700;">Fecha:</td>
+              <td style="padding: 4px 0; text-transform: capitalize;">${formattedDate}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; font-weight: 700;">Hora:</td>
+              <td style="padding: 4px 0;">${formattedTime} (${session.duration_minutes || 60} min)</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; font-weight: 700;">Máquina:</td>
+              <td style="padding: 4px 0; font-weight: 800; color: #ea7034;">${machineLabel}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; line-height: 1.6; text-align: left;">
+          Por favor, recuerda estar listo e hidratado. Si tienes algún contratiempo, ponte en contacto con nosotros.
+        </p>
+        
+        <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
+        <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
+          GlideForce — Studio de Fitness. Todos los derechos reservados.
+        </p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: profile.email,
+      subject: `⏰ Recordatorio de Clase: ${session.title} · GlideForce`,
+      html: reminderHtml,
+      text: `Hola ${profile.full_name}, recuerda tu clase de ${session.title} hoy a las ${formattedTime}.`,
+    });
+
+  } catch (err) {
+    console.error('[EmailService] Error in sendClassReminderEmail:', err);
+  }
+}
+
