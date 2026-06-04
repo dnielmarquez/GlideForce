@@ -22,6 +22,7 @@ interface BookingUser {
   status: string;
   booking_date: string;
   machine_id?: string;
+  machine_label?: string;
 }
 
 export default function ViewClassModal({ classId, onClose }: ViewClassModalProps) {
@@ -98,6 +99,11 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           status,
           created_at,
           machine_id,
+          machines (
+            id,
+            label,
+            number
+          ),
           profiles:member_id (
             id,
             full_name,
@@ -118,6 +124,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           avatar_url: b.profiles?.avatar_url || null,
           status: b.status,
           machine_id: b.machine_id,
+          machine_label: b.machines?.label || null,
           booking_date: new Date(b.created_at).toLocaleString('es-ES', { 
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
           }),
@@ -731,7 +738,9 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                      </div>
                      <div style={{ flex: 1, minWidth: 0 }}>
                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name}</div>
-                       <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
+                       <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                         {user.email} {user.machine_label ? ` · ${user.machine_label}` : ''}
+                       </div>
                      </div>
                      
                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
