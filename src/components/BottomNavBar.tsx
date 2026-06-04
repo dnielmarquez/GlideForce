@@ -15,7 +15,7 @@ export default function BottomNavBar() {
 
     const items = [
         { id: 'classes', label: 'Clases',      icon: 'fitness_center', href: '/classes' },
-        { id: 'stars',   label: 'Estrellitas', icon: 'grade',          href: '/stars'   },
+        { id: 'stars',   label: 'Sesiones',    icon: 'grade',          href: '/stars'   },
         { id: 'profile', label: 'Perfil',      icon: 'person',         href: '/profile' },
     ];
 
