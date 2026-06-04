@@ -749,7 +749,7 @@ function BookingContent({ id }: { id: string }) {
                             </div>
                         </div>
                         <div className="relative w-full h-48 md:h-96 rounded-2xl overflow-hidden shadow-sm border border-surface-container">
-                            <img className="w-full h-full object-cover" src="/gym.webp" alt="Class preview" />
+                            <img className="w-full h-full object-cover" src="https://zmzuyjgbypwvqazxewdr.supabase.co/storage/v1/object/public/avatars/classPhoto.jpg" alt="Class preview" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                         </div>
                     </section>
