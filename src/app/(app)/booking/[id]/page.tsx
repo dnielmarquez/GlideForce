@@ -301,7 +301,7 @@ function BookingContent({ id }: { id: string }) {
 
     let isFinished = false;
     if (session?.date && session?.start_time) {
-        const classStart = new Date(`${session.date}T${session.start_time}`);
+        const classStart = new Date(`${session.date}T${session.start_time}-05:00`);
         const duration = session.duration_minutes || 60;
         const classEnd = new Date(classStart.getTime() + duration * 60000);
         isFinished = new Date() > classEnd;
@@ -749,7 +749,7 @@ function BookingContent({ id }: { id: string }) {
                             </div>
                         </div>
                         <div className="relative w-full h-48 md:h-96 rounded-2xl overflow-hidden shadow-sm border border-surface-container">
-                            <img className="w-full h-full object-cover" src="/gym.webp" alt="Class preview" />
+                            <img className="w-full h-full object-cover" src="https://zmzuyjgbypwvqazxewdr.supabase.co/storage/v1/object/public/avatars/classPhoto.jpg" alt="Class preview" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                         </div>
                     </section>

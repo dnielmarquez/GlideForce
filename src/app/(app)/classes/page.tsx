@@ -8,7 +8,7 @@ import PageTransition from '@/components/PageTransition';
 
 
 
-const defaultAvatar = "/logo.png";
+const defaultAvatar = "/logoFixed.png";
 
 function formatTime(t: string) {
     if (!t) return '';
@@ -250,7 +250,7 @@ export default function ClassesPage() {
                                 const dur = `${c.duration_minutes} MIN`;
                                 const imgUrl = c.instructors?.photo_url || defaultAvatar;
 
-                                const classStart = new Date(`${c.date}T${c.start_time}`);
+                                const classStart = new Date(`${c.date}T${c.start_time}-05:00`);
                                 const classEnd = new Date(classStart.getTime() + (c.duration_minutes || 60) * 60000);
                                 const isFinished = new Date() > classEnd;
 
