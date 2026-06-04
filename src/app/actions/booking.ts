@@ -752,3 +752,67 @@ export async function adminCancelBooking(
     }
 }
 
+export async function adminUpdateClassTime(
+    classId: string,
+    newTime: string,
+    applyToAllRecurring: boolean
+): Promise<{ success: true } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+
+        // 1. Fetch current class details to get recurrence_id and date
+        const { data: classSession, error: sErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .select('id, recurrence_id, date')
+            .eq('id', classId)
+            .single();
+
+        if (sErr || !classSession) {
+            return { error: 'Clase no encontrada.' };
+        }
+
+        const formattedTime = newTime.length === 5 ? `${newTime}:00` : newTime;
+
+        if (applyToAllRecurring && classSession.recurrence_id) {
+            // Update all classes in the recurrence series starting from the selected class's date onwards
+            const { error: updErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .update({ start_time: formattedTime })
+                .eq('recurrence_id', classSession.recurrence_id)
+                .gte('date', classSession.date);
+            if (updErr) throw updErr;
+        } else {
+            // Update only this class
+            const { error: updErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .update({ start_time: formattedTime })
+                .eq('id', classId);
+            if (updErr) throw updErr;
+        }
+
+        revalidatePath('/classes');
+        revalidatePath(`/booking/${classId}`);
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (e) {
+        console.error('[adminUpdateClassTime] Error:', e);
+        return { error: 'Ocurrió un error al actualizar el horario de la clase.' };
+    }
+}
+
+

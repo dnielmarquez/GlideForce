@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 import { CLASS_COLORS } from '@/lib/admin/constants';
-import { adminBookSpots, adminCancelBooking } from '@/app/actions/booking';
+import { adminBookSpots, adminCancelBooking, adminUpdateClassTime } from '@/app/actions/booking';
 import { formatClassTime } from '@/lib/admin/utils';
 
 interface ViewClassModalProps {
@@ -50,6 +50,40 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+
+  // Time editing states
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [editTime, setEditTime] = useState(cls?.time || '10:00');
+  const [editAllRecurring, setEditAllRecurring] = useState(false);
+  const [isUpdatingTime, setIsUpdatingTime] = useState(false);
+
+  useEffect(() => {
+    if (cls) {
+      setEditTime(cls.time);
+    }
+  }, [cls]);
+
+  const handleUpdateClassTime = async () => {
+    if (!editTime) return;
+    setIsUpdatingTime(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await adminUpdateClassTime(classId, editTime, editAllRecurring);
+      if ('error' in res && res.error) {
+        setErrorMsg(res.error);
+      } else {
+        setSuccessMsg('✓ Horario de clase actualizado con éxito.');
+        setIsEditingTime(false);
+        await refreshClasses();
+      }
+    } catch (err) {
+      console.error('Error updating class time:', err);
+      setErrorMsg('Ocurrió un error inesperado al actualizar el horario de la clase.');
+    } finally {
+      setIsUpdatingTime(false);
+    }
+  };
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -457,19 +491,115 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                 {cls.description}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
-                <AdminIcon name="clock" size={14} /> {formatClassTime(cls.time)} · {cls.duration} min
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
-                <AdminIcon name="calendar" size={14} /> {cls.date}
-              </div>
-              {instr && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
-                  <AdminIcon name="users" size={14} /> {instr.name}
+            {isEditingTime ? (
+              <div style={{ 
+                marginTop: 12, 
+                padding: '12px 14px', 
+                background: 'white', 
+                borderRadius: 10, 
+                border: '1.5px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Nueva hora:</label>
+                  <input 
+                    type="time" 
+                    value={editTime} 
+                    onChange={(e) => setEditTime(e.target.value)} 
+                    style={{ 
+                      padding: '6px 10px', 
+                      borderRadius: 6, 
+                      border: '1.5px solid var(--border)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      outline: 'none',
+                      color: 'var(--text)'
+                    }}
+                  />
                 </div>
-              )}
-            </div>
+
+                {cls.recurring && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input 
+                      type="checkbox" 
+                      id="editAllRecurringCheck"
+                      checked={editAllRecurring}
+                      onChange={(e) => setEditAllRecurring(e.target.checked)}
+                      style={{ width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                    <label htmlFor="editAllRecurringCheck" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
+                      Aplicar a todas las clases relacionadas (mismo día y hora en adelante)
+                    </label>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <button 
+                    type="button" 
+                    disabled={isUpdatingTime}
+                    className="btn-cancel"
+                    style={{ padding: '6px 12px', fontSize: 12, margin: 0 }}
+                    onClick={() => setIsEditingTime(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    disabled={isUpdatingTime || !editTime}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: 12, margin: 0, flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}
+                    onClick={handleUpdateClassTime}
+                  >
+                    {isUpdatingTime ? 'Guardando...' : 'Guardar Horario'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
+                  <AdminIcon name="clock" size={14} /> 
+                  <span>{formatClassTime(cls.time)} · {cls.duration} min</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTime(cls.time);
+                      setEditAllRecurring(false);
+                      setIsEditingTime(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--orange)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      marginLeft: 4,
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--orange-light)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <AdminIcon name="edit" size={11} />
+                    Editar hora
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
+                  <AdminIcon name="calendar" size={14} /> {cls.date}
+                </div>
+                {instr && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
+                    <AdminIcon name="users" size={14} /> {instr.name}
+                  </div>
+                )}
+              </div>
+            )}
             
             <div style={{ marginTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: colorObj.text, marginBottom: 6 }}>
