@@ -19,7 +19,7 @@ declare global {
 }
 
 export default function StarsPage() {
-    const defaultAvatar = "/logo.png";
+    const defaultAvatar = "/logoFixed.png";
     const supabase = createClient();
     const router = useRouter();
 

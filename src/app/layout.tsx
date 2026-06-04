@@ -4,6 +4,10 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'GlideForce',
   description: 'Eleva tu Fitness',
+  icons: {
+    icon: '/logoFixed.png',
+    apple: '/logoFixed.png',
+  }
 };
 
 export default function RootLayout({
@@ -24,6 +28,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
           rel="stylesheet"
         />
+        <link rel="icon" href="/logoFixed.png" />
+        <link rel="apple-touch-icon" href="/logoFixed.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/logoFixed.png" />
       </head>
       <body>{children}</body>
     </html>

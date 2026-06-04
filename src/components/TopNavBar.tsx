@@ -27,7 +27,7 @@ export default function TopNavBar() {
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-white border border-surface-container-high flex items-center justify-center p-0.5 shadow-sm">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/logo.png" className="w-full h-full object-contain" alt="GlideForce Logo" />
+                        <img src="/logoFixed.png" className="w-full h-full object-contain" alt="GlideForce Logo" />
                     </div>
                     <h1 className="text-2xl font-black text-neutral-900 tracking-tight">Reserva</h1>
                 </div>
@@ -43,7 +43,7 @@ export default function TopNavBar() {
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-white border border-surface-container-high flex items-center justify-center p-0.5 shadow-sm">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" className="w-full h-full object-contain" alt="GlideForce Logo" />
+                    <img src="/logoFixed.png" className="w-full h-full object-contain" alt="GlideForce Logo" />
                 </div>
                 <span className="text-2xl font-black text-[#1c1b1b] tracking-tight">GlideForce</span>
             </div>

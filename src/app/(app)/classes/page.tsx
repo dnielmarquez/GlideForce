@@ -8,7 +8,7 @@ import PageTransition from '@/components/PageTransition';
 
 
 
-const defaultAvatar = "/logo.png";
+const defaultAvatar = "/logoFixed.png";
 
 function formatTime(t: string) {
     if (!t) return '';
