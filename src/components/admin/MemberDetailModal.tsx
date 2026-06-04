@@ -64,7 +64,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
          data.forEach((b: any) => {
            const session = b.class_sessions;
            if (!session) return;
-           const sessionDate = new Date(`${session.date}T${session.start_time}`);
+           const sessionDate = new Date(`${session.date}T${session.start_time}-05:00`);
            const machineLabel = b.machines?.label || 'Máquina no asig.';
            
            const item = {
@@ -88,8 +88,8 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
            }
          });
          
-         upc.sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-         hist.sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+         upc.sort((a, b) => new Date(`${a.date}T${a.time}-05:00`).getTime() - new Date(`${b.date}T${b.time}-05:00`).getTime());
+         hist.sort((a, b) => new Date(`${b.date}T${b.time}-05:00`).getTime() - new Date(`${a.date}T${a.time}-05:00`).getTime());
          
          setUpcoming(upc);
          setHistory(hist);

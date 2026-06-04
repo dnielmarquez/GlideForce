@@ -301,7 +301,7 @@ function BookingContent({ id }: { id: string }) {
 
     let isFinished = false;
     if (session?.date && session?.start_time) {
-        const classStart = new Date(`${session.date}T${session.start_time}`);
+        const classStart = new Date(`${session.date}T${session.start_time}-05:00`);
         const duration = session.duration_minutes || 60;
         const classEnd = new Date(classStart.getTime() + duration * 60000);
         isFinished = new Date() > classEnd;

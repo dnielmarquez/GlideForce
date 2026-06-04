@@ -121,7 +121,7 @@ export default function StarsPage() {
                 
                 let isFinished = false;
                 if (b.class_sessions?.date && b.class_sessions?.start_time) {
-                    const classStart = new Date(`${b.class_sessions.date}T${b.class_sessions.start_time}`);
+                    const classStart = new Date(`${b.class_sessions.date}T${b.class_sessions.start_time}-05:00`);
                     const duration = b.class_sessions.duration_minutes || 60;
                     const classEnd = new Date(classStart.getTime() + duration * 60000);
                     isFinished = new Date() > classEnd;

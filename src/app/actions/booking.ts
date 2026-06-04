@@ -146,7 +146,7 @@ export async function cancelBooking(sessionId: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: booking, error: bkErr } = await (supabase as any)
             .from('bookings')
-            .select('id, status, stars_spent')
+            .select('id, status, stars_spent, payment_id')
             .eq('session_id', sessionId)
             .eq('member_id', user.id)
             .in('status', ['confirmed'])
@@ -165,13 +165,41 @@ export async function cancelBooking(sessionId: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: settings } = await (supabase as any)
             .from('settings')
-            .select('cancel_time')
+            .select('cancel_time, timezone')
             .single();
 
         if (!session || !settings) return { error: 'Error al cargar los datos de la clase.' };
 
         // 4. Calculate cutoff time
-        const classStart = new Date(`${session.date}T${session.start_time}`);
+        const timezone = settings.timezone || 'America/Bogota';
+        let classStart = new Date(`${session.date}T${session.start_time}`);
+        
+        try {
+            const tempDate = new Date(`${session.date}T00:00:00Z`);
+            const formatter = new Intl.DateTimeFormat("en-US", {
+                timeZone: timezone,
+                timeZoneName: "longOffset"
+            });
+            const parts = formatter.formatToParts(tempDate);
+            const tzPart = parts.find(p => p.type === 'timeZoneName');
+            if (tzPart) {
+                const val = tzPart.value;
+                const match = val.match(/GMT([+-])(\d+)(?::(\d+))?/);
+                if (match) {
+                    const sign = match[1] === '-' ? -1 : 1;
+                    const hours = parseInt(match[2], 10);
+                    const minutes = match[3] ? parseInt(match[3], 10) : 0;
+                    const offsetMinutes = sign * (hours * 60 + minutes);
+                    
+                    const localUTC = new Date(`${session.date}T${session.start_time}Z`);
+                    classStart = new Date(localUTC.getTime() - offsetMinutes * 60000);
+                }
+            }
+        } catch (tzErr) {
+            console.error('Timezone parsing error in cancelBooking:', tzErr);
+            classStart = new Date(`${session.date}T${session.start_time}-05:00`);
+        }
+
         const cancelTimeMinutes = settings.cancel_time || 0;
         
         // current time + cancelTimeMinutes MUST BE < classStart to get a refund.
@@ -198,20 +226,29 @@ export async function cancelBooking(sessionId: string) {
         sendCancellationNotificationToAdmin(user.id, sessionId, qualifiesForRefund);
 
         // 6. Process refund if applicable
-        if (qualifiesForRefund && booking.stars_spent > 0) {
-            const adminSupabase = createAdminClient();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { error: txErr } = await (adminSupabase as any)
-                .from('star_transactions')
-                .insert({
-                    member_id: user.id,
-                    amount: booking.stars_spent,
-                    type: 'cancellation_refund',
-                    reference_id: sessionId,
-                    reference_type: 'session',
-                    note: 'Reembolso por cancelación a tiempo'
-                });
-            if (txErr) console.error('Error processing refund transaction:', txErr);
+        if (qualifiesForRefund) {
+            // Refund the stars_spent if > 0, or refund 1 star if they paid in COP (payment_id exists)
+            const refundAmount = booking.stars_spent > 0 
+                ? booking.stars_spent 
+                : (booking.payment_id ? 1 : 0);
+
+            if (refundAmount > 0) {
+                const adminSupabase = createAdminClient();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { error: txErr } = await (adminSupabase as any)
+                    .from('star_transactions')
+                    .insert({
+                        member_id: user.id,
+                        amount: refundAmount,
+                        type: 'cancellation_refund',
+                        reference_id: sessionId,
+                        reference_type: 'session',
+                        note: booking.stars_spent > 0
+                            ? 'Reembolso por cancelación a tiempo'
+                            : 'Reembolso en estrella por cancelación a tiempo de clase pagada online'
+                    });
+                if (txErr) console.error('Error processing refund transaction:', txErr);
+            }
         }
 
         revalidatePath('/classes');
