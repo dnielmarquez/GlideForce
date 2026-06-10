@@ -702,7 +702,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                           style={{ width: 16, height: 16, cursor: 'pointer' }}
                         />
                         <label htmlFor="refundStarCheck" style={{ fontSize: 12, fontWeight: 600, color: '#991B1B', cursor: 'pointer', userSelect: 'none' }}>
-                          Reembolsar 1 estrella al usuario
+                          Reembolsar 1 sesión al usuario
                         </label>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -947,7 +947,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                 style={{ width: 16, height: 16, cursor: 'pointer' }}
               />
               <label htmlFor="chargeStars" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
-                Descontar estrellitas del saldo del usuario ({cls.stars_cost || 1} ★)
+                Descontar sesiones del saldo del usuario ({cls.stars_cost || 1} ★)
               </label>
             </div>
 

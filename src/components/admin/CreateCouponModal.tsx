@@ -191,7 +191,7 @@ export default function CreateCouponModal({ onClose, onSave }: Props) {
                     {
                       key: '2_for_1',
                       title: '🎟️ Promo 2 por 1',
-                      desc: 'Segunda estrella gratis después de pagar la primera clase usando este cupón.',
+                      desc: 'Segunda sesión gratis después de pagar la primera clase usando este cupón.',
                     },
                     {
                       key: 'percentage',

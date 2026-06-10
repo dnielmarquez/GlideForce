@@ -183,7 +183,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
 
           {/* Stars */}
           <div className="form-section">
-            <div className="form-section-title">Estrellitas</div>
+            <div className="form-section-title">Sesiones</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 18px', background: 'var(--orange-light)', borderRadius: 12, border: '1.5px solid var(--orange-mid)' }}>
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--orange)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AdminIcon name="star" size={22} />
@@ -201,11 +201,11 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
                       onClick={() => set('stars', form.stars + 1)}
                       style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--orange-mid)', background: 'white', cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >+</button>
-                    <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 600 }}>estrellitas</span>
+                    <span style={{ fontSize: 12, color: 'var(--orange)', fontWeight: 600 }}>sesiones</span>
                   </div>
                 ) : (
                   <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--orange)', letterSpacing: '-1px', marginTop: 2 }}>
-                    {member.stars} <span style={{ fontSize: 14, fontWeight: 600 }}>estrellitas</span>
+                    {member.stars} <span style={{ fontSize: 14, fontWeight: 600 }}>sesiones</span>
                   </div>
                 )}
               </div>

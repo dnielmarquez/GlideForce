@@ -322,7 +322,7 @@ export async function sendCancellationNotificationToAdmin(
     const formattedTime = formatEmailTime(session.start_time);
     const instructorName = (session as any).instructors?.name || 'Instructor';
 
-    const refundText = refunded ? 'Sí (1 estrella reembolsada)' : 'No (Fuera de tiempo permitido)';
+    const refundText = refunded ? 'Sí (1 sesión reembolsada)' : 'No (Fuera de tiempo permitido)';
     const refundColor = refunded ? '#0F8B76' : '#DC2626';
 
     const adminHtml = `

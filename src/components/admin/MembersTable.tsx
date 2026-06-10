@@ -62,7 +62,7 @@ export default function MembersTable({ members, onSave }: MembersTableProps) {
       {/* Table */}
       <div className="members-table">
         <div className="members-thead">
-          {['Miembro', 'Correo', 'Celular', 'Estrellitas', 'Estado', 'Acciones'].map((h) => (
+          {['Miembro', 'Correo', 'Celular', 'Sesiones', 'Estado', 'Acciones'].map((h) => (
             <div key={h} className="members-th">{h}</div>
           ))}
         </div>

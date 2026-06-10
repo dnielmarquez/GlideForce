@@ -194,7 +194,7 @@ export default function SettingsPage() {
                   <div style={{ marginTop: 14, padding: '10px 14px', background: '#FDE8F0', borderRadius: 10, fontSize: 12.5, color: '#C4376D', fontWeight: 600 }}>
                     {totalMinutes === 0 
                       ? '⚠️ Sin política activa — los usuarios pueden cancelar en cualquier momento sin consecuencias.' 
-                      : `Los usuarios podrán cancelar su reserva hasta ${h}h ${m}min antes del inicio de la clase sin perder su estrellita.`}
+                      : `Los usuarios podrán cancelar su reserva hasta ${h}h ${m}min antes del inicio de la clase sin perder su sesión.`}
                   </div>
                 </>
               );

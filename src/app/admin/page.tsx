@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     if (res.success) {
       setPopup(null);
       await refreshClasses();
-      showToast('Clase cancelada y estrellas reembolsadas');
+      showToast('Clase cancelada y sesiones reembolsadas');
     } else {
       showToast('Error: ' + res.error);
     }

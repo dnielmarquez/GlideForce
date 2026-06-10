@@ -36,7 +36,7 @@ const STATUS_STYLE: Record<PaymentStatus, { bg: string; color: string; border: s
 };
 
 const PURPOSE_LABEL: Record<PaymentPurpose, string> = {
-    star_purchase: '⭐ Compra de Estrellas',
+    star_purchase: '⭐ Compra de Sesiones',
     class_booking: '🏋️ Reserva de Clase',
 };
 
@@ -215,7 +215,7 @@ export default function TransactionsPage() {
                                 className={`cal-view-tab${filterPurpose === k ? ' active' : ''}`}
                                 onClick={() => setFilterPurpose(k)}
                             >
-                                {k === 'todos' ? 'Todos' : k === 'star_purchase' ? 'Estrellas' : 'Reservas'}
+                                {k === 'todos' ? 'Todos' : k === 'star_purchase' ? 'Sesiones' : 'Reservas'}
                             </div>
                         ))}
                     </div>

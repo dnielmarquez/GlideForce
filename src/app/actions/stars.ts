@@ -16,7 +16,7 @@ export async function getStarPricing(): Promise<{ priceCop: number } | { error: 
         .select('star_price_cop')
         .single();
 
-    if (error || !data) return { error: 'No se pudo cargar el precio de las estrellitas.' };
+    if (error || !data) return { error: 'No se pudo cargar el precio de las sesiones.' };
     return { priceCop: data.star_price_cop ?? 45000 };
 }
 
@@ -37,12 +37,12 @@ export async function initStarPurchase(
     currency: string;
 } | { error: string }> {
     if (!quantity || quantity < 1 || !Number.isInteger(quantity)) {
-        return { error: 'La cantidad mínima es 1 estrellita.' };
+        return { error: 'La cantidad mínima es 1 sesión.' };
     }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'Debes iniciar sesión para comprar estrellitas.' };
+    if (!user) return { error: 'Debes iniciar sesión para comprar sesiones.' };
 
     // Fetch star price from settings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

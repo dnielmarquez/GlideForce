@@ -74,7 +74,7 @@ export async function processBooking(
             const totalCost = sessions.reduce((sum: number, s: any) => sum + (s.stars_cost || 1), 0);
 
             if (!profile || profile.stars_balance < totalCost) {
-                return { error: 'No tienes estrellas suficientes (Verificación del servidor).' };
+                return { error: 'No tienes sesiones suficientes (Verificación del servidor).' };
             }
 
             const adminSupabase = createAdminClient();
@@ -245,7 +245,7 @@ export async function cancelBooking(sessionId: string) {
                         reference_type: 'session',
                         note: booking.stars_spent > 0
                             ? 'Reembolso por cancelación a tiempo'
-                            : 'Reembolso en estrella por cancelación a tiempo de clase pagada online'
+                            : 'Reembolso en sesión por cancelación a tiempo de clase pagada online'
                     });
                 if (txErr) console.error('Error processing refund transaction:', txErr);
             }
@@ -425,7 +425,7 @@ export async function fulfillBookingFromWebhook(
                         payment_id:     paymentId,
                         reference_id:   sessionId,
                         reference_type: 'session',
-                        note:           'Promo 2x1 - Estrellita Extra por uso de cupón en Pago de Clase'
+                        note:           'Promo 2x1 - Sesión Extra por uso de cupón en Pago de Clase'
                     });
 
                 if (txErr) {
@@ -633,7 +633,7 @@ export async function adminBookSpots(
             const totalStarsCost = bookingsToInsert.length * (currentSession.stars_cost || 1);
 
             if (!memberProfile || memberProfile.stars_balance < totalStarsCost) {
-                return { error: `El usuario no tiene estrellas suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
+                return { error: `El usuario no tiene sesiones suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
             }
 
             const adminSupabase = createAdminClient();
@@ -736,7 +736,7 @@ export async function adminCancelBooking(
                     type: 'admin_adjustment',
                     reference_id: booking.session_id,
                     reference_type: 'session',
-                    note: 'Reembolso administrativo manual (1 estrella)'
+                    note: 'Reembolso administrativo manual (1 sesión)'
                 });
             if (txErr) console.error('Error processing admin refund:', txErr);
         }

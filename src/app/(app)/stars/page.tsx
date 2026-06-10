@@ -269,7 +269,7 @@ export default function StarsPage() {
                 {/* Desktop Left Column: Balance */}
                 <div className="md:col-span-5 md:sticky md:top-24 mb-8 md:mb-0">
                     <section className="space-y-4">
-                        <h2 className="text-3xl font-black tracking-tight">Mis Estrellitas</h2>
+                        <h2 className="text-3xl font-black tracking-tight">Mis Sesiones</h2>
                         <div className="bg-white p-8 rounded-2xl shadow-sm border border-surface-container relative overflow-hidden group">
                             <div className="absolute -top-12 -right-12 w-32 h-32 editorial-gradient opacity-10 rounded-full blur-3xl"></div>
                             <div className="flex flex-col items-start gap-1 relative z-10">
@@ -283,7 +283,7 @@ export default function StarsPage() {
                         </div>
                         <button onClick={() => { setShowTopUp(true); setQuantity(1); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-                            Comprar Estrellitas
+                            Comprar Sesiones
                         </button>
                     </section>
                 </div>
@@ -360,22 +360,23 @@ export default function StarsPage() {
             {/* ── Top-Up Bottom Sheet ─────────────────────────────────────────── */}
             <AnimatePresence>
                 {showTopUp && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
-                        <motion.div initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 20 }} transition={{ type: "spring", bounce: 0.25, duration: 0.4 }} className="bg-white w-full max-w-sm rounded-[32px] p-8 pb-10 shadow-2xl space-y-6">
-                            <div className="flex items-start justify-between">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6">
+                        <motion.div initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 20 }} transition={{ type: "spring", bounce: 0.25, duration: 0.4 }} className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]">
+                            <div className="flex items-start justify-between shrink-0 mb-3 md:mb-4">
                                 <div className="space-y-1">
-                                    <h3 className="text-2xl font-black text-on-surface">Comprar Estrellitas</h3>
-                                    <p className="text-on-surface-variant text-sm font-medium">{formatCop(priceCop)} por estrellita</p>
+                                    <h3 className="text-2xl font-black text-on-surface">Comprar Sesiones</h3>
+                                    <p className="text-on-surface-variant text-sm font-medium">{formatCop(priceCop)} por sesión</p>
                                 </div>
                                 <button onClick={handleCloseTopUp} className="bg-surface-container-low text-on-surface-variant p-2 rounded-full hover:bg-surface-container transition-colors">
                                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>close</span>
                                 </button>
                             </div>
                             
-                            <div className="space-y-5">
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-5">
                                 {/* Quantity Selector */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cantidad de Estrellitas</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cantidad de Sesiones</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {[1, 4, 8, 12].map((q) => {
                                             const isSelected = quantity === q;
@@ -402,7 +403,7 @@ export default function StarsPage() {
                                                         </span>
                                                     </div>
                                                     <span className="text-[10px] font-extrabold uppercase tracking-wider mt-1 text-on-surface-variant">
-                                                        {q === 1 ? 'Estrellita' : 'Estrellitas'}
+                                                        {q === 1 ? 'Sesión' : 'Sesiones'}
                                                     </span>
                                                 </button>
                                             );
@@ -451,7 +452,7 @@ export default function StarsPage() {
                                 {/* Price Preview Breakdown */}
                                 <div className="bg-surface-container-low rounded-2xl p-5 space-y-3 border border-surface-container text-sm">
                                     <div className="flex justify-between items-center text-on-surface-variant font-medium">
-                                        <span>Subtotal ({quantity} {quantity === 1 ? 'estrellita' : 'estrellitas'})</span>
+                                        <span>Subtotal ({quantity} {quantity === 1 ? 'sesión' : 'sesiones'})</span>
                                         <span>{formatCop(quantity * priceCop)}</span>
                                     </div>
                                     
@@ -484,11 +485,14 @@ export default function StarsPage() {
                                             Recibirás en tu cuenta:
                                         </span>
                                         <span className="text-sm font-black">
-                                            {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0)} {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0) === 1 ? 'estrellita' : 'estrellitas'}
+                                            {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0)} {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0) === 1 ? 'sesión' : 'sesiones'}
                                         </span>
                                     </div>
                                 </div>
+                            </div>
 
+                            {/* Pinned Footer */}
+                            <div className="w-full shrink-0 pt-3 border-t border-surface-container-high space-y-3">
                                 {/* Error */}
                                 {widgetError && (
                                     <p className="text-red-500 text-sm font-medium text-center bg-red-50 p-3 rounded-xl">⚠️ {widgetError}</p>
@@ -496,7 +500,7 @@ export default function StarsPage() {
 
                                 {/* CTA */}
                                 <button
-                                    id="btn-comprar-estrellitas"
+                                    id="btn-comprar-sesiones"
                                     onClick={handleOpenWompi}
                                     disabled={isProcessing}
                                     className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
