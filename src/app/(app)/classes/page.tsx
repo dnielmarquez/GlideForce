@@ -246,7 +246,7 @@ export default function ClassesPage() {
                             }
                             
                             return currentClasses.map((c, i) => {
-                                const profName = c.instructors?.name || 'Profesor Interino';
+                                const profName = c.instructors?.name || 'Entrenadora Interina';
                                 const dur = `${c.duration_minutes} MIN`;
                                 const imgUrl = c.instructors?.photo_url || defaultAvatar;
 

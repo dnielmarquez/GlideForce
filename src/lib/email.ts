@@ -123,7 +123,7 @@ export async function sendBookingEmails(
         <h3 style="color: #ea7034; font-size: 16px; font-weight: 800; margin: 0 0 10px 0;">${b.title}</h3>
         <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #555;">
           <tr>
-            <td style="padding: 4px 0; font-weight: 700; width: 100px;">Profesora:</td>
+            <td style="padding: 4px 0; font-weight: 700; width: 100px;">Entrenadora:</td>
             <td style="padding: 4px 0;">${b.instructorName}</td>
           </tr>
           <tr>
@@ -342,7 +342,7 @@ export async function sendCancellationNotificationToAdmin(
           <h3 style="color: #dc2626; font-size: 16px; font-weight: 800; margin: 0 0 10px 0;">${session.title}</h3>
           <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #555;">
             <tr>
-              <td style="padding: 4px 0; font-weight: 700; width: 100px;">Profesora:</td>
+              <td style="padding: 4px 0; font-weight: 700; width: 100px;">Entrenadora:</td>
               <td style="padding: 4px 0;">${instructorName}</td>
             </tr>
             <tr>
@@ -420,7 +420,7 @@ export async function sendClassReminderEmail(
           <h3 style="color: #ea7034; font-size: 16px; font-weight: 800; margin: 0 0 10px 0;">${session.title}</h3>
           <table style="width: 100%; font-size: 14px; border-collapse: collapse; color: #555;">
             <tr>
-              <td style="padding: 4px 0; font-weight: 700; width: 100px;">Profesora:</td>
+              <td style="padding: 4px 0; font-weight: 700; width: 100px;">Entrenadora:</td>
               <td style="padding: 4px 0;">${instructorName}</td>
             </tr>
             <tr>

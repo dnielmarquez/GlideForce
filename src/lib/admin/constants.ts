@@ -49,7 +49,7 @@ export const ADMIN_NAV_ITEMS = [
 ] as const;
 
 export const ADMIN_MANAGE_ITEMS = [
-  { id: 'instructors', label: 'Profesoras',    icon: 'users',    href: '/admin/instructors' },
+  { id: 'instructors', label: 'Entrenadoras',    icon: 'users',    href: '/admin/instructors' },
   { id: 'members',     label: 'Miembros',      icon: 'star',     href: '/admin/members' },
   { id: 'settings',    label: 'Configuración', icon: 'settings', href: '/admin/settings' },
 ] as const;

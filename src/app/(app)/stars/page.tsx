@@ -339,7 +339,7 @@ export default function StarsPage() {
                                             <h4 className="text-base font-bold text-on-surface truncate pr-2">{item.title}</h4>
                                             <span className={`bg-${item.color}-50 text-${item.color}-700 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-widest shrink-0 border border-${item.color}-100`}>{item.statusLabel}</span>
                                         </div>
-                                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Profesor: <span className="text-on-surface font-semibold">{item.instructorName}</span></p>
+                                        <p className="text-xs text-on-surface-variant font-medium mt-0.5">Entrenadora: <span className="text-on-surface font-semibold">{item.instructorName}</span></p>
                                         {item.date && (
                                             <p className="text-xs text-on-surface-variant/60 font-medium mt-1 uppercase tracking-wider text-[10px]">
                                                 {new Date(item.date + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}

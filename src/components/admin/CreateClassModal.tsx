@@ -226,7 +226,7 @@ export default function CreateClassModal({ initialDate, initialTime, onClose, on
               </div>
 
               <div className="form-section">
-                <div className="form-section-title">Profesora</div>
+                <div className="form-section-title">Entrenadora</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {instructors.map((instr) => (
                     <div
@@ -247,7 +247,7 @@ export default function CreateClassModal({ initialDate, initialTime, onClose, on
                     </div>
                   ))}
                   {instructors.length === 0 && (
-                     <div style={{ padding: 10, fontSize: 13, color: 'var(--text-muted)' }}>Ninguna profesora registrada en el sistema.</div>
+                     <div style={{ padding: 10, fontSize: 13, color: 'var(--text-muted)' }}>Ninguna entrenadora registrada en el sistema.</div>
                   )}
                 </div>
               </div>

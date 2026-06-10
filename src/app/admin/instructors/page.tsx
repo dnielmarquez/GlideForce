@@ -11,7 +11,7 @@ export default function InstructorsPage() {
           En construcción
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, fontWeight: 500, maxWidth: 340 }}>
-          La gestión de profesoras estará disponible muy pronto. Aquí podrás agregar, editar y administrar el equipo de instructoras del estudio.
+          La gestión de entrenadoras estará disponible muy pronto. Aquí podrás agregar, editar y administrar el equipo de entrenadoras del estudio.
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'var(--orange-light)', borderRadius: 99, fontSize: 13, fontWeight: 700, color: 'var(--orange)' }}>

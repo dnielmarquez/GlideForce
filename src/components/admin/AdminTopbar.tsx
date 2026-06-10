@@ -7,7 +7,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/admin':             'Dashboard',
   '/admin/members':     'Miembros',
   '/admin/settings':    'Configuración',
-  '/admin/instructors': 'Profesoras',
+  '/admin/instructors': 'Entrenadoras',
 };
 
 export default function AdminTopbar() {
@@ -22,7 +22,7 @@ export default function AdminTopbar() {
       <div className="topbar-spacer" />
       <div className="topbar-search">
         <AdminIcon name="search" size={14} />
-        <input placeholder="Buscar clase, profesora…" />
+        <input placeholder="Buscar clase, entrenadora…" />
       </div>
       <button className="topbar-btn" aria-label="Notificaciones">
         <AdminIcon name="bell" size={15} />
