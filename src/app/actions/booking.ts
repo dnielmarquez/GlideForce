@@ -414,8 +414,8 @@ export async function fulfillBookingFromWebhook(
                 .eq('id', payment.coupon_id)
                 .single();
 
-            // 3. Award 1 extra star if it was a 2_for_1 promo AND only 1 session was booked
-            if (coupon && coupon.discount_type === '2_for_1' && sessionIdsToBook.length === 1) {
+            // 3. Award 1 extra star if it was a 2_for_1 promo
+            if (coupon && coupon.discount_type === '2_for_1') {
                 const { error: txErr } = await (adminSupabase as any)
                     .from('star_transactions')
                     .insert({

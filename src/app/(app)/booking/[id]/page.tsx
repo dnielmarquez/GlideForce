@@ -511,7 +511,7 @@ function BookingContent({ id }: { id: string }) {
                                              {couponSuccess && appliedCoupon && (
                                                  <p className="text-green-700 text-xs font-semibold px-1 mt-1">
                                                      ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado con éxito.
-                                                     {appliedCoupon.discount_type === '2_for_1' && qty === 1 && ' ¡Recibirás una sesión extra al finalizar la clase!'}
+                                                     {appliedCoupon.discount_type === '2_for_1' && ' ¡Recibirás una sesión extra al finalizar la clase!'}
                                                  </p>
                                              )}
                                          </div>
@@ -527,7 +527,7 @@ function BookingContent({ id }: { id: string }) {
                                                      <span>-{formatCOP(totalDiscountAmount)}</span>
                                                  </div>
                                              )}
-                                             {appliedCoupon && appliedCoupon.discount_type === '2_for_1' && qty === 1 && (
+                                             {appliedCoupon && appliedCoupon.discount_type === '2_for_1' && (
                                                  <div className="flex justify-between items-center text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-lg">
                                                      <span>🎁 Promo 2x1 Activa</span>
                                                      <span>1 sesión de regalo</span>

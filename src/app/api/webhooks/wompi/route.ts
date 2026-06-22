@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
         .update({
             status:               localStatus,
             wompi_transaction_id: wompiTxId,
-            wompi_payload:        event,
+            wompi_payload: {
+                ...(typeof payment.wompi_payload === 'object' && payment.wompi_payload !== null ? payment.wompi_payload : {}),
+                wompi_event: event
+            },
             fulfilled_at:         localStatus === 'approved' ? new Date().toISOString() : null,
         })
         .eq('id', payment.id);
