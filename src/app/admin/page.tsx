@@ -25,6 +25,14 @@ export default function AdminDashboard() {
   const [createModalData, setCreateModalData] = useState<{ date?: string; time?: string } | null>(null);
   const [popup, setPopup] = useState<EventPopupData | null>(null);
   const [viewingClassId, setViewingClassId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshClasses();
+    setIsRefreshing(false);
+    showToast('✓ Calendario actualizado');
+  };
 
   // ── Navigation ──────────────────────────────────────────────────────────
   const navWeek = (dir: number) => {
@@ -109,6 +117,8 @@ export default function AdminDashboard() {
         onNext={() => calView === 'week' ? navWeek(1)  : navMonth(1)}
         onToday={goToday}
         onNewClass={() => setCreateModalData({})}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
       {calView === 'week'
