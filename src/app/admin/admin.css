@@ -468,3 +468,411 @@
 .adm-spinner {
   animation: spin 0.6s linear infinite;
 }
+
+.event-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+}
+
+/* ─── Mobile Responsiveness (max-width: 768px) ───────────────────────────── */
+@media (max-width: 768px) {
+  /* Layout modifications */
+  .admin-layout {
+    position: relative;
+  }
+
+  .event-popup-backdrop {
+    background: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(2px) !important;
+    z-index: 190 !important;
+  }
+  
+  .event-popup {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 280px !important;
+    margin: 0 !important;
+    z-index: 200 !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+  
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+  
+  .sidebar-overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 140;
+    animation: adm-fadeIn 0.2s ease;
+  }
+  
+  .sidebar-close-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.15s;
+  }
+  .sidebar-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+  
+  .topbar-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: white;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .topbar-menu-btn:hover {
+    background: var(--bg);
+    color: var(--text);
+  }
+  
+  .topbar .topbar-search {
+    display: none !important;
+  }
+  
+  .admin-content {
+    padding: 16px 16px;
+  }
+  
+  /* Stats bar spacing */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    padding: 12px 14px;
+  }
+  .stat-value {
+    font-size: 22px;
+  }
+  
+  /* Scrollable calendar view grids */
+  .cal-grid-wrap, .month-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cal-day-headers, .cal-body {
+    min-width: 750px;
+  }
+  .month-day-names, .month-cells {
+    min-width: 750px;
+  }
+  
+  /* Modals as slide-up bottom sheets */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  .modal, .modal-sm {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    margin-bottom: 0;
+    animation: adm-slideUpMobile 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
+  }
+  .modal-header {
+    padding: 16px 20px;
+  }
+  .modal-body {
+    padding: 16px 20px;
+  }
+  .modal-footer {
+    padding: 16px 20px 24px;
+  }
+  
+  /* Form row stacking */
+  .form-row.cols-2, .form-row.cols-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* Settings page details */
+  .settings-machines-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+  }
+  
+  /* General page filter section styling on mobile */
+  .transactions-filter-bar,
+  .coupons-filter-bar,
+  .members-filter-bar,
+  .transactions-stats-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  .transactions-filter-group,
+  .coupons-filter-group,
+  .members-filter-group {
+    margin-left: 0 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  
+  .transactions-filter-group .topbar-search,
+  .transactions-filter-group .cal-view-tabs,
+  .transactions-filter-group .btn-primary,
+  .coupons-filter-group .topbar-search,
+  .coupons-filter-group .cal-view-tabs,
+  .coupons-filter-group .btn-primary,
+  .members-filter-group .topbar-search,
+  .members-filter-group .cal-view-tabs,
+  .members-filter-group .btn-primary,
+  .transactions-stats-header .cal-view-tabs {
+    width: 100% !important;
+    margin: 0 !important;
+    justify-content: center !important;
+    display: flex !important;
+  }
+  
+  .cal-view-tabs {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Hide default scrollbar on Firefox */
+  }
+  .cal-view-tabs::-webkit-scrollbar {
+    display: none; /* Hide default scrollbar on Chrome/Safari */
+  }
+  
+  .cal-view-tab {
+    flex: 1;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    text-align: center;
+  }
+
+  /* Calendar Headers styling */
+  .cal-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .cal-title {
+    width: 100%;
+    font-size: 18px !important;
+    margin-bottom: 4px;
+  }
+  .cal-header .cal-view-tabs {
+    margin-left: auto;
+  }
+  .cal-header .btn-primary {
+    width: 100% !important;
+    margin-top: 4px;
+    justify-content: center;
+  }
+
+  /* Members Table Responsive Grid to Cards */
+  .members-thead {
+    display: none !important;
+  }
+  .members-table {
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+  .members-row {
+    background: white !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 16px !important;
+  }
+  .members-row > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: right !important;
+    width: 100% !important;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .members-row > div:last-child {
+    border-bottom: none;
+  }
+  .members-row > div::before {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    text-align: left;
+  }
+  .members-row > div:nth-child(1) { align-items: center !important; }
+  .members-row > div:nth-child(1)::before { content: "Miembro"; }
+  .members-row > div:nth-child(2)::before { content: "Correo"; }
+  .members-row > div:nth-child(3)::before { content: "Celular"; }
+  .members-row > div:nth-child(4)::before { content: "Sesiones"; }
+  .members-row > div:nth-child(5)::before { content: "Estado"; }
+  .members-row > div:nth-child(6)::before { content: "Acciones"; }
+
+  /* Transactions Table Responsive Grid to Cards */
+  .transactions-thead {
+    display: none !important;
+  }
+  .transactions-table-wrap {
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+  .transactions-row {
+    background: white !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 16px !important;
+  }
+  .transactions-row > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: right !important;
+    width: 100% !important;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .transactions-row > div:last-child {
+    border-bottom: none;
+  }
+  .transactions-row > div::before {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    text-align: left;
+  }
+  .transactions-row > div:nth-child(1)::before { content: "Miembro"; }
+  .transactions-row > div:nth-child(2)::before { content: "Referencia"; }
+  .transactions-row > div:nth-child(3)::before { content: "Tipo"; }
+  .transactions-row > div:nth-child(4)::before { content: "Monto"; }
+  .transactions-row > div:nth-child(5)::before { content: "Estado"; }
+  .transactions-row > div:nth-child(6)::before { content: "Fecha"; }
+
+  /* Coupons Table Responsive Grid to Cards */
+  .coupons-thead {
+    display: none !important;
+  }
+  .coupons-table-wrap {
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+  .coupons-row {
+    background: white !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 16px !important;
+  }
+  .coupons-row > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: right !important;
+    width: 100% !important;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .coupons-row > div:last-child {
+    border-bottom: none;
+  }
+  .coupons-row > div::before {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    text-align: left;
+  }
+  .coupons-row > div:nth-child(1)::before { content: "Cupón"; }
+  .coupons-row > div:nth-child(2)::before { content: "Código"; }
+  .coupons-row > div:nth-child(3)::before { content: "Beneficio"; }
+  .coupons-row > div:nth-child(4)::before { content: "Vigencia"; }
+  .coupons-row > div:nth-child(5)::before { content: "Usos / Límite"; }
+  .coupons-row > div:nth-child(6)::before { content: "Límite Cuenta"; }
+  .coupons-row > div:nth-child(7)::before { content: "Estado"; }
+  .coupons-row > div:nth-child(8)::before { content: "Acción"; }
+}
+
+@media (max-width: 480px) {
+  /* Counter rows on very small screens */
+  .settings-counters-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .settings-colon {
+    display: none !important;
+  }
+  
+  .stats-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes adm-slideUpMobile {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

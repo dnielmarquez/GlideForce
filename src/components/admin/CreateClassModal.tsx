@@ -374,7 +374,7 @@ export default function CreateClassModal({ initialDate, initialTime, onClose, on
                     <AdminIcon name="repeat" size={15} />
                     <span style={{ fontWeight: 700, fontSize: 13.5 }}>Resumen de recurrencia</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div className="form-row cols-2" style={{ gap: 10 }}>
                     {[
                       ['Días', form.selectedDays.map((d) => DAYS_OF_WEEK[d]).join(', ') || '—'],
                       ['Desde', form.startDate],
