@@ -131,7 +131,7 @@ export default function TransactionsPage() {
     return (
         <>
             {/* ── Stats period selector ───────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div className="transactions-stats-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Resumen:
                 </span>
@@ -175,7 +175,7 @@ export default function TransactionsPage() {
             </div>
 
             {/* ── Table header + filters ──────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div className="transactions-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
                 <div>
                     <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Transacciones</div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
@@ -183,7 +183,7 @@ export default function TransactionsPage() {
                     </div>
                 </div>
 
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="transactions-filter-group" style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     {/* Search */}
                     <div className="topbar-search" style={{ width: 240 }}>
                         <AdminIcon name="search" size={14} />
@@ -223,17 +223,12 @@ export default function TransactionsPage() {
             </div>
 
             {/* ── Table ──────────────────────────────────────────────────────── */}
-            <div style={{
+            <div className="transactions-table-wrap" style={{
                 background: 'white', borderRadius: 'var(--radius)',
                 border: '1.5px solid var(--border)', overflow: 'hidden',
             }}>
                 {/* Head */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1.6fr 1.2fr 1fr 1.1fr 1.1fr',
-                    padding: '11px 20px', background: 'var(--bg)',
-                    borderBottom: '1.5px solid var(--border)', gap: 12,
-                }}>
+                <div className="transactions-thead">
                     {['Miembro', 'Referencia Wompi', 'Tipo', 'Monto', 'Estado', 'Fecha'].map(h => (
                         <div key={h} style={{
                             fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
@@ -257,15 +252,7 @@ export default function TransactionsPage() {
                     return (
                         <div
                             key={r.id}
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: '2fr 1.6fr 1.2fr 1fr 1.1fr 1.1fr',
-                                padding: '14px 20px', gap: 12, alignItems: 'center',
-                                borderBottom: '1px solid var(--border)',
-                                transition: 'background 0.1s', cursor: 'default',
-                            }}
-                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg)'}
-                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'white'}
+                            className="transactions-row"
                         >
                             {/* Member */}
                             <div>
@@ -320,7 +307,7 @@ export default function TransactionsPage() {
                             </div>
 
                             {/* Date */}
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+                            <div className="transactions-date" style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                                 {formatDate(r.created_at)}
                                 {r.fulfilled_at && (
                                     <div style={{ fontSize: 10, color: '#065F46', fontWeight: 600, marginTop: 2 }}>

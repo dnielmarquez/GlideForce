@@ -1,10 +1,10 @@
 'use client';
 
+import { Fragment } from 'react';
 import type { GFClass } from '@/lib/admin/types';
 import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
 import { getClassesForDayHour, formatHour, formatClassTime } from '@/lib/admin/utils';
 import { useAdmin } from '@/lib/admin/AdminContext';
-
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am–8pm
 
@@ -45,8 +45,8 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
       {/* Time grid */}
       <div className="cal-body">
         {HOURS.map((hour) => (
-          <>
-            <div key={`time-${hour}`} className="cal-time-slot">{formatHour(hour)}</div>
+          <Fragment key={`hour-row-${hour}`}>
+            <div className="cal-time-slot">{formatHour(hour)}</div>
             {days.map((d, di) => {
               const dayClasses = getClassesForDayHour(classes, d, hour);
               return (
@@ -84,7 +84,7 @@ export default function WeeklyCalendar({ weekStart, classes, onCellClick, onEven
                 </div>
               );
             })}
-          </>
+          </Fragment>
         ))}
       </div>
     </div>

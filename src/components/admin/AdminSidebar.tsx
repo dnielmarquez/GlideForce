@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminIcon from './AdminIcon';
@@ -19,7 +20,11 @@ const NAV_MANAGE = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const { classes } = useAdmin();
+  const { classes, setSidebarOpen } = useAdmin();
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
@@ -31,10 +36,17 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">G</div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div className="sidebar-logo-text">GlideForce</div>
           <div className="sidebar-logo-sub">Panel Admin</div>
         </div>
+        <button 
+          className="sidebar-close-btn" 
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Cerrar menú"
+        >
+          <AdminIcon name="x" size={16} />
+        </button>
       </div>
 
       {/* Nav */}

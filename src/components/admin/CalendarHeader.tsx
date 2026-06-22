@@ -10,10 +10,12 @@ interface CalendarHeaderProps {
   onNext: () => void;
   onToday: () => void;
   onNewClass: () => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 export default function CalendarHeader({
-  label, calView, onChangeView, onPrev, onNext, onToday, onNewClass,
+  label, calView, onChangeView, onPrev, onNext, onToday, onNewClass, onRefresh, isRefreshing,
 }: CalendarHeaderProps) {
   return (
     <div className="cal-header">
@@ -23,6 +25,11 @@ export default function CalendarHeader({
       </button>
       <button className="cal-nav-btn" onClick={onNext} aria-label="Siguiente">
         <AdminIcon name="chevRight" size={14} />
+      </button>
+      <button className="cal-nav-btn" onClick={onRefresh} disabled={isRefreshing} aria-label="Actualizar" title="Actualizar calendario">
+        <span className={isRefreshing ? 'adm-spinner' : ''} style={{ display: 'inline-flex' }}>
+          <AdminIcon name="repeat" size={14} />
+        </span>
       </button>
       <button className="today-btn" onClick={onToday}>Hoy</button>
       <div className="cal-view-tabs">

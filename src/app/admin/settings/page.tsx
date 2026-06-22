@@ -96,7 +96,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="settings-card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div className="form-row cols-2" style={{ marginBottom: 14 }}>
               <div className="form-group">
                 <label className="form-label">Nombre del estudio</label>
                 <input className="form-input" value={cfg.studio_name} onChange={(e) => updateCfg('studio_name', e.target.value)} />
@@ -106,7 +106,7 @@ export default function SettingsPage() {
                 <input className="form-input" type="email" value={cfg.contact_email} onChange={(e) => updateCfg('contact_email', e.target.value)} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-row cols-2">
               <div className="form-group">
                 <label className="form-label">Moneda</label>
                 <div className="form-select-wrap">
@@ -155,7 +155,7 @@ export default function SettingsPage() {
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
                     Tiempo de anticipación: <span style={{ color: '#C4376D', fontWeight: 800 }}>{h}h {m}min</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
+                  <div className="settings-counters-row" style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
                     {/* Hours */}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Horas</div>
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                         onChange={(e) => updateCfg('cancel_time', parseInt(e.target.value) * 60 + m)}
                         style={{ width: '100%', accentColor: '#C4376D', cursor: 'pointer', marginTop: 10 }} />
                     </div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
+                    <div className="settings-colon" style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
                     {/* Minutes */}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Minutos</div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
               Tiempo máximo de confirmación: <span style={{ color: 'var(--orange)', fontWeight: 800 }}>{cfg.waitlist_hours}h {cfg.waitlist_minutes}min</span>
             </div>
-            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
+            <div className="settings-counters-row" style={{ display: 'flex', gap: 24, alignItems: 'flex-end' }}>
               {/* Hours */}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Horas</div>
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                   onChange={(e) => updateCfg('waitlist_hours', parseInt(e.target.value))}
                   style={{ width: '100%', accentColor: '#6D37C4', cursor: 'pointer', marginTop: 10 }} />
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
+              <div className="settings-colon" style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-light)', paddingBottom: 28 }}>:</div>
               {/* Minutes */}
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Minutos</div>
@@ -274,7 +274,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="settings-card-body">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+            <div className="settings-machines-row" style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Total de máquinas en el estudio</div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
