@@ -432,6 +432,34 @@
 .members-row:not(:last-child) { border-bottom: 1px solid var(--border); }
 .members-row:hover { background: var(--bg); }
 
+/* ─── Transactions table ─────────────────────────────────────────────────── */
+.transactions-table-wrap { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); overflow: hidden; }
+.transactions-thead {
+  display: grid; grid-template-columns: 2.2fr 2fr 1.6fr 1.2fr 1fr 1.8fr;
+  padding: 11px 20px; background: var(--bg); border-bottom: 1.5px solid var(--border); gap: 12px;
+}
+.transactions-row {
+  display: grid; grid-template-columns: 2.2fr 2fr 1.6fr 1.2fr 1fr 1.8fr;
+  padding: 14px 20px; gap: 12px; align-items: center;
+  transition: background 0.1s; cursor: default;
+}
+.transactions-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.transactions-row:hover { background: var(--bg); }
+
+/* ─── Coupons table ──────────────────────────────────────────────────────── */
+.coupons-table-wrap { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); overflow: hidden; }
+.coupons-thead {
+  display: grid; grid-template-columns: 2fr 1.2fr 1.5fr 2fr 1.2fr 1.5fr 1fr 60px;
+  padding: 11px 20px; background: var(--bg); border-bottom: 1.5px solid var(--border); gap: 12px;
+}
+.coupons-row {
+  display: grid; grid-template-columns: 2fr 1.2fr 1.5fr 2fr 1.2fr 1.5fr 1fr 60px;
+  padding: 14px 20px; gap: 12px; align-items: center;
+  transition: background 0.1s; cursor: default;
+}
+.coupons-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.coupons-row:hover { background: var(--bg); }
+
 /* ─── Settings card ──────────────────────────────────────────────────────── */
 .settings-card { background: white; border-radius: var(--radius); border: 1.5px solid var(--border); margin-bottom: 16px; overflow: hidden; }
 .settings-card-header {
