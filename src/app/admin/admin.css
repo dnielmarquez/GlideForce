@@ -586,12 +586,41 @@
   }
   
   /* Scrollable calendar view grids */
-  .cal-grid-wrap, .month-grid {
-    overflow-x: auto;
+  .cal-grid-wrap {
+    overflow: auto !important;
+    max-height: calc(100vh - 230px);
     -webkit-overflow-scrolling: touch;
   }
-  .cal-day-headers, .cal-body {
+  .cal-day-headers {
     min-width: 750px;
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    background: var(--white) !important;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .cal-day-headers > .cal-day-header:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 13;
+    background: var(--white) !important;
+  }
+  .cal-body {
+    min-width: 750px;
+    overflow-y: visible !important;
+    max-height: none !important;
+  }
+  .cal-time-slot {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: var(--white) !important;
+    border-right: 1.5px solid var(--border);
+  }
+  
+  .month-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .month-day-names, .month-cells {
     min-width: 750px;
