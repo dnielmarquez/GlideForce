@@ -279,7 +279,7 @@ export async function adminCancelClass(sessionId: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: bookings, error: bksErr } = await (adminSupabase as any)
             .from('bookings')
-            .select('id, member_id, stars_spent')
+            .select('id, member_id, stars_spent, payment_id')
             .eq('session_id', sessionId)
             .in('status', ['confirmed']);
         
@@ -301,14 +301,21 @@ export async function adminCancelClass(sessionId: string) {
             if (updErr) throw updErr;
 
             // 4. Refund stars for each booking
-            const transactions = bookings.filter((b: any) => b.stars_spent > 0).map((b: any) => ({
-                member_id: b.member_id,
-                amount: b.stars_spent,
-                type: 'admin_cancellation_refund',
-                reference_id: sessionId,
-                reference_type: 'session',
-                note: 'Reembolso por cancelación de clase por administrador'
-            }));
+            const transactions = bookings
+                .map((b: any) => {
+                    const refundAmount = b.stars_spent > 0 
+                        ? b.stars_spent 
+                        : (b.payment_id ? 1 : 0);
+                    return {
+                        member_id: b.member_id,
+                        amount: refundAmount,
+                        type: 'cancellation_refund',
+                        reference_id: sessionId,
+                        reference_type: 'session',
+                        note: 'Reembolso por cancelación de clase por administrador'
+                    };
+                })
+                .filter((tx: any) => tx.amount > 0);
 
             if (transactions.length > 0) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
