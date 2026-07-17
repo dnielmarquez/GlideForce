@@ -6,7 +6,7 @@ import { CLASS_COLORS, DAYS_OF_WEEK } from '@/lib/admin/constants';
 import { getClassesForDayHour, formatHour, formatClassTime } from '@/lib/admin/utils';
 import { useAdmin } from '@/lib/admin/AdminContext';
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 6).filter((h) => h < 13 || h >= 17); // 6am–8pm, excluding 1pm–5pm
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 6).filter((h) => h < 10 || h >= 17); // 6am-9am & 5pm-8pm (excludes 10am-4pm)
 
 interface WeeklyCalendarProps {
   weekStart: Date;

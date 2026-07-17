@@ -134,6 +134,41 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* ── Prices and Rates ───────────────────────────────────────── */}
+        <div className="settings-card">
+          <div className="settings-card-header">
+            <div className="settings-card-icon" style={{ background: '#E0F2FE', color: '#0369A1' }}>
+              <AdminIcon name="settings" size={16} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Precios y tarifas (COP)</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>Configura el valor de la sesión individual y estrellas en pesos colombianos</div>
+            </div>
+          </div>
+          <div className="settings-card-body">
+            <div className="form-row cols-2">
+              <div className="form-group">
+                <label className="form-label">Precio por clase individual (COP)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={cfg.class_price_cop ?? 0}
+                  onChange={(e) => updateCfg('class_price_cop', parseInt(e.target.value) || 0)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Precio por estrella/sesión (COP)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={cfg.star_price_cop ?? 0}
+                  onChange={(e) => updateCfg('star_price_cop', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── Cancellation policy ──────────────────────────────────────── */}
         <div className="settings-card">
           <div className="settings-card-header">
