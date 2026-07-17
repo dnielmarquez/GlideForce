@@ -65,7 +65,7 @@ export default function LoginPage() {
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">GlideForce</h1>
+                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">Glideforce</h1>
                 <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
                     Bienvenido de vuelta. Reserva tus clases y gestiona tu membresía en un solo lugar.
                 </p>
@@ -84,7 +84,7 @@ export default function LoginPage() {
                                 {resentEmail ? 'Verifica tu Cuenta' : 'Iniciar Sesión'}
                             </h2>
                             <p className="text-on-surface-variant font-medium mt-2">
-                                {resentEmail ? 'Confirma tu dirección de correo' : 'Bienvenido de vuelta a GlideForce'}
+                                {resentEmail ? 'Confirma tu dirección de correo' : 'Bienvenido de vuelta a Glideforce'}
                             </p>
                         </div>
 

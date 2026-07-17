@@ -36,6 +36,19 @@ export async function processBooking(
         return { error: 'Debes iniciar sesión para reservar.' };
     }
 
+    // Check if the user already has a confirmed booking in any of the requested sessions
+    // to enforce a single booking per member for standard member checkouts
+    const { data: existingBookings } = await (supabase as any)
+        .from('bookings')
+        .select('session_id')
+        .in('session_id', sessionIds)
+        .eq('member_id', user.id)
+        .in('status', ['confirmed']);
+
+    if (existingBookings && existingBookings.length > 0) {
+        return { error: 'Ya tienes una reserva confirmada en una de las clases seleccionadas.' };
+    }
+
     try {
         // 2. Fetch session details securely to prevent client spoofing 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,7 +123,7 @@ export async function processBooking(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: bookingErr } = await (adminSupabase as any)
             .from('bookings')
-            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+            .insert(bookingsToInsert);
         
         if (bookingErr) throw bookingErr;
 
@@ -388,7 +401,7 @@ export async function fulfillBookingFromWebhook(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: bookingErr } = await (adminSupabase as any)
         .from('bookings')
-        .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+        .insert(bookingsToInsert);
 
     if (bookingErr) {
         console.error('[fulfillBookingFromWebhook] Failed to insert bookings:', bookingErr);
@@ -600,12 +613,6 @@ export async function adminBookSpots(
         const bookingsToInsert = [];
 
         for (const sid of sessionIdsToBook) {
-            // If the user already has a booking in this session, skip it
-            const userAlreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
-            if (userAlreadyBooked) {
-                continue;
-            }
-
             // If the machine is already occupied in this session, skip it
             const machineOccupied = bookingsList.some((b: any) => b.session_id === sid && b.machine_id === machineId);
             if (machineOccupied) {
@@ -662,7 +669,7 @@ export async function adminBookSpots(
         const adminSupabase = createAdminClient();
         const { error: insertErr } = await (adminSupabase as any)
             .from('bookings')
-            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+            .insert(bookingsToInsert);
 
         if (insertErr) throw insertErr;
 

@@ -18,10 +18,10 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
   const fromEmail = process.env.GMAIL_EMAIL || 'glideandlift@gmail.com';
-  
+
   try {
     const mailOptions = {
-      from: `"GlideForce" <${fromEmail}>`,
+      from: `"Glideforce" <${fromEmail}>`,
       to,
       subject,
       html,
@@ -45,7 +45,7 @@ function formatEmailTime(timeStr: string): string {
   const hour = parseInt(parts[0], 10);
   const min = parseInt(parts[1], 10);
   if (isNaN(hour) || isNaN(min)) return timeStr;
-  
+
   const ampm = hour >= 12 ? 'pm' : 'am';
   let displayHour = hour % 12;
   if (displayHour === 0) displayHour = 12;
@@ -146,7 +146,7 @@ export async function sendBookingEmails(
     const userHtml = `
       <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #ea7034; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce</h1>
+          <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">Glideforce</h1>
           <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Reserva Confirmada</p>
         </div>
         <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
@@ -164,16 +164,16 @@ export async function sendBookingEmails(
         
         <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
         <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
-          GlideForce — Studio de Fitness. Todos los derechos reservados.
+          Glideforce — Studio de Fitness. Todos los derechos reservados.
         </p>
       </div>
     `;
 
     await sendEmail({
       to: profile.email,
-      subject: `Reserva Confirmada · GlideForce`,
+      subject: `Reserva Confirmada · Glideforce`,
       html: userHtml,
-      text: `Hola ${profile.full_name}, tu reserva ha sido confirmada para ${sessions.map((s: any)=>s.title).join(', ')}.`,
+      text: `Hola ${profile.full_name}, tu reserva ha sido confirmada para ${sessions.map((s: any) => s.title).join(', ')}.`,
     });
 
     // F. Optionally Send Notification to Admin (only if triggered by user)
@@ -181,7 +181,7 @@ export async function sendBookingEmails(
       const adminHtml = `
         <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #ea7034; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce Admin</h1>
+            <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">Glideforce Admin</h1>
             <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Nueva Reserva Realizada</p>
           </div>
           <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
@@ -195,7 +195,7 @@ export async function sendBookingEmails(
           
           <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
           <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
-            Notificación automática de GlideForce Admin.
+            Notificación automática de Glideforce Admin.
           </p>
         </div>
       `;
@@ -204,7 +204,7 @@ export async function sendBookingEmails(
         to: adminEmail,
         subject: `🚨 Nueva Reserva · ${profile.full_name}`,
         html: adminHtml,
-        text: `El usuario ${profile.full_name} (${profile.email}) ha reservado clases: ${sessions.map((s: any)=>s.title).join(', ')}.`,
+        text: `El usuario ${profile.full_name} (${profile.email}) ha reservado clases: ${sessions.map((s: any) => s.title).join(', ')}.`,
       });
     }
 
@@ -234,7 +234,7 @@ export async function sendRegistrationNotificationToAdmin(userData: {
   const adminHtml = `
     <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #ea7034; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce Admin</h1>
+        <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">Glideforce Admin</h1>
         <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Nuevo Registro de Usuario</p>
       </div>
       <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
@@ -271,7 +271,7 @@ export async function sendRegistrationNotificationToAdmin(userData: {
       
       <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
       <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
-        Notificación automática de GlideForce Admin.
+        Notificación automática de Glideforce Admin.
       </p>
     </div>
   `;
@@ -328,7 +328,7 @@ export async function sendCancellationNotificationToAdmin(
     const adminHtml = `
       <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #dc2626; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #dc2626; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce Admin</h1>
+          <h1 style="color: #dc2626; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">Glideforce Admin</h1>
           <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Reserva Cancelada por Usuario</p>
         </div>
         <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
@@ -362,7 +362,7 @@ export async function sendCancellationNotificationToAdmin(
         
         <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
         <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
-          Notificación automática de GlideForce Admin.
+          Notificación automática de Glideforce Admin.
         </p>
       </div>
     `;
@@ -406,7 +406,7 @@ export async function sendClassReminderEmail(
     const reminderHtml = `
       <div style="font-family: sans-serif; max-width: 600px; padding: 30px; border: 1px solid #ea7034; border-radius: 20px; background-color: #ffffff; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">GlideForce</h1>
+          <h1 style="color: #ea7034; margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.5px;">Glideforce</h1>
           <p style="color: #666; margin: 4px 0 0 0; font-size: 14px; font-weight: 600;">Recordatorio de Clase</p>
         </div>
         <div style="height: 1px; background-color: #f0f0f0; margin-bottom: 24px;"></div>
@@ -444,14 +444,14 @@ export async function sendClassReminderEmail(
         
         <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>
         <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
-          GlideForce — Studio de Fitness. Todos los derechos reservados.
+          Glideforce — Studio de Fitness. Todos los derechos reservados.
         </p>
       </div>
     `;
 
     await sendEmail({
       to: profile.email,
-      subject: `⏰ Recordatorio de Clase: ${session.title} · GlideForce`,
+      subject: `⏰ Recordatorio de Clase: ${session.title} · Glideforce`,
       html: reminderHtml,
       text: `Hola ${profile.full_name}, recuerda tu clase de ${session.title} hoy a las ${formattedTime}.`,
     });

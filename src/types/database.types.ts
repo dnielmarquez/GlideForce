@@ -1,5 +1,5 @@
 /**
- * GlideForce — Database Types
+ * Glideforce — Database Types
  *
  * Mirrors the Supabase schema 1:1.
  * Row   = what SELECT returns
@@ -11,18 +11,18 @@
 
 // ─── Scalar union types (from CHECK constraints) ──────────────────────────────
 
-export type UserRole            = 'member' | 'admin' | 'instructor'
-export type ProfileStatus       = 'active' | 'inactive'
-export type ClassColor          = 'orange' | 'teal' | 'purple' | 'blue' | 'rose'
-export type SessionStatus       = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-export type BookingStatus       = 'confirmed' | 'cancelled' | 'completed' | 'no_show'
-export type CancellationReason  = 'member' | 'admin' | 'session_cancelled'
-export type WaitlistStatus      = 'waiting' | 'offered' | 'confirmed' | 'expired' | 'cancelled'
+export type UserRole = 'member' | 'admin' | 'instructor'
+export type ProfileStatus = 'active' | 'inactive'
+export type ClassColor = 'orange' | 'teal' | 'purple' | 'blue' | 'rose'
+export type SessionStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+export type BookingStatus = 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+export type CancellationReason = 'member' | 'admin' | 'session_cancelled'
+export type WaitlistStatus = 'waiting' | 'offered' | 'confirmed' | 'expired' | 'cancelled'
 export type StarTransactionType = 'star_purchase' | 'booking_charged' | 'cancellation_refund' | 'admin_adjustment' | 'welcome_bonus'
-export type StarReferenceType   = 'booking' | 'session' | 'manual'
-export type WaitlistMinutes     = 0 | 15 | 30 | 45
-export type PaymentPurpose      = 'star_purchase' | 'class_booking'
-export type PaymentStatus       = 'pending' | 'approved' | 'declined' | 'voided' | 'error' | 'expired'
+export type StarReferenceType = 'booking' | 'session' | 'manual'
+export type WaitlistMinutes = 0 | 15 | 30 | 45
+export type PaymentPurpose = 'star_purchase' | 'class_booking'
+export type PaymentStatus = 'pending' | 'approved' | 'declined' | 'voided' | 'error' | 'expired'
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 
@@ -33,396 +33,396 @@ export type Database = {
       // ── profiles ────────────────────────────────────────────────
       profiles: {
         Row: {
-          id:             string          // uuid — equals auth.users.id
-          full_name:      string
-          email:          string | null
-          phone:          string | null
-          role:           UserRole
-          stars_balance:  number
-          status:         ProfileStatus
-          avatar_url:     string | null
-          created_at:     string          // timestamptz as ISO string
-          updated_at:     string
+          id: string          // uuid — equals auth.users.id
+          full_name: string
+          email: string | null
+          phone: string | null
+          role: UserRole
+          stars_balance: number
+          status: ProfileStatus
+          avatar_url: string | null
+          created_at: string          // timestamptz as ISO string
+          updated_at: string
         }
         Insert: {
-          id:             string          // required — must match auth.users.id
-          full_name:      string
-          email?:         string | null
-          phone?:         string | null
-          role?:          UserRole        // default: 'member'
+          id: string          // required — must match auth.users.id
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          role?: UserRole        // default: 'member'
           stars_balance?: number          // default: 0
-          status?:        ProfileStatus   // default: 'active'
-          avatar_url?:    string | null
-          created_at?:    string
-          updated_at?:    string
+          status?: ProfileStatus   // default: 'active'
+          avatar_url?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          id?:            string
-          full_name?:     string
-          email?:         string | null
-          phone?:         string | null
-          role?:          UserRole
+          id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          role?: UserRole
           stars_balance?: number
-          status?:        ProfileStatus
-          avatar_url?:    string | null
-          updated_at?:    string
+          status?: ProfileStatus
+          avatar_url?: string | null
+          updated_at?: string
         }
       }
 
       // ── instructors ─────────────────────────────────────────────
       instructors: {
         Row: {
-          id:          string
-          profile_id:  string | null      // nullable — instructor may not have an account
-          name:        string
-          specialty:   string | null
-          initials:    string
-          color:       string             // hex color
-          bio:         string | null
-          photo_url:   string | null
-          active:      boolean
-          created_at:  string
+          id: string
+          profile_id: string | null      // nullable — instructor may not have an account
+          name: string
+          specialty: string | null
+          initials: string
+          color: string             // hex color
+          bio: string | null
+          photo_url: string | null
+          active: boolean
+          created_at: string
         }
         Insert: {
-          id?:         string
+          id?: string
           profile_id?: string | null
-          name:        string
-          specialty?:  string | null
-          initials:    string
-          color:       string
-          bio?:        string | null
-          photo_url?:  string | null
-          active?:     boolean            // default: true
+          name: string
+          specialty?: string | null
+          initials: string
+          color: string
+          bio?: string | null
+          photo_url?: string | null
+          active?: boolean            // default: true
           created_at?: string
         }
         Update: {
-          id?:         string
+          id?: string
           profile_id?: string | null
-          name?:       string
-          specialty?:  string | null
-          initials?:   string
-          color?:      string
-          bio?:        string | null
-          photo_url?:  string | null
-          active?:     boolean
+          name?: string
+          specialty?: string | null
+          initials?: string
+          color?: string
+          bio?: string | null
+          photo_url?: string | null
+          active?: boolean
         }
       }
 
       // ── class_templates ─────────────────────────────────────────
       class_templates: {
         Row: {
-          id:               string
-          title:            string
-          description:      string | null
-          instructor_id:    string
+          id: string
+          title: string
+          description: string | null
+          instructor_id: string
           duration_minutes: number
-          capacity:         number
-          stars_cost:       number
-          color:            ClassColor
-          active:           boolean
-          created_by:       string | null
-          created_at:       string
+          capacity: number
+          stars_cost: number
+          color: ClassColor
+          active: boolean
+          created_by: string | null
+          created_at: string
         }
         Insert: {
-          id?:              string
-          title:            string
-          description?:     string | null
-          instructor_id:    string
+          id?: string
+          title: string
+          description?: string | null
+          instructor_id: string
           duration_minutes: number
-          capacity:         number
-          stars_cost?:      number        // default: 1
-          color?:           ClassColor    // default: 'orange'
-          active?:          boolean       // default: true
-          created_by?:      string | null
-          created_at?:      string
+          capacity: number
+          stars_cost?: number        // default: 1
+          color?: ClassColor    // default: 'orange'
+          active?: boolean       // default: true
+          created_by?: string | null
+          created_at?: string
         }
         Update: {
-          id?:              string
-          title?:           string
-          description?:     string | null
-          instructor_id?:   string
-          duration_minutes?:number
-          capacity?:        number
-          stars_cost?:      number
-          color?:           ClassColor
-          active?:          boolean
-          created_by?:      string | null
+          id?: string
+          title?: string
+          description?: string | null
+          instructor_id?: string
+          duration_minutes?: number
+          capacity?: number
+          stars_cost?: number
+          color?: ClassColor
+          active?: boolean
+          created_by?: string | null
         }
       }
 
       // ── class_recurrences ────────────────────────────────────────
       class_recurrences: {
         Row: {
-          id:               string
-          template_id:      string | null
-          start_date:       string        // ISO date: YYYY-MM-DD
-          end_date:         string
-          selected_days:    number[]      // 0..6 (Sun..Sat)
+          id: string
+          template_id: string | null
+          start_date: string        // ISO date: YYYY-MM-DD
+          end_date: string
+          selected_days: number[]      // 0..6 (Sun..Sat)
           exclude_holidays: boolean
           sessions_created: number
-          created_by:       string | null
-          created_at:       string
+          created_by: string | null
+          created_at: string
         }
         Insert: {
-          id?:              string
-          template_id?:     string | null
-          start_date:       string
-          end_date:         string
-          selected_days:    number[]
-          exclude_holidays?:boolean       // default: true
-          sessions_created?:number        // default: 0
-          created_by?:      string | null
-          created_at?:      string
+          id?: string
+          template_id?: string | null
+          start_date: string
+          end_date: string
+          selected_days: number[]
+          exclude_holidays?: boolean       // default: true
+          sessions_created?: number        // default: 0
+          created_by?: string | null
+          created_at?: string
         }
         Update: {
-          template_id?:     string | null
-          start_date?:      string
-          end_date?:        string
-          selected_days?:   number[]
-          exclude_holidays?:boolean
-          sessions_created?:number
+          template_id?: string | null
+          start_date?: string
+          end_date?: string
+          selected_days?: number[]
+          exclude_holidays?: boolean
+          sessions_created?: number
         }
       }
 
       // ── class_sessions ───────────────────────────────────────────
       class_sessions: {
         Row: {
-          id:                  string
-          template_id:         string | null
-          recurrence_id:       string | null
-          title:               string
-          description:         string | null
-          instructor_id:       string
-          date:                string      // ISO date: YYYY-MM-DD
-          start_time:          string      // HH:MM:SS
-          duration_minutes:    number
-          capacity:            number
-          stars_cost:          number
-          color:               ClassColor
-          status:              SessionStatus
-          cancelled_at:        string | null
+          id: string
+          template_id: string | null
+          recurrence_id: string | null
+          title: string
+          description: string | null
+          instructor_id: string
+          date: string      // ISO date: YYYY-MM-DD
+          start_time: string      // HH:MM:SS
+          duration_minutes: number
+          capacity: number
+          stars_cost: number
+          color: ClassColor
+          status: SessionStatus
+          cancelled_at: string | null
           cancellation_reason: string | null
-          created_by:          string | null
-          created_at:          string
+          created_by: string | null
+          created_at: string
         }
         Insert: {
-          id?:                 string
-          template_id?:        string | null
-          recurrence_id?:      string | null
-          title:               string
-          description?:        string | null
-          instructor_id:       string
-          date:                string
-          start_time:          string
-          duration_minutes:    number
-          capacity:            number
-          stars_cost?:         number      // default: 1
-          color?:              ClassColor  // default: 'orange'
-          status?:             SessionStatus // default: 'scheduled'
-          cancelled_at?:       string | null
-          cancellation_reason?:string | null
-          created_by?:         string | null
-          created_at?:         string
+          id?: string
+          template_id?: string | null
+          recurrence_id?: string | null
+          title: string
+          description?: string | null
+          instructor_id: string
+          date: string
+          start_time: string
+          duration_minutes: number
+          capacity: number
+          stars_cost?: number      // default: 1
+          color?: ClassColor  // default: 'orange'
+          status?: SessionStatus // default: 'scheduled'
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          created_by?: string | null
+          created_at?: string
         }
         Update: {
-          template_id?:        string | null
-          recurrence_id?:      string | null
-          title?:              string
-          description?:        string | null
-          instructor_id?:      string
-          date?:               string
-          start_time?:         string
-          duration_minutes?:   number
-          capacity?:           number
-          stars_cost?:         number
-          color?:              ClassColor
-          status?:             SessionStatus
-          cancelled_at?:       string | null
-          cancellation_reason?:string | null
+          template_id?: string | null
+          recurrence_id?: string | null
+          title?: string
+          description?: string | null
+          instructor_id?: string
+          date?: string
+          start_time?: string
+          duration_minutes?: number
+          capacity?: number
+          stars_cost?: number
+          color?: ClassColor
+          status?: SessionStatus
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
         }
       }
 
       // ── machines ─────────────────────────────────────────────────
       machines: {
         Row: {
-          id:         string
-          label:      string              // e.g. 'M-01'
-          number:     number
-          active:     boolean
+          id: string
+          label: string              // e.g. 'M-01'
+          number: number
+          active: boolean
           created_at: string
         }
         Insert: {
-          id?:        string
-          label:      string
-          number:     number
-          active?:    boolean             // default: true
-          created_at?:string
+          id?: string
+          label: string
+          number: number
+          active?: boolean             // default: true
+          created_at?: string
         }
         Update: {
-          label?:     string
-          number?:    number
-          active?:    boolean
+          label?: string
+          number?: number
+          active?: boolean
         }
       }
 
       // ── bookings ─────────────────────────────────────────────────
       bookings: {
         Row: {
-          id:                  string
-          session_id:          string
-          member_id:           string
-          machine_id:          string | null
-          status:              BookingStatus
-          stars_spent:         number
-          star_refunded:       boolean
-          payment_id:          string | null   // FK → payments.id (for Wompi bookings)
-          cancelled_at:        string | null
+          id: string
+          session_id: string
+          member_id: string
+          machine_id: string | null
+          status: BookingStatus
+          stars_spent: number
+          star_refunded: boolean
+          payment_id: string | null   // FK → payments.id (for Wompi bookings)
+          cancelled_at: string | null
           cancellation_reason: CancellationReason | null
-          notes:               string | null
-          created_at:          string
+          notes: string | null
+          created_at: string
         }
         Insert: {
-          id?:                 string
-          session_id:          string
-          member_id:           string
-          machine_id?:         string | null
-          status?:             BookingStatus       // default: 'confirmed'
-          stars_spent?:        number              // default: 0; 0 for COP payments, >= 0 for star payments
-          star_refunded?:      boolean             // default: false
-          payment_id?:         string | null
-          cancelled_at?:       string | null
-          cancellation_reason?:CancellationReason | null
-          notes?:              string | null
-          created_at?:         string
+          id?: string
+          session_id: string
+          member_id: string
+          machine_id?: string | null
+          status?: BookingStatus       // default: 'confirmed'
+          stars_spent?: number              // default: 0; 0 for COP payments, >= 0 for star payments
+          star_refunded?: boolean             // default: false
+          payment_id?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: CancellationReason | null
+          notes?: string | null
+          created_at?: string
         }
         Update: {
-          machine_id?:         string | null
-          status?:             BookingStatus
-          stars_spent?:        number
-          star_refunded?:      boolean
-          cancelled_at?:       string | null
-          cancellation_reason?:CancellationReason | null
-          notes?:              string | null
+          machine_id?: string | null
+          status?: BookingStatus
+          stars_spent?: number
+          star_refunded?: boolean
+          cancelled_at?: string | null
+          cancellation_reason?: CancellationReason | null
+          notes?: string | null
         }
       }
 
       // ── waitlist_entries ─────────────────────────────────────────
       waitlist_entries: {
         Row: {
-          id:         string
+          id: string
           session_id: string
-          member_id:  string
-          position:   number
-          status:     WaitlistStatus
+          member_id: string
+          position: number
+          status: WaitlistStatus
           offered_at: string | null
           expires_at: string | null
           created_at: string
         }
         Insert: {
-          id?:        string
+          id?: string
           session_id: string
-          member_id:  string
-          position:   number
-          status?:    WaitlistStatus  // default: 'waiting'
-          offered_at?:string | null
-          expires_at?:string | null
-          created_at?:string
+          member_id: string
+          position: number
+          status?: WaitlistStatus  // default: 'waiting'
+          offered_at?: string | null
+          expires_at?: string | null
+          created_at?: string
         }
         Update: {
-          position?:  number
-          status?:    WaitlistStatus
-          offered_at?:string | null
-          expires_at?:string | null
+          position?: number
+          status?: WaitlistStatus
+          offered_at?: string | null
+          expires_at?: string | null
         }
       }
 
       // ── star_transactions ────────────────────────────────────────
       star_transactions: {
         Row: {
-          id:             string
-          member_id:      string
-          amount:         number          // positive = credit, negative = debit
-          type:           StarTransactionType
-          payment_id:     string | null   // FK → payments.id (for Wompi purchases)
-          reference_id:   string | null   // bookings.id or class_sessions.id
+          id: string
+          member_id: string
+          amount: number          // positive = credit, negative = debit
+          type: StarTransactionType
+          payment_id: string | null   // FK → payments.id (for Wompi purchases)
+          reference_id: string | null   // bookings.id or class_sessions.id
           reference_type: StarReferenceType | null
-          note:           string | null
-          created_by:     string | null
-          created_at:     string
+          note: string | null
+          created_by: string | null
+          created_at: string
         }
         Insert: {
-          id?:            string
-          member_id:      string
-          amount:         number
-          type:           StarTransactionType
-          payment_id?:    string | null
-          reference_id?:  string | null
-          reference_type?:StarReferenceType | null
-          note?:          string | null
-          created_by?:    string | null
-          created_at?:    string
+          id?: string
+          member_id: string
+          amount: number
+          type: StarTransactionType
+          payment_id?: string | null
+          reference_id?: string | null
+          reference_type?: StarReferenceType | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
         }
         Update: {
-          note?:          string | null   // only note is ever updated
+          note?: string | null   // only note is ever updated
         }
       }
 
       // ── settings ─────────────────────────────────────────────────
       settings: {
         Row: {
-          id:               number       // always 1
-          cancel_time:      number       // in minutes
-          waitlist_hours:   number
+          id: number       // always 1
+          cancel_time: number       // in minutes
+          waitlist_hours: number
           waitlist_minutes: WaitlistMinutes
-          machines_count:   number
-          studio_name:      string
-          contact_email:    string
-          currency:         string
-          timezone:         string
-          booking_open:     boolean
+          machines_count: number
+          studio_name: string
+          contact_email: string
+          currency: string
+          timezone: string
+          booking_open: boolean
           waitlist_enabled: boolean
-          notify_email:     boolean
-          notify_push:      boolean
-          updated_at:       string
-          updated_by:       string | null
-          star_price_cop:   number
-          class_price_cop:  number
+          notify_email: boolean
+          notify_push: boolean
+          updated_at: string
+          updated_by: string | null
+          star_price_cop: number
+          class_price_cop: number
         }
         Insert: {
-          id?:              number
-          cancel_time?:     number
-          waitlist_hours?:  number
-          waitlist_minutes?:WaitlistMinutes
-          machines_count?:  number
-          studio_name?:     string
-          contact_email?:   string
-          currency?:        string
-          timezone?:        string
-          booking_open?:    boolean
-          waitlist_enabled?:boolean
-          notify_email?:    boolean
-          notify_push?:     boolean
-          updated_at?:      string
-          updated_by?:      string | null
-          star_price_cop?:  number
+          id?: number
+          cancel_time?: number
+          waitlist_hours?: number
+          waitlist_minutes?: WaitlistMinutes
+          machines_count?: number
+          studio_name?: string
+          contact_email?: string
+          currency?: string
+          timezone?: string
+          booking_open?: boolean
+          waitlist_enabled?: boolean
+          notify_email?: boolean
+          notify_push?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          star_price_cop?: number
           class_price_cop?: number
         }
         Update: {
-          cancel_time?:     number
-          waitlist_hours?:  number
-          waitlist_minutes?:WaitlistMinutes
-          machines_count?:  number
-          studio_name?:     string
-          contact_email?:   string
-          currency?:        string
-          timezone?:        string
-          booking_open?:    boolean
-          waitlist_enabled?:boolean
-          notify_email?:    boolean
-          notify_push?:     boolean
-          updated_at?:      string
-          updated_by?:      string | null
-          star_price_cop?:  number
+          cancel_time?: number
+          waitlist_hours?: number
+          waitlist_minutes?: WaitlistMinutes
+          machines_count?: number
+          studio_name?: string
+          contact_email?: string
+          currency?: string
+          timezone?: string
+          booking_open?: boolean
+          waitlist_enabled?: boolean
+          notify_email?: boolean
+          notify_push?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          star_price_cop?: number
           class_price_cop?: number
         }
       }
@@ -430,48 +430,48 @@ export type Database = {
       // ── payments ─────────────────────────────────────────────────
       payments: {
         Row: {
-          id:                   string
-          member_id:            string
-          wompi_reference:      string
+          id: string
+          member_id: string
+          wompi_reference: string
           wompi_transaction_id: string | null
-          purpose:              PaymentPurpose
-          status:               PaymentStatus
-          stars_to_credit:      number | null
-          session_id:           string | null
-          machine_id:           string | null
-          amount_in_cents:      number
-          currency:             string
-          wompi_payload:        unknown | null
-          created_at:           string
-          fulfilled_at:         string | null
+          purpose: PaymentPurpose
+          status: PaymentStatus
+          stars_to_credit: number | null
+          session_id: string | null
+          machine_id: string | null
+          amount_in_cents: number
+          currency: string
+          wompi_payload: unknown | null
+          created_at: string
+          fulfilled_at: string | null
         }
         Insert: {
-          id?:                   string
-          member_id:             string
-          wompi_reference:       string
+          id?: string
+          member_id: string
+          wompi_reference: string
           wompi_transaction_id?: string | null
-          purpose:               PaymentPurpose
-          status?:               PaymentStatus
-          stars_to_credit?:      number | null
-          session_id?:           string | null
-          machine_id?:           string | null
-          amount_in_cents:       number
-          currency?:             string
-          wompi_payload?:        unknown | null
-          created_at?:           string
-          fulfilled_at?:         string | null
+          purpose: PaymentPurpose
+          status?: PaymentStatus
+          stars_to_credit?: number | null
+          session_id?: string | null
+          machine_id?: string | null
+          amount_in_cents: number
+          currency?: string
+          wompi_payload?: unknown | null
+          created_at?: string
+          fulfilled_at?: string | null
         }
         Update: {
           wompi_transaction_id?: string | null
-          status?:               PaymentStatus
-          wompi_payload?:        unknown | null
-          fulfilled_at?:         string | null
+          status?: PaymentStatus
+          wompi_payload?: unknown | null
+          fulfilled_at?: string | null
         }
       }
     }
 
     Functions: { [_ in never]: never }
-    Enums:     { [_ in never]: never }
+    Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
     Views: { [_ in never]: never }
   }

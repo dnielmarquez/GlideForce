@@ -167,7 +167,6 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       let queryBuilder = supabase
         .from('profiles')
         .select('id, full_name, email, stars_balance')
-        .eq('role', 'member')
         .eq('status', 'active');
         
       if (searchQuery.trim()) {

@@ -5,12 +5,12 @@ import AdminIcon from './AdminIcon';
 import { useAdmin } from '@/lib/admin/AdminContext';
 
 const BREADCRUMB_MAP: Record<string, string> = {
-  '/admin':             'Dashboard',
-  '/admin/members':     'Miembros',
-  '/admin/settings':    'Configuración',
+  '/admin': 'Dashboard',
+  '/admin/members': 'Miembros',
+  '/admin/settings': 'Configuración',
   '/admin/instructors': 'Entrenadoras',
   '/admin/transactions': 'Transacciones',
-  '/admin/coupons':     'Descuentos',
+  '/admin/coupons': 'Descuentos',
 };
 
 export default function AdminTopbar() {
@@ -20,8 +20,8 @@ export default function AdminTopbar() {
 
   return (
     <header className="topbar">
-      <button 
-        className="topbar-menu-btn" 
+      <button
+        className="topbar-menu-btn"
         onClick={() => setSidebarOpen(true)}
         aria-label="Abrir menú"
       >
@@ -32,7 +32,7 @@ export default function AdminTopbar() {
         </svg>
       </button>
       <div className="topbar-breadcrumb">
-        GlideForce &rsaquo; <span>{section}</span>
+        Glideforce &rsaquo; <span>{section}</span>
       </div>
       <div className="topbar-spacer" />
       <div className="topbar-search">

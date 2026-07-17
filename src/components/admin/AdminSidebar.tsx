@@ -11,11 +11,11 @@ const NAV_MAIN = [
 ];
 
 const NAV_MANAGE = [
-  { id: 'instructors',   label: 'Entrenadoras',      icon: 'users'    as const, href: '/admin/instructors' },
-  { id: 'members',       label: 'Miembros',        icon: 'star'     as const, href: '/admin/members' },
-  { id: 'transactions',  label: 'Transacciones',   icon: 'receipt'  as const, href: '/admin/transactions' },
-  { id: 'coupons',       label: 'Descuentos',      icon: 'ticket'   as const, href: '/admin/coupons' },
-  { id: 'settings',      label: 'Configuración',   icon: 'settings' as const, href: '/admin/settings' },
+  { id: 'instructors', label: 'Entrenadoras', icon: 'users' as const, href: '/admin/instructors' },
+  { id: 'members', label: 'Miembros', icon: 'star' as const, href: '/admin/members' },
+  { id: 'transactions', label: 'Transacciones', icon: 'receipt' as const, href: '/admin/transactions' },
+  { id: 'coupons', label: 'Descuentos', icon: 'ticket' as const, href: '/admin/coupons' },
+  { id: 'settings', label: 'Configuración', icon: 'settings' as const, href: '/admin/settings' },
 ];
 
 export default function AdminSidebar() {
@@ -37,11 +37,11 @@ export default function AdminSidebar() {
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">G</div>
         <div style={{ flex: 1 }}>
-          <div className="sidebar-logo-text">GlideForce</div>
+          <div className="sidebar-logo-text">Glideforce</div>
           <div className="sidebar-logo-sub">Panel Admin</div>
         </div>
-        <button 
-          className="sidebar-close-btn" 
+        <button
+          className="sidebar-close-btn"
           onClick={() => setSidebarOpen(false)}
           aria-label="Cerrar menú"
         >

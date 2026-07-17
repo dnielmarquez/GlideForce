@@ -3,14 +3,14 @@ interface LogoHeaderProps {
     subtitle?: string;
 }
 
-export default function LogoHeader({ title = "GlideForce", subtitle = "Eleva tu rendimiento" }: LogoHeaderProps) {
+export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu rendimiento" }: LogoHeaderProps) {
     return (
         <header className="bg-white pt-16 pb-12 flex flex-col items-center">
             <div className="mb-6 flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                    alt="GlideForce Logo" 
-                    className="h-20 w-auto object-contain" 
+                <img
+                    alt="Glideforce Logo"
+                    className="h-20 w-auto object-contain"
                     src="https://glideforcefitness.com/cdn/shop/files/LOGO_GLIDE_AND_LIFT.jpg?v=1763609873&width=120"
                 />
             </div>
