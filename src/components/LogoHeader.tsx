@@ -11,7 +11,7 @@ export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu 
                 <img
                     alt="Glideforce Logo"
                     className="h-20 w-auto object-contain"
-                    src="https://glideforcefitness.com/cdn/shop/files/LOGO_GLIDE_AND_LIFT.jpg?v=1763609873&width=120"
+                    src="/logoFixed.jpeg"
                 />
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-on-surface">{title}</h1>
