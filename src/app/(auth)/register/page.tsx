@@ -123,9 +123,14 @@ export default function RegisterPage() {
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">Glideforce</h1>
+                <h1 className="text-5xl text-center font-black mb-6  relative z-10 tracking-tighter">Glideforce Pilates Studio</h1>
                 <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
-                    Crea tu cuenta y comienza a reservar tus clases hoy mismo.
+                    CREA TU CUENTA
+                </p> <p className="mt-[10px] text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
+                    Usa el código BIENVENIDA2X1
+                </p>
+                <p className="mt-[10px] text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
+                    Compra tu primera clase y obten la 2da FREE!
                 </p>
             </div>
 
@@ -138,8 +143,8 @@ export default function RegisterPage() {
                     <div className="w-full max-w-md mx-auto space-y-8 mt-8 md:mt-0">
                         {/* Title for desktop only */}
                         <div className="hidden md:block text-center mb-8">
-                            <h2 className="text-3xl font-black text-on-surface">Registrarse</h2>
-                            <p className="text-on-surface-variant font-medium mt-2">Crea tu cuenta en Glideforce</p>
+                            <h2 className="text-3xl font-black text-on-surface">REGISTRO PROMO </h2>
+                            <p className="text-on-surface-variant font-medium mt-2">Usa el código BIENVENIDA2X1 al comprar tu primera clase</p>
                         </div>
 
                         <section className="bg-white p-8 rounded-2xl ios-shadow space-y-5 border border-surface-container">

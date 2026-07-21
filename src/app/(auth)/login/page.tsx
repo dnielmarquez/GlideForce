@@ -65,7 +65,7 @@ export default function LoginPage() {
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">Glideforce</h1>
+                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10 text-center">Glideforce Pilates Studio</h1>
                 <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
                     Bienvenido de vuelta. Reserva tus clases y gestiona tu membresía en un solo lugar.
                 </p>
