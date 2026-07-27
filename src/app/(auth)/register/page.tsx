@@ -158,10 +158,19 @@ export default function RegisterPage() {
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <h1 className="text-5xl text-center font-black mb-6  relative z-10 tracking-tighter">Glideforce Pilates Studio</h1>
-
-                <p className="mt-[10px] text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
-                    Compra tu primera clase y obten la 2da FREE!
+                <div className="mb-6 flex justify-center relative z-10">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-white flex items-center justify-center p-2 shadow-lg">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            alt="Glideforce Logo"
+                            className="w-full h-full object-contain"
+                            src="/logoFixed.jpeg"
+                        />
+                    </div>
+                </div>
+                <h1 className="text-5xl text-center font-black mb-6 relative z-10 tracking-tighter">Glideforce Pilates Studio</h1>
+                <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
+                    Eleva tu fitness
                 </p>
             </div>
 
