@@ -58,7 +58,7 @@ export default function LoginPage() {
     };
 
     return (
-        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl md:overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
             <Suspense fallback={null}>
                 <LoginParamsHandler setError={setError} setInfo={setInfo} />
             </Suspense>
@@ -84,7 +84,7 @@ export default function LoginPage() {
             {/* Mobile Header & Main Form Area */}
             <div className="flex flex-col flex-grow bg-white">
                 <div className="md:hidden">
-                    <LogoHeader subtitle={resentEmail ? "Verifica tu correo" : "Bienvenido de vuelta"} />
+                    <LogoHeader title="Glideforce Pilates Studio" subtitle={resentEmail ? "Verifica tu correo" : "Entra y reserva tu clase"} />
                 </div>
                 <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
                     <div className="w-full max-w-md mx-auto space-y-8 mt-8 md:mt-0">
@@ -94,7 +94,7 @@ export default function LoginPage() {
                                 {resentEmail ? 'Verifica tu Cuenta' : 'Iniciar Sesión'}
                             </h2>
                             <p className="text-on-surface-variant font-medium mt-2">
-                                {resentEmail ? 'Confirma tu dirección de correo' : 'Bienvenido de vuelta a Glideforce'}
+                                {resentEmail ? 'Confirma tu dirección de correo' : 'Entra y reserva tu clase'}
                             </p>
                         </div>
 
@@ -121,7 +121,7 @@ export default function LoginPage() {
                                 </button>
                             </section>
                         ) : (
-                            <section className="bg-white p-8 rounded-2xl ios-shadow space-y-6 border border-surface-container">
+                            <section className="bg-white p-6 md:p-8 rounded-2xl ios-shadow space-y-4 md:space-y-6 border border-surface-container">
 
                                 {/* Info banner */}
                                 {info && (
@@ -148,7 +148,7 @@ export default function LoginPage() {
                                             name="email"
                                             required
                                             autoComplete="email"
-                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-3 md:py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
                                             placeholder="nombre@ejemplo.com"
                                             type="email"
                                         />
@@ -163,7 +163,7 @@ export default function LoginPage() {
                                                 name="password"
                                                 required
                                                 autoComplete="current-password"
-                                                className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                                className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-3 md:py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
                                                 placeholder="••••••••"
                                                 type={showPassword ? 'text' : 'password'}
                                             />
@@ -193,7 +193,7 @@ export default function LoginPage() {
                                     <button
                                         disabled={isLoading}
                                         type="submit"
-                                        className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-all disabled:opacity-60 mt-2 flex items-center justify-center gap-2"
+                                        className="w-full bg-primary-container text-white py-3.5 md:py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-all disabled:opacity-60 mt-2 flex items-center justify-center gap-2"
                                     >
                                         {isLoading ? (
                                             <>

@@ -106,7 +106,7 @@ export default function RegisterPage() {
     // ── Email confirmation screen ──────────────────────────────────────────────
     if (state === 'success') {
         return (
-            <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+            <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl md:overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
                 {/* Desktop Left Column */}
                 <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                     <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                 {/* Mobile Header & Main Area */}
                 <div className="flex flex-col flex-grow bg-white">
                     <div className="md:hidden">
-                        <LogoHeader subtitle="Verifica tu correo" />
+                        <LogoHeader title="Glideforce Pilates Studio" subtitle="Verifica tu correo" />
                     </div>
                     <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
                         <div className="hidden md:block text-center mb-8 mt-8">
@@ -154,7 +154,7 @@ export default function RegisterPage() {
 
     // ── Registration form ──────────────────────────────────────────────────────
     return (
-        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl md:overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
@@ -175,22 +175,22 @@ export default function RegisterPage() {
             </div>
 
             {/* Mobile Header & Main Form Area */}
-            <div className="flex flex-col flex-grow bg-white max-h-screen overflow-y-auto">
+            <div className="flex flex-col flex-grow bg-white md:max-h-[80vh] md:overflow-y-auto">
                 <div className="md:hidden flex flex-col items-center">
-                    <LogoHeader subtitle="Crea tu cuenta" className="pb-4" />
+                    <LogoHeader title="Glideforce Pilates Studio" subtitle="Crea tu cuenta" className="pb-4" />
                     <div className="w-full px-8 pb-4">
                         <PromoCard />
                     </div>
                 </div>
                 <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
-                    <div className="w-full max-w-md mx-auto space-y-8 mt-4 md:mt-12">
+                    <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8 mt-4 md:mt-12">
                         {/* Title for desktop only */}
                         <div className="hidden md:block text-center mb-8">
                             <h2 className="text-3xl font-black text-on-surface mb-6">REGISTRO PROMO</h2>
                             <PromoCard />
                         </div>
 
-                        <section className="bg-white p-8 rounded-2xl ios-shadow space-y-5 border border-surface-container">
+                        <section className="bg-white p-6 md:p-8 rounded-2xl ios-shadow space-y-4 md:space-y-5 border border-surface-container">
 
                             {/* Error banner */}
                             {error && (
@@ -200,13 +200,13 @@ export default function RegisterPage() {
                                 </div>
                             )}
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                                 {/* Profile Picture (Optional) */}
                                 <div className="flex flex-col items-center space-y-3 pb-2 pt-2">
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                                         Foto de Perfil (Opcional)
                                     </label>
-                                    <label className="relative flex items-center justify-center w-24 h-24 rounded-full bg-surface-container border-2 border-dashed border-primary-container/50 cursor-pointer overflow-hidden group hover:border-primary-container transition-colors">
+                                    <label className="relative flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-full bg-surface-container border-2 border-dashed border-primary-container/50 cursor-pointer overflow-hidden group hover:border-primary-container transition-colors">
                                         {avatarPreview ? (
                                             <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
@@ -255,7 +255,7 @@ export default function RegisterPage() {
                                         required
                                         minLength={2}
                                         autoComplete="name"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-3 md:py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                         placeholder="Tu nombre"
                                         type="text"
                                     />
@@ -270,7 +270,7 @@ export default function RegisterPage() {
                                         name="phone"
                                         required
                                         autoComplete="tel"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-3 md:py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                         placeholder="Tu número de celular"
                                         type="tel"
                                     />
@@ -285,7 +285,7 @@ export default function RegisterPage() {
                                         name="email"
                                         required
                                         autoComplete="email"
-                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                        className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-3 md:py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                         placeholder="nombre@ejemplo.com"
                                         type="email"
                                     />
@@ -302,7 +302,7 @@ export default function RegisterPage() {
                                             required
                                             minLength={6}
                                             autoComplete="new-password"
-                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-3 md:py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                             placeholder="Mínimo 6 caracteres"
                                             type={showPassword ? 'text' : 'password'}
                                         />
@@ -330,7 +330,7 @@ export default function RegisterPage() {
                                             required
                                             minLength={6}
                                             autoComplete="new-password"
-                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-3 md:py-4 text-on-surface outline-none focus:ring-2 focus:ring-primary-container transition"
                                             placeholder="Repite tu contraseña"
                                             type={showConfirmPassword ? 'text' : 'password'}
                                         />
@@ -350,7 +350,7 @@ export default function RegisterPage() {
                                 <button
                                     disabled={state === 'loading'}
                                     type="submit"
-                                    className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] mt-2 disabled:opacity-60 flex items-center justify-center gap-2 transition-all"
+                                    className="w-full bg-primary-container text-white py-3.5 md:py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] mt-2 disabled:opacity-60 flex items-center justify-center gap-2 transition-all"
                                 >
                                     {state === 'loading' ? (
                                         <>

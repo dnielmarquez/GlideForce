@@ -6,12 +6,12 @@ interface LogoHeaderProps {
 
 export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu rendimiento", className }: LogoHeaderProps) {
     return (
-        <header className={`bg-white pt-16 ${className ? className : 'pb-12'} flex flex-col items-center`}>
-            <div className="mb-6 flex justify-center">
+        <header className={`bg-white pt-8 md:pt-16 ${className ? className : 'pb-8 md:pb-12'} flex flex-col items-center`}>
+            <div className="mb-4 md:mb-6 flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     alt="Glideforce Logo"
-                    className="h-20 w-auto object-contain"
+                    className="h-16 md:h-20 w-auto object-contain"
                     src="/logoFixed.jpeg"
                 />
             </div>
