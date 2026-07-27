@@ -45,7 +45,7 @@ export default function TopNavBar() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/logoFixed.jpeg" className="w-full h-full object-contain" alt="Glideforce Logo" />
                 </div>
-                <span className="text-2xl font-black text-[#1c1b1b] tracking-tight">Glideforce</span>
+                <span className="text-xl font-black text-[#1c1b1b] tracking-tight">Glideforce Pilates Studio</span>
             </div>
             <span className="material-symbols-outlined text-[#ea7034] text-2xl">{isStars ? 'grade' : 'calendar_today'}</span>
         </header>
