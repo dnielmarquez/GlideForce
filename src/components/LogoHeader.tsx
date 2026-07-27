@@ -1,11 +1,12 @@
 interface LogoHeaderProps {
     title?: string;
     subtitle?: string;
+    className?: string;
 }
 
-export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu rendimiento" }: LogoHeaderProps) {
+export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu rendimiento", className }: LogoHeaderProps) {
     return (
-        <header className="bg-white pt-16 pb-12 flex flex-col items-center">
+        <header className={`bg-white pt-16 ${className ? className : 'pb-12'} flex flex-col items-center`}>
             <div className="mb-6 flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -19,3 +20,4 @@ export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu 
         </header>
     );
 }
+

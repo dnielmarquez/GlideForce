@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAdmin } from '@/lib/admin/AdminContext';
 import AdminIcon from './AdminIcon';
 import { CLASS_COLORS } from '@/lib/admin/constants';
-import { adminBookSpots, adminCancelBooking, adminUpdateClassTime } from '@/app/actions/booking';
+import { adminBookSpots, adminCancelBooking, adminUpdateClassTime, adminUpdateClassTitle } from '@/app/actions/booking';
 import { formatClassTime } from '@/lib/admin/utils';
 
 interface ViewClassModalProps {
@@ -58,9 +58,16 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   const [editAllRecurring, setEditAllRecurring] = useState(false);
   const [isUpdatingTime, setIsUpdatingTime] = useState(false);
 
+  // Title editing states
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(cls?.title || '');
+  const [editAllTitleRecurring, setEditAllTitleRecurring] = useState(false);
+  const [isUpdatingTitle, setIsUpdatingTitle] = useState(false);
+
   useEffect(() => {
     if (cls) {
       setEditTime(cls.time);
+      setEditTitle(cls.title);
     }
   }, [cls]);
 
@@ -83,6 +90,28 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       setErrorMsg('Ocurrió un error inesperado al actualizar el horario de la clase.');
     } finally {
       setIsUpdatingTime(false);
+    }
+  };
+
+  const handleUpdateClassTitle = async () => {
+    if (!editTitle || !editTitle.trim()) return;
+    setIsUpdatingTitle(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await adminUpdateClassTitle(classId, editTitle.trim(), editAllTitleRecurring);
+      if ('error' in res && res.error) {
+        setErrorMsg(res.error);
+      } else {
+        setSuccessMsg('✓ Nombre de la clase actualizado con éxito.');
+        setIsEditingTitle(false);
+        await refreshClasses();
+      }
+    } catch (err) {
+      console.error('Error updating class title:', err);
+      setErrorMsg('Ocurrió un error inesperado al actualizar el nombre de la clase.');
+    } finally {
+      setIsUpdatingTitle(false);
     }
   };
 
@@ -482,16 +511,114 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           
           {/* Class Summary Card */}
           <div style={{ background: colorObj.bg, borderRadius: 14, padding: '18px 20px', borderLeft: `4px solid ${colorObj.hex}`, marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: colorObj.text, letterSpacing: '-0.3px' }}>
-                {cls.title}
+            {isEditingTitle ? (
+              <div style={{ 
+                padding: '12px 14px', 
+                background: 'white', 
+                borderRadius: 10, 
+                border: '1.5px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                marginBottom: 10
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Nuevo nombre:</label>
+                  <input 
+                    type="text" 
+                    value={editTitle} 
+                    onChange={(e) => setEditTitle(e.target.value)} 
+                    placeholder="Nombre de la clase"
+                    style={{ 
+                      padding: '8px 12px', 
+                      borderRadius: 8, 
+                      border: '1.5px solid var(--border)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      outline: 'none',
+                      color: 'var(--text)',
+                      width: '100%'
+                    }}
+                  />
+                </div>
+
+                {cls.recurring && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input 
+                      type="checkbox" 
+                      id="editAllTitleRecurringCheck"
+                      checked={editAllTitleRecurring}
+                      onChange={(e) => setEditAllTitleRecurring(e.target.checked)}
+                      style={{ width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                    <label htmlFor="editAllTitleRecurringCheck" style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', userSelect: 'none' }}>
+                      Aplicar a todas las clases relacionadas (futuras)
+                    </label>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <button 
+                    type="button" 
+                    disabled={isUpdatingTitle}
+                    className="btn-cancel"
+                    style={{ padding: '6px 12px', fontSize: 12, margin: 0 }}
+                    onClick={() => setIsEditingTitle(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    disabled={isUpdatingTitle || !editTitle.trim()}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: 12, margin: 0, flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}
+                    onClick={handleUpdateClassTitle}
+                  >
+                    {isUpdatingTitle ? 'Guardando...' : 'Guardar Nombre'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: colorObj.text, letterSpacing: '-0.3px' }}>
+                    {cls.title}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditTitle(cls.title);
+                      setEditAllTitleRecurring(false);
+                      setIsEditingTitle(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--orange)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '4px',
+                      borderRadius: 4,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s'
+                    }}
+                    title="Editar nombre de la clase"
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(234,112,52,0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <AdminIcon name="edit" size={13} />
+                  </button>
                 </div>
                 {cls.status === 'cancelled' && (
-                    <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--red)', color: 'white', padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase' }}>
-                        Cancelada
-                    </span>
+                  <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--red)', color: 'white', padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase', flexShrink: 0 }}>
+                    Cancelada
+                  </span>
                 )}
-            </div>
+              </div>
+            )}
             {cls.description && (
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5, fontWeight: 500 }}>
                 {cls.description}

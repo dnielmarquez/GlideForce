@@ -70,8 +70,22 @@ export async function login(formData: FormData) {
     return { error: mapAuthError(error.message) }
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  let dest = '/classes'
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const profile = data as any
+    if (profile?.role === 'admin') {
+      dest = '/admin'
+    }
+  }
+
   revalidatePath('/', 'layout')
-  redirect('/classes')
+  redirect(dest)
 }
 
 export async function signup(formData: FormData) {
@@ -198,8 +212,22 @@ export async function resetPassword(formData: FormData) {
     return { error: mapAuthError(error.message) }
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  let dest = '/classes'
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const profile = data as any
+    if (profile?.role === 'admin') {
+      dest = '/admin'
+    }
+  }
+
   revalidatePath('/', 'layout')
-  redirect('/classes')
+  redirect(dest)
 }
 
 export async function logout() {

@@ -8,6 +8,41 @@ import { signup } from '@/app/actions/auth';
 
 type FormState = 'idle' | 'loading' | 'success' | 'error';
 
+function PromoCard() {
+    return (
+        <div className="flex items-center gap-4 p-4 border border-primary-container rounded-2xl bg-white max-w-md mx-auto shadow-sm">
+            <div className="flex-shrink-0 text-primary-container">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-8 h-8 text-primary-container"
+                >
+                    <polyline points="20 12 20 22 4 22 4 12" />
+                    <rect x="2" y="7" width="20" height="5" />
+                    <line x1="12" y1="22" x2="12" y2="7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                </svg>
+            </div>
+            <div className="text-left text-on-surface font-bold text-sm leading-snug">
+                <p>
+                    Compra Tu Primera Clase y
+                    <br />
+                    Obtiene la Segunda <span className="text-primary-container font-extrabold animate-pulse">GRATIS!</span>
+                </p>
+                <p className="mt-2">
+                    Usa Codigo: <span className="text-primary-container font-extrabold">BIENVENIDA2X1</span>
+                </p>
+            </div>
+        </div>
+    );
+}
+
 export default function RegisterPage() {
     const [state, setState] = useState<FormState>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -124,11 +159,7 @@ export default function RegisterPage() {
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
                 <h1 className="text-5xl text-center font-black mb-6  relative z-10 tracking-tighter">Glideforce Pilates Studio</h1>
-                <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
-                    CREA TU CUENTA
-                </p> <p className="mt-[10px] text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
-                    Usa el código BIENVENIDA2X1
-                </p>
+
                 <p className="mt-[10px] text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
                     Compra tu primera clase y obten la 2da FREE!
                 </p>
@@ -136,15 +167,18 @@ export default function RegisterPage() {
 
             {/* Mobile Header & Main Form Area */}
             <div className="flex flex-col flex-grow bg-white max-h-screen overflow-y-auto">
-                <div className="md:hidden">
-                    <LogoHeader subtitle="Crea tu cuenta" />
+                <div className="md:hidden flex flex-col items-center">
+                    <LogoHeader subtitle="Crea tu cuenta" className="pb-4" />
+                    <div className="w-full px-8 pb-4">
+                        <PromoCard />
+                    </div>
                 </div>
                 <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
-                    <div className="w-full max-w-md mx-auto space-y-8 mt-8 md:mt-0">
+                    <div className="w-full max-w-md mx-auto space-y-8 mt-4 md:mt-12">
                         {/* Title for desktop only */}
                         <div className="hidden md:block text-center mb-8">
-                            <h2 className="text-3xl font-black text-on-surface">REGISTRO PROMO </h2>
-                            <p className="text-on-surface-variant font-medium mt-2">Usa el código BIENVENIDA2X1 al comprar tu primera clase</p>
+                            <h2 className="text-3xl font-black text-on-surface mb-6">REGISTRO PROMO</h2>
+                            <PromoCard />
                         </div>
 
                         <section className="bg-white p-8 rounded-2xl ios-shadow space-y-5 border border-surface-container">
