@@ -24,11 +24,14 @@ export async function getStarPricing(): Promise<{ priceCop: number } | { error: 
  * Creates a pending payment record for a star purchase and returns
  * the Wompi Widget parameters (reference + integrity hash).
  *
- * @param quantity - Number of stars the user wants to buy (min 1)
+ * @param quantityOrOptions - Number of stars OR options object with packageId
+ * @param couponCode - Optional discount coupon code
+ * @param packageId - Optional ID of the selected package from DB
  */
 export async function initStarPurchase(
-    quantity: number,
-    couponCode?: string
+    quantityOrOptions: number | { packageId?: string; quantity?: number; couponCode?: string },
+    couponCodeParam?: string,
+    packageIdParam?: string
 ): Promise<{
     reference: string;
     amountInCents: number;
@@ -36,32 +39,71 @@ export async function initStarPurchase(
     publicKey: string;
     currency: string;
 } | { error: string }> {
-    if (!quantity || quantity < 1 || !Number.isInteger(quantity)) {
-        return { error: 'La cantidad mínima es 1 sesión.' };
+    let quantity = 1;
+    let couponCode: string | undefined = couponCodeParam;
+    let packageId: string | undefined = packageIdParam;
+
+    if (typeof quantityOrOptions === 'object' && quantityOrOptions !== null) {
+        quantity = quantityOrOptions.quantity || 1;
+        couponCode = quantityOrOptions.couponCode || couponCodeParam;
+        packageId = quantityOrOptions.packageId || packageIdParam;
+    } else if (typeof quantityOrOptions === 'number') {
+        quantity = quantityOrOptions;
     }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Debes iniciar sesión para comprar sesiones.' };
 
-    // Fetch star price from settings
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: settings } = await (supabase as any)
-        .from('settings')
-        .select('star_price_cop')
-        .single();
+    const admin = createAdminClient();
 
-    const priceCop: number = settings?.star_price_cop ?? 45000;
+    let baseTotalCop = 0;
+    let starsToCredit = quantity;
+    let dbPackageId: string | null = null;
+
+    if (packageId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: pkg, error: pkgErr } = await (admin as any)
+            .from('packages')
+            .select('*')
+            .eq('id', packageId)
+            .single();
+
+        if (pkgErr || !pkg) {
+            return { error: 'El paquete seleccionado no existe.' };
+        }
+        if (!pkg.is_active) {
+            return { error: 'El paquete seleccionado no está disponible actualmente.' };
+        }
+
+        dbPackageId = pkg.id;
+        starsToCredit = pkg.stars_quantity;
+        baseTotalCop = pkg.price_cop; // Discounted final price from DB
+    } else {
+        if (!quantity || quantity < 1 || !Number.isInteger(quantity)) {
+            return { error: 'La cantidad mínima es 1 sesión.' };
+        }
+
+        // Fetch star price from settings
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: settings } = await (supabase as any)
+            .from('settings')
+            .select('star_price_cop')
+            .single();
+
+        const unitPriceCop: number = settings?.star_price_cop ?? 45000;
+        baseTotalCop = quantity * unitPriceCop;
+        starsToCredit = quantity;
+    }
     
     let couponId: string | null = null;
-    let discountAmountPerStar = 0;
-    let starsToCredit = quantity;
+    let couponDiscountAmount = 0;
 
     if (couponCode) {
         // Validate coupon on server side
         const cleanCode = couponCode.trim().toUpperCase();
-        const admin = createAdminClient();
         
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: coupon, error: couponErr } = await (admin as any)
             .from('coupons')
             .select('*, coupon_usages(id, user_id)')
@@ -90,6 +132,7 @@ export async function initStarPurchase(
         }
 
         if (coupon.max_uses_per_user > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const userUsages = usages.filter((u: any) => u.user_id === user.id).length;
             if (userUsages >= coupon.max_uses_per_user) {
                 return { error: 'Ya has utilizado este cupón el máximo de veces permitido.' };
@@ -100,17 +143,17 @@ export async function initStarPurchase(
 
         // Calculate discount or promo based on type
         if (coupon.discount_type === '2_for_1') {
-            starsToCredit = quantity + 1; // Extra 1 star credited! Price remains unchanged.
-            discountAmountPerStar = 0;
+            starsToCredit += 1; // Extra 1 star credited! Price remains unchanged.
+            couponDiscountAmount = 0;
         } else if (coupon.discount_type === 'percentage') {
-            discountAmountPerStar = priceCop * (Number(coupon.discount_value || 0) / 100);
+            couponDiscountAmount = baseTotalCop * (Number(coupon.discount_value || 0) / 100);
         } else if (coupon.discount_type === 'fixed_amount') {
-            discountAmountPerStar = Number(coupon.discount_value || 0);
+            couponDiscountAmount = Number(coupon.discount_value || 0);
         }
     }
 
-    const finalPricePerStar = Math.max(0, priceCop - discountAmountPerStar);
-    const amountInCents = quantity * finalPricePerStar * 100; // Wompi uses centavos
+    const finalTotalCop = Math.max(0, baseTotalCop - couponDiscountAmount);
+    const amountInCents = Math.round(finalTotalCop * 100); // Wompi uses centavos
     const currency = 'COP';
 
     const reference = generateWompiReference('star', user.id);
@@ -119,9 +162,8 @@ export async function initStarPurchase(
     const integrityHash = generateIntegrityHash(reference, amountInCents, currency);
 
     // Store the pending payment record
-    const adminSupabase = createAdminClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertErr } = await (adminSupabase as any)
+    const { error: insertErr } = await (admin as any)
         .from('payments')
         .insert({
             member_id:       user.id,
@@ -132,6 +174,7 @@ export async function initStarPurchase(
             amount_in_cents: amountInCents,
             currency,
             coupon_id:       couponId,
+            package_id:      dbPackageId,
         });
 
     if (insertErr) {

@@ -1484,6 +1484,66 @@
   z-index: 49;
 }
 
+/* ─── Packages Table ─────────────────────────────────────────────────────── */
+.packages-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.packages-filter-group {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.packages-table-wrap {
+  background: white;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+.packages-thead {
+  display: grid;
+  grid-template-columns: 60px 1.8fr 110px 130px 130px 110px 130px 90px 90px;
+  padding: 12px 20px;
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--border);
+  align-items: center;
+}
+
+.packages-th {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.packages-row {
+  display: grid;
+  grid-template-columns: 60px 1.8fr 110px 130px 130px 110px 130px 90px 90px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  background: white;
+  transition: background 0.15s;
+}
+
+.packages-row:last-child {
+  border-bottom: none;
+}
+
+.packages-row:hover {
+  background: #FCFAF7;
+}
+
 /* ─── Mobile Responsiveness (max-width: 768px) ───────────────────────────── */
 @media (max-width: 768px) {
 
@@ -1992,6 +2052,92 @@
 
   .coupons-row>div:nth-child(8)::before {
     content: "Acción";
+  }
+
+  /* Packages Table Responsive Grid to Cards */
+  .packages-thead {
+    display: none !important;
+  }
+
+  .packages-table-wrap {
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+    box-shadow: none !important;
+  }
+
+  .packages-row {
+    background: white !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 16px !important;
+    box-shadow: var(--card-shadow);
+  }
+
+  .packages-row>div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: right !important;
+    width: 100% !important;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .packages-row>div:last-child {
+    border-bottom: none;
+  }
+
+  .packages-row>div::before {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    text-align: left;
+  }
+
+  .packages-row>div:nth-child(1)::before {
+    content: "Orden";
+  }
+
+  .packages-row>div:nth-child(2)::before {
+    content: "Paquete";
+  }
+
+  .packages-row>div:nth-child(3)::before {
+    content: "Sesiones";
+  }
+
+  .packages-row>div:nth-child(4)::before {
+    content: "Precio Normal";
+  }
+
+  .packages-row>div:nth-child(5)::before {
+    content: "Precio Final";
+  }
+
+  .packages-row>div:nth-child(6)::before {
+    content: "Descuento";
+  }
+
+  .packages-row>div:nth-child(7)::before {
+    content: "Etiqueta";
+  }
+
+  .packages-row>div:nth-child(8)::before {
+    content: "Estado";
+  }
+
+  .packages-row>div:nth-child(9)::before {
+    content: "Acciones";
   }
 }
 

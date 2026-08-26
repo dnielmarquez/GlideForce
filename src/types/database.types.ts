@@ -427,6 +427,48 @@ export type Database = {
         }
       }
 
+      // ── packages ─────────────────────────────────────────────────
+      packages: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          stars_quantity: number
+          original_price_cop: number
+          price_cop: number
+          badge: string | null
+          order_index: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          stars_quantity: number
+          original_price_cop: number
+          price_cop: number
+          badge?: string | null
+          order_index?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          stars_quantity?: number
+          original_price_cop?: number
+          price_cop?: number
+          badge?: string | null
+          order_index?: number
+          is_active?: boolean
+          updated_at?: string
+        }
+      }
+
       // ── payments ─────────────────────────────────────────────────
       payments: {
         Row: {
@@ -439,6 +481,8 @@ export type Database = {
           stars_to_credit: number | null
           session_id: string | null
           machine_id: string | null
+          package_id: string | null
+          coupon_id: string | null
           amount_in_cents: number
           currency: string
           wompi_payload: unknown | null
@@ -455,6 +499,8 @@ export type Database = {
           stars_to_credit?: number | null
           session_id?: string | null
           machine_id?: string | null
+          package_id?: string | null
+          coupon_id?: string | null
           amount_in_cents: number
           currency?: string
           wompi_payload?: unknown | null
@@ -476,3 +522,4 @@ export type Database = {
     Views: { [_ in never]: never }
   }
 }
+

@@ -7,8 +7,8 @@ import { createClient } from '@/utils/supabase/client';
 import PageTransition from '@/components/PageTransition';
 import { getStarPricing, initStarPurchase } from '@/app/actions/stars';
 import { validateCouponAction } from '@/app/actions/coupons';
-
-
+import { getPackages } from '@/app/actions/packages';
+import type { Package } from '@/types';
 
 // Extend window for Wompi widget type
 declare global {
@@ -17,6 +17,61 @@ declare global {
         WidgetCheckout?: any;
     }
 }
+
+const FALLBACK_PACKAGES: Package[] = [
+    {
+        id: 'seed-1',
+        title: '1 Clase',
+        description: null,
+        stars_quantity: 1,
+        original_price_cop: 45000,
+        price_cop: 40000,
+        badge: null,
+        order_index: 1,
+        is_active: true,
+        created_at: '',
+        updated_at: '',
+    },
+    {
+        id: 'seed-4',
+        title: '4 Clases',
+        description: null,
+        stars_quantity: 4,
+        original_price_cop: 180000,
+        price_cop: 160000,
+        badge: 'Ahorra 11%',
+        order_index: 2,
+        is_active: true,
+        created_at: '',
+        updated_at: '',
+    },
+    {
+        id: 'seed-8',
+        title: '8 Clases',
+        description: null,
+        stars_quantity: 8,
+        original_price_cop: 360000,
+        price_cop: 320000,
+        badge: 'Más Popular',
+        order_index: 3,
+        is_active: true,
+        created_at: '',
+        updated_at: '',
+    },
+    {
+        id: 'seed-12',
+        title: '12 Clases',
+        description: null,
+        stars_quantity: 12,
+        original_price_cop: 540000,
+        price_cop: 480000,
+        badge: 'Mejor Precio',
+        order_index: 4,
+        is_active: true,
+        created_at: '',
+        updated_at: '',
+    },
+];
 
 export default function StarsPage() {
     const defaultAvatar = "/logoFixed.jpeg";
@@ -29,7 +84,11 @@ export default function StarsPage() {
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showTopUp, setShowTopUp] = useState(false);
-    const [quantity, setQuantity] = useState<number>(1);
+
+    // Packages from database
+    const [packages, setPackages] = useState<Package[]>(FALLBACK_PACKAGES);
+    const [selectedPackageId, setSelectedPackageId] = useState<string>(FALLBACK_PACKAGES[0].id);
+
     const [priceCop, setPriceCop] = useState<number>(45000);
     const [isProcessing, setIsProcessing] = useState(false);
     const [widgetError, setWidgetError] = useState<string | null>(null);
@@ -77,11 +136,15 @@ export default function StarsPage() {
         setWidgetError(null);
     };
 
-    // Wompi script is loaded lazily when the user clicks to pay (see handleOpenWompi)
-
-    // Fetch star price from settings
+    // Load available packages
     useEffect(() => {
-        getStarPricing().then(result => {
+        getPackages().then((dbPackages) => {
+            if (dbPackages && dbPackages.length > 0) {
+                setPackages(dbPackages);
+                setSelectedPackageId(dbPackages[0].id);
+            }
+        });
+        getStarPricing().then((result) => {
             if ('priceCop' in result) setPriceCop(result.priceCop);
         });
     }, []);
@@ -192,23 +255,34 @@ export default function StarsPage() {
         scrollRef.current.scrollLeft = scrollLeft - walk;
     };
 
-    let discountAmountPerStar = 0;
+    // Calculate current selected package & prices
+    const selectedPackage = packages.find(p => p.id === selectedPackageId) || packages[0];
+    const basePackagePrice = selectedPackage ? selectedPackage.price_cop : priceCop;
+    const baseQuantity = selectedPackage ? selectedPackage.stars_quantity : 1;
+
+    let couponDiscountAmount = 0;
     if (appliedCoupon) {
         if (appliedCoupon.discount_type === 'percentage') {
-            discountAmountPerStar = priceCop * (appliedCoupon.discount_value / 100);
+            couponDiscountAmount = basePackagePrice * (appliedCoupon.discount_value / 100);
         } else if (appliedCoupon.discount_type === 'fixed_amount') {
-            discountAmountPerStar = appliedCoupon.discount_value;
+            couponDiscountAmount = appliedCoupon.discount_value;
         }
     }
-    const finalPricePerStar = Math.max(0, priceCop - discountAmountPerStar);
-    const totalCop = quantity * finalPricePerStar;
+    const finalTotalCop = Math.max(0, basePackagePrice - couponDiscountAmount);
+    const finalCreditedStars = baseQuantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0);
 
     const handleOpenWompi = async () => {
-        if (!quantity || quantity < 1) return;
+        if (!selectedPackage) return;
         setIsProcessing(true);
         setWidgetError(null);
 
-        const result = await initStarPurchase(quantity, appliedCoupon?.code || undefined);
+        // Pass package ID (if real DB UUID) or fallback quantity
+        const isRealDbPackage = !selectedPackage.id.startsWith('seed-');
+        const result = await initStarPurchase({
+            packageId: isRealDbPackage ? selectedPackage.id : undefined,
+            quantity: selectedPackage.stars_quantity,
+            couponCode: appliedCoupon?.code || undefined,
+        });
 
         if ('error' in result) {
             setWidgetError(result.error);
@@ -216,7 +290,7 @@ export default function StarsPage() {
             return;
         }
 
-        // Load Wompi script lazily — only now that we have a real publicKey
+        // Load Wompi script lazily
         await new Promise<void>((resolve) => {
             if (window.WidgetCheckout) { resolve(); return; }
             const existing = document.getElementById('wompi-widget-script');
@@ -255,7 +329,6 @@ export default function StarsPage() {
             if (transaction?.reference) {
                 router.push(`/payment/result?ref=${transaction.reference}`);
             }
-            // If user closed without paying, just stay on the page
         });
     };
 
@@ -278,10 +351,10 @@ export default function StarsPage() {
                                     <span className="text-6xl font-black text-on-surface leading-none">{balance}</span>
                                     <span className="text-primary-container font-black text-3xl material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
                                 </div>
-                                <p className="text-sm text-on-surface-variant/70 mt-3 font-medium leading-snug max-w-[200px]">Equivale a {balance} sesiones de entrenamiento personal</p>
+                                <p className="text-sm text-on-surface-variant/70 mt-3 font-medium leading-snug max-w-[200px]">Equivale a {balance} sesiones de pilates reformer</p>
                             </div>
                         </div>
-                        <button onClick={() => { setShowTopUp(true); setQuantity(1); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+                        <button onClick={() => { setShowTopUp(true); setWidgetError(null); }} className="bg-primary-container w-full py-5 rounded-full text-white font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
                             Comprar Sesiones
                         </button>
@@ -357,15 +430,15 @@ export default function StarsPage() {
                 </div>
             </main>
 
-            {/* ── Top-Up Bottom Sheet ─────────────────────────────────────────── */}
+            {/* ── Top-Up Bottom Sheet / Modal ─────────────────────────────────────────── */}
             <AnimatePresence>
                 {showTopUp && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-6">
-                        <motion.div initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 20 }} transition={{ type: "spring", bounce: 0.25, duration: 0.4 }} className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]">
+                        <motion.div initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 20 }} transition={{ type: "spring", bounce: 0.25, duration: 0.4 }} className="bg-white w-full max-w-lg rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[90vh]">
                             <div className="flex items-start justify-between shrink-0 mb-3 md:mb-4">
                                 <div className="space-y-1">
                                     <h3 className="text-2xl font-black text-on-surface">Comprar Sesiones</h3>
-                                    <p className="text-on-surface-variant text-sm font-medium">{formatCop(priceCop)} por sesión</p>
+                                    <p className="text-on-surface-variant text-sm font-medium">Elige el paquete que mejor se adapte a tu ritmo</p>
                                 </div>
                                 <button onClick={handleCloseTopUp} className="bg-surface-container-low text-on-surface-variant p-2 rounded-full hover:bg-surface-container transition-colors">
                                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>close</span>
@@ -374,37 +447,56 @@ export default function StarsPage() {
                             
                             {/* Scrollable Body */}
                             <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-5">
-                                {/* Quantity Selector */}
+                                {/* Package Selection Cards */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Cantidad de Sesiones</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Paquetes Disponibles</label>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {[1, 4, 8, 12].map((q) => {
-                                            const isSelected = quantity === q;
+                                        {packages.map((pkg) => {
+                                            const isSelected = selectedPackageId === pkg.id;
+                                            const hasDiscount = pkg.original_price_cop > pkg.price_cop;
+                                            const discountPct = hasDiscount ? Math.round(((pkg.original_price_cop - pkg.price_cop) / pkg.original_price_cop) * 100) : 0;
+
                                             return (
                                                 <button
-                                                    key={q}
+                                                    key={pkg.id}
                                                     type="button"
-                                                    onClick={() => setQuantity(q)}
-                                                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                                                    onClick={() => setSelectedPackageId(pkg.id)}
+                                                    className={`flex flex-col items-center justify-between p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden text-left ${
                                                         isSelected
-                                                            ? 'border-primary-container bg-primary-container/5 text-on-surface shadow-sm'
-                                                            : 'border-surface-container bg-white text-on-surface-variant hover:border-primary-container/20 hover:bg-surface-container-low'
+                                                            ? 'border-primary-container bg-primary-container/5 text-on-surface shadow-md ring-1 ring-primary-container'
+                                                            : 'border-surface-container bg-white text-on-surface-variant hover:border-primary-container/30 hover:bg-surface-container-low'
                                                     }`}
                                                 >
-                                                    {isSelected && (
+                                                    {/* Badge / Tag */}
+                                                    {(pkg.badge || discountPct > 0) && (
                                                         <div className="absolute top-0 right-0 bg-primary-container text-white px-2 py-0.5 rounded-bl-xl text-[9px] font-black uppercase tracking-wider">
-                                                            Pack
+                                                            {pkg.badge || `${discountPct}% OFF`}
                                                         </div>
                                                     )}
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        <span className="text-2xl font-black">{q}</span>
-                                                        <span className="material-symbols-outlined text-lg text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                                            stars
-                                                        </span>
+
+                                                    <div className="w-full">
+                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                            <span className="text-2xl font-black text-on-surface leading-none">{pkg.stars_quantity}</span>
+                                                            <span className="material-symbols-outlined text-lg text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                                stars
+                                                            </span>
+                                                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-on-surface-variant">
+                                                                {pkg.stars_quantity === 1 ? 'Sesión' : 'Sesiones'}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-[10px] font-extrabold uppercase tracking-wider mt-1 text-on-surface-variant">
-                                                        {q === 1 ? 'Sesión' : 'Sesiones'}
-                                                    </span>
+
+                                                    {/* Pricing section with struck-through original and final */}
+                                                    <div className="w-full mt-3 pt-2 border-t border-surface-container">
+                                                        {hasDiscount && (
+                                                            <div className="text-xs line-through text-on-surface-variant/70 font-semibold mb-0.5">
+                                                                {formatCop(pkg.original_price_cop)}
+                                                            </div>
+                                                        )}
+                                                        <div className="text-lg font-black text-primary-container leading-none">
+                                                            {formatCop(pkg.price_cop)}
+                                                        </div>
+                                                    </div>
                                                 </button>
                                             );
                                         })}
@@ -452,21 +544,21 @@ export default function StarsPage() {
                                 {/* Price Preview Breakdown */}
                                 <div className="bg-surface-container-low rounded-2xl p-5 space-y-3 border border-surface-container text-sm">
                                     <div className="flex justify-between items-center text-on-surface-variant font-medium">
-                                        <span>Subtotal ({quantity} {quantity === 1 ? 'sesión' : 'sesiones'})</span>
-                                        <span>{formatCop(quantity * priceCop)}</span>
+                                        <span>Paquete ({selectedPackage.stars_quantity} {selectedPackage.stars_quantity === 1 ? 'sesión' : 'sesiones'})</span>
+                                        <span>{formatCop(basePackagePrice)}</span>
                                     </div>
                                     
                                     {appliedCoupon && (
                                         <div className="flex justify-between items-center text-green-700 font-medium">
                                             <span>
-                                                Descuento
+                                                Descuento Cupón
                                                 {appliedCoupon.discount_type === 'percentage' && ` (${appliedCoupon.discount_value}%)`}
                                                 {appliedCoupon.discount_type === '2_for_1' && ` (Promo 2x1)`}
                                             </span>
                                             <span>
                                                 {appliedCoupon.discount_type === '2_for_1' 
                                                     ? '¡1 de regalo!' 
-                                                    : `-${formatCop(quantity * discountAmountPerStar)}`
+                                                    : `-${formatCop(couponDiscountAmount)}`
                                                 }
                                             </span>
                                         </div>
@@ -476,7 +568,7 @@ export default function StarsPage() {
 
                                     <div className="flex justify-between items-center text-base font-black">
                                         <span>Total a pagar</span>
-                                        <span className="text-on-surface">{formatCop(totalCop)}</span>
+                                        <span className="text-on-surface">{formatCop(finalTotalCop)}</span>
                                     </div>
 
                                     <div className="flex justify-between items-center font-bold text-primary-container mt-1 bg-primary-container/5 rounded-xl px-3 py-2 text-xs">
@@ -485,7 +577,7 @@ export default function StarsPage() {
                                             Recibirás en tu cuenta:
                                         </span>
                                         <span className="text-sm font-black">
-                                            {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0)} {quantity + (appliedCoupon?.discount_type === '2_for_1' ? 1 : 0) === 1 ? 'sesión' : 'sesiones'}
+                                            {finalCreditedStars} {finalCreditedStars === 1 ? 'sesión' : 'sesiones'}
                                         </span>
                                     </div>
                                 </div>
@@ -507,7 +599,7 @@ export default function StarsPage() {
                                 >
                                     {isProcessing
                                         ? <><span className="material-symbols-outlined animate-spin text-xl">progress_activity</span> Preparando pago...</>
-                                        : <><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span> Pagar con Wompi</>
+                                        : <><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span> Pagar {formatCop(finalTotalCop)} con Wompi</>
                                     }
                                 </button>
                             </div>

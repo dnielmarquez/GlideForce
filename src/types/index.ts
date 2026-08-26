@@ -32,6 +32,8 @@ export type Booking = Database['public']['Tables']['bookings']['Row']
 export type WaitlistEntry = Database['public']['Tables']['waitlist_entries']['Row']
 export type StarTransaction = Database['public']['Tables']['star_transactions']['Row']
 export type Settings = Database['public']['Tables']['settings']['Row']
+export type Package = Database['public']['Tables']['packages']['Row']
+export type Payment = Database['public']['Tables']['payments']['Row']
 
 // ─── Insert types ─────────────────────────────────────────────────────────────
 
@@ -45,6 +47,9 @@ export type BookingInsert = Database['public']['Tables']['bookings']['Insert']
 export type WaitlistEntryInsert = Database['public']['Tables']['waitlist_entries']['Insert']
 export type StarTransactionInsert = Database['public']['Tables']['star_transactions']['Insert']
 export type SettingsUpdate = Database['public']['Tables']['settings']['Update']
+export type PackageInsert = Database['public']['Tables']['packages']['Insert']
+export type PackageUpdate = Database['public']['Tables']['packages']['Update']
+
 
 // ─── Enriched / joined types (for UI components) ─────────────────────────────
 
