@@ -154,7 +154,6 @@ export default function ClassesPage() {
                 {/* Desktop Left Column: Header & Calendar */}
                 <div className="md:col-span-5 md:sticky md:top-20 md:h-fit">
                     <section className="mb-8 text-center md:text-left">
-                        <p className="text-on-surface-variant font-medium label-sm uppercase opacity-70">Buenos días</p>
                         <h1 className="text-4xl font-extrabold tracking-tighter text-on-surface mt-1">Explora tus Clases</h1>
                     </section>
                     <section className="mb-10">

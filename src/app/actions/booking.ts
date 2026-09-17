@@ -890,5 +890,241 @@ export async function adminUpdateClassTitle(
     }
 }
 
+export interface RecurrenceSessionItem {
+    id: string;
+    title: string;
+    date: string;
+    time: string;
+    duration: number;
+    capacity: number;
+    confirmedBookingsCount: number;
+}
+
+export async function adminGetRecurrenceSessions(
+    recurrenceId: string,
+    futureOnly: boolean = true
+): Promise<{ success: true; sessions: RecurrenceSessionItem[] } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+        const bogotaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+        const bogotaTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()) + ':00';
+
+        let query = (adminSupabase as any)
+            .from('class_sessions')
+            .select(`
+                id,
+                title,
+                date,
+                start_time,
+                duration_minutes,
+                capacity,
+                status,
+                bookings (
+                    id,
+                    status
+                )
+            `)
+            .eq('recurrence_id', recurrenceId)
+            .neq('status', 'cancelled');
+
+        if (futureOnly) {
+            query = query.gte('date', bogotaDate);
+        }
+
+        const { data: sessions, error: sErr } = await query
+            .order('date', { ascending: true })
+            .order('start_time', { ascending: true });
+
+        if (sErr) throw sErr;
+
+        // Filter out past classes on the same day if futureOnly
+        const filteredSessions = (sessions || []).filter((s: any) => {
+            if (!futureOnly) return true;
+            if (s.date > bogotaDate) return true;
+            if (s.date === bogotaDate) {
+                return (s.start_time || '00:00:00') >= bogotaTime;
+            }
+            return false;
+        });
+
+        const formatted: RecurrenceSessionItem[] = filteredSessions.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            date: s.date,
+            time: s.start_time ? s.start_time.substring(0, 5) : '',
+            duration: s.duration_minutes,
+            capacity: s.capacity,
+            confirmedBookingsCount: s.bookings ? s.bookings.filter((b: any) => b.status === 'confirmed').length : 0,
+        }));
+
+        return { success: true, sessions: formatted };
+    } catch (e) {
+        console.error('[adminGetRecurrenceSessions] Error:', e);
+        return { error: 'Ocurrió un error al obtener las clases de la serie recurrente.' };
+    }
+}
+
+export async function adminDeleteClasses(
+    sessionIds: string[]
+): Promise<{ success: true; deletedCount: number; refundedCount: number } | { error: string }> {
+    if (!sessionIds || sessionIds.length === 0) {
+        return { error: 'No se indicaron clases para eliminar.' };
+    }
+
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+        const bogotaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+        const bogotaTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()) + ':00';
+
+        // 1. Fetch sessions details to verify they exist and capture recurrence_id
+        const { data: sessions, error: sessErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .select('id, title, date, start_time, recurrence_id')
+            .in('id', sessionIds);
+
+        if (sessErr) throw sessErr;
+        if (!sessions || sessions.length === 0) {
+            return { error: 'No se encontraron las clases a eliminar.' };
+        }
+
+        // Strictly filter to future sessions only
+        const futureSessions = (sessions || []).filter((s: any) => {
+            if (s.date > bogotaDate) return true;
+            if (s.date === bogotaDate) {
+                return (s.start_time || '00:00:00') >= bogotaTime;
+            }
+            return false;
+        });
+
+        if (futureSessions.length === 0) {
+            return { error: 'No se encontraron clases futuras para eliminar. Las clases que ya pasaron no pueden ser eliminadas.' };
+        }
+
+        const foundSessionIds = futureSessions.map((s: any) => s.id);
+        const recurrenceIdsToUpdate = Array.from(new Set(
+            futureSessions.map((s: any) => s.recurrence_id).filter(Boolean)
+        )) as string[];
+
+        // 2. Fetch all confirmed bookings for these sessions before deleting
+        const { data: bookings, error: bksErr } = await (adminSupabase as any)
+            .from('bookings')
+            .select('id, session_id, member_id, stars_spent, payment_id')
+            .in('session_id', foundSessionIds)
+            .eq('status', 'confirmed');
+
+        if (bksErr) throw bksErr;
+
+        let refundedCount = 0;
+        if (bookings && bookings.length > 0) {
+            refundedCount = bookings.length;
+            const transactions = bookings.map((b: any) => {
+                const refundAmount = b.stars_spent > 0 
+                    ? b.stars_spent 
+                    : (b.payment_id ? 1 : 0);
+                return {
+                    member_id: b.member_id,
+                    amount: refundAmount,
+                    type: 'cancellation_refund',
+                    reference_id: b.session_id,
+                    reference_type: 'session',
+                    note: 'Reembolso por eliminación de clase por administrador'
+                };
+            }).filter((tx: any) => tx.amount > 0);
+
+            if (transactions.length > 0) {
+                const { error: txErr } = await (adminSupabase as any)
+                    .from('star_transactions')
+                    .insert(transactions);
+                if (txErr) throw txErr;
+            }
+        }
+
+        // 3. Unlink foreign key in payments (RESTRICT constraint on payments.session_id)
+        const { error: payErr } = await (adminSupabase as any)
+            .from('payments')
+            .update({ session_id: null })
+            .in('session_id', foundSessionIds);
+        if (payErr) {
+            console.warn('[adminDeleteClasses] Warning unlinking payments:', payErr);
+        }
+
+        // 4. Delete the class sessions
+        const { error: delErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .delete()
+            .in('id', foundSessionIds);
+        if (delErr) throw delErr;
+
+        // 5. Update or clean up class_recurrences
+        for (const recId of recurrenceIdsToUpdate) {
+            const { count, error: countErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .select('id', { count: 'exact', head: true })
+                .eq('recurrence_id', recId);
+
+            if (!countErr) {
+                if (count === 0 || count === null) {
+                    await (adminSupabase as any)
+                        .from('class_recurrences')
+                        .delete()
+                        .eq('id', recId);
+                } else {
+                    await (adminSupabase as any)
+                        .from('class_recurrences')
+                        .update({ sessions_created: count })
+                        .eq('id', recId);
+                }
+            }
+        }
+
+        // 6. Invalidate caches
+        revalidatePath('/classes');
+        revalidatePath('/admin');
+        revalidatePath('/profile');
+        revalidatePath('/stars');
+        for (const sid of foundSessionIds) {
+            revalidatePath(`/booking/${sid}`);
+        }
+
+        return { 
+            success: true, 
+            deletedCount: foundSessionIds.length, 
+            refundedCount 
+        };
+    } catch (e) {
+        console.error('[adminDeleteClasses] Error:', e);
+        return { error: 'Ocurrió un error al eliminar las clases y procesar los reembolsos.' };
+    }
+}
+
+
 
 
