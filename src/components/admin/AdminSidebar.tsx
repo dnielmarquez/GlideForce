@@ -8,6 +8,7 @@ import { useAdmin } from '@/lib/admin/AdminContext';
 
 const NAV_MAIN = [
   { id: 'classes', label: 'Clases', icon: 'dumbbell' as const, href: '/admin', showBadge: true },
+  { id: 'analytics', label: 'Analíticas', icon: 'chart' as const, href: '/admin/analytics' },
 ];
 
 const NAV_MANAGE = [
