@@ -177,7 +177,10 @@ export default function RegisterPage() {
             {/* Mobile Header & Main Form Area */}
             <div className="flex flex-col flex-grow bg-white md:max-h-[80vh] md:overflow-y-auto">
                 <div className="md:hidden flex flex-col items-center">
-                    <LogoHeader title="Glideforce Pilates Studio" subtitle="Crea tu cuenta" className="pb-4" />
+                    <LogoHeader title="Glideforce Pilates Studio" subtitle="Crea tu cuenta" className="pb-2" />
+                    <p className="text-xs text-on-surface-variant text-center px-6 pb-4 font-medium leading-relaxed">
+                        Revisa tu bandeja de entrada y la carpeta de Spam, y confirma tu correo
+                    </p>
                     <div className="w-full px-8 pb-4">
                         <PromoCard />
                     </div>
@@ -186,7 +189,10 @@ export default function RegisterPage() {
                     <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8 mt-4 md:mt-12">
                         {/* Title for desktop only */}
                         <div className="hidden md:block text-center mb-8">
-                            <h2 className="text-3xl font-black text-on-surface mb-6">REGISTRO PROMO</h2>
+                            <h2 className="text-3xl font-black text-on-surface mb-2">REGISTRO PROMO</h2>
+                            <p className="text-sm text-on-surface-variant font-medium mb-6">
+                                Revisa tu bandeja de entrada y la carpeta de Spam, y confirma tu correo
+                            </p>
                             <PromoCard />
                         </div>
 
