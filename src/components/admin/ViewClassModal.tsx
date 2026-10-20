@@ -347,7 +347,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
   }, [searchQuery]);
 
   const handleAdminBook = async () => {
-    if (!selectedUserId || !selectedMachineId) return;
+    if (!selectedUserId) return;
     setIsSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -356,7 +356,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
       const res = await adminBookSpots(
         classId,
         selectedUserId,
-        selectedMachineId,
+        null,
         applyToAllRecurring,
         chargeStars
       );
@@ -1566,7 +1566,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                      <div style={{ flex: 1, minWidth: 0 }}>
                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name}</div>
                        <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                         {user.email} {user.machine_label ? ` · ${user.machine_label}` : ''}
+                         {user.email}
                        </div>
                      </div>
                      
@@ -1616,7 +1616,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
 
           {/* Admin Booking Form Section */}
           <div className="form-section" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <div className="form-section-title" style={{ marginBottom: 12 }}>Reservar / Bloquear Máquina (Admin)</div>
+            <div className="form-section-title" style={{ marginBottom: 12 }}>Inscribir Participante (Admin)</div>
             
             {errorMsg && (
               <div style={{ 
@@ -1728,28 +1728,6 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
 
             </div>
 
-            <div className="form-group" style={{ marginBottom: 12 }}>
-              <label className="form-label">Máquina / Spot <span>*</span></label>
-              <div className="form-select-wrap">
-                <select 
-                  className="form-select" 
-                  value={selectedMachineId} 
-                  onChange={(e) => setSelectedMachineId(e.target.value)}
-                >
-                  <option value="">-- Seleccionar Máquina --</option>
-                  {machinesList.map((m) => {
-                    const occupiedByUser = users.find(u => u.machine_id === m.id && u.status === 'confirmed');
-                    const isOccupied = !!occupiedByUser;
-                    return (
-                      <option key={m.id} value={m.id} disabled={isOccupied}>
-                        Máquina {m.number} {m.name ? `(${m.name})` : ''} {isOccupied ? ` - OCUPADA por ${occupiedByUser.full_name}` : ' - Libre'}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-            </div>
-
             {cls.recurring && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <input 
@@ -1781,7 +1759,7 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
             <button 
               className="btn btn-primary" 
               style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '10px' }}
-              disabled={isSubmitting || !selectedUserId || !selectedMachineId}
+              disabled={isSubmitting || !selectedUserId}
               onClick={handleAdminBook}
             >
               {isSubmitting ? (

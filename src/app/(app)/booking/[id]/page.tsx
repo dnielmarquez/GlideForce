@@ -156,8 +156,8 @@ function BookingContent({ id }: { id: string }) {
     }, [id]);
 
     useEffect(() => {
-        if (selected && session?.recurrence_id) {
-            getRecurringSessionsForBooking(id, selected).then(res => {
+        if (session?.recurrence_id) {
+            getRecurringSessionsForBooking(id, null).then(res => {
                 if (res && 'sessions' in res && res.sessions) {
                     setEligibleRecurringSessions(res.sessions);
                     setSelectedSessionIds([id]); // Default to only current class
@@ -170,7 +170,7 @@ function BookingContent({ id }: { id: string }) {
             setEligibleRecurringSessions([]);
             setSelectedSessionIds([id]);
         }
-    }, [selected, session?.recurrence_id, id]);
+    }, [session?.recurrence_id, id]);
 
     if (isLoading) {
         return (
@@ -191,16 +191,17 @@ function BookingContent({ id }: { id: string }) {
         );
     }
 
-    const isWaitlist = machinesCount > 0 && occupied.length >= machinesCount;
-    const available = Math.max(0, machinesCount - occupied.length);
+    const totalCapacity = session?.capacity || machinesCount || 5;
+    const isWaitlist = totalCapacity > 0 && occupied.length >= totalCapacity;
+    const available = Math.max(0, totalCapacity - occupied.length);
 
     const handleConfirmBooking = async () => {
-        if (!selected || !paymentMethod) return;
+        if (!paymentMethod) return;
         setWompiError(null);
 
         if (paymentMethod === 'online') {
             setIsProcessing(true);
-            const res = await initiateBookingPayment(selectedSessionIds, selected, appliedCoupon?.code || undefined);
+            const res = await initiateBookingPayment(selectedSessionIds, null, appliedCoupon?.code || undefined);
             setIsProcessing(false);
 
             if ('error' in res) { setWompiError(res.error); return; }
@@ -245,7 +246,7 @@ function BookingContent({ id }: { id: string }) {
 
         // Stars payment
         setIsProcessing(true);
-        const res = await processBooking(selectedSessionIds, selected, 'stars', isWaitlist);
+        const res = await processBooking(selectedSessionIds, null, 'stars', isWaitlist);
         setIsProcessing(false);
         if ('error' in res && res.error) {
             alert(res.error);
@@ -780,39 +781,20 @@ function BookingContent({ id }: { id: string }) {
 
                 {/* Desktop Right Column: Actions */}
                 <div className="md:col-span-5 space-y-8 md:sticky md:top-24 md:bg-white md:p-8 md:rounded-3xl md:shadow-sm md:border md:border-surface-container">
-                    <section className="space-y-4">
-                        <div className="flex justify-between items-end">
-                            <h3 className="text-xl font-bold tracking-tight">Selecciona tu Máquina</h3>
-                            <span className="text-xs text-on-surface-variant font-medium">{isWaitlist ? "0 disponibles" : `${available} disponibles hoy`}</span>
+                    <section className="bg-surface-container-low p-6 rounded-2xl border border-surface-container space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">Disponibilidad</span>
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                isWaitlist 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-green-100 text-green-800'
+                            }`}>
+                                {isWaitlist ? 'Clase llena' : `${available} cupos disponibles`}
+                            </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            {machineList.length > 0 ? machineList.map(m => {
-                                const isMyMachine = userBooking?.machine_id === m.id && userBooking?.status === 'confirmed';
-                                const isOccupied = occupied.includes(m.id) && !isMyMachine;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        disabled={isOccupied || isWaitlist || !canBook}
-                                        onClick={() => setSelected(m.id)}
-                                        className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm transition-all ${
-                                            isMyMachine ? 'border-2 border-green-500 bg-green-50/50' : 
-                                            isOccupied || isWaitlist || !canBook ? 'bg-surface-container opacity-50 border border-transparent' : 
-                                            (selected === m.id ? 'border-2 border-primary-container bg-primary-container/5' : 'border border-surface-container bg-white hover:border-primary-container/30')
-                                        }`}
-                                    >
-                                        <span className={`material-symbols-outlined text-3xl mb-2 ${isMyMachine ? 'text-green-600' : ''}`} style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) || isMyMachine ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
-                                        <span className="text-[11px] font-bold">{m.label}</span>
-                                        <span className={`text-[9px] uppercase tracking-wider font-black mt-1 ${isMyMachine ? 'text-green-600' : (isOccupied || isWaitlist ? 'text-primary' : 'text-primary')}`}>
-                                            {isMyMachine ? 'Tu Máquina' : (isOccupied || isWaitlist ? 'Ocupado' : 'Disponible')}
-                                        </span>
-                                    </button>
-                                );
-                            }) : Array.from({ length: machinesCount || 5 }, (_, i) => i + 1).map(m => (
-                                <div key={m} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-surface-container bg-surface-container-low opacity-50">
-                                    <span className="text-[11px] font-bold">M-0{m}</span>
-                                    <span className="text-[9px] uppercase tracking-wider text-error font-black mt-1">NO CONFIGURADA</span>
-                                </div>
-                            ))}
+                        <div className="flex items-center gap-2.5 text-xs text-on-surface-variant/90 bg-white p-3 rounded-xl border border-surface-container-high/60 shadow-sm">
+                            <span className="material-symbols-outlined text-primary text-base shrink-0">info</span>
+                            <span>Las máquinas se eligen en <strong>orden de llegada</strong> al ingresar al estudio.</span>
                         </div>
                     </section>
 
@@ -832,9 +814,6 @@ function BookingContent({ id }: { id: string }) {
                                         userBooking?.status === 'confirmed' ? (isFinished ? 'Clase completada. ¡Gracias por asistir!' : 'Ya estás inscrito en esta clase.') :
                                         `Esta clase está ${userBookingStatusLabel.toLowerCase()}.`
                                      }</span>
-                                     {userBooking?.status === 'confirmed' && userBooking?.machine_id && (
-                                         <span className="text-green-700 mt-2 uppercase tracking-wider text-[11px]">Máquina asignada: {machineList.find(m => m.id === userBooking.machine_id)?.label || userBooking.machine_id}</span>
-                                     )}
                                 </div>
                                 {userBooking?.status === 'confirmed' && !isFinished && (
                                     <button onClick={() => setShowCancelModal(true)} className="w-full py-5 border-2 border-error/30 text-error rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-error/5 hover:border-error/50">
@@ -848,21 +827,10 @@ function BookingContent({ id }: { id: string }) {
                             </button>
                         ) : (
                             <>
-                                {/* Hint when no machine is selected */}
-                                {!selected && (
-                                    <motion.p
-                                        initial={{ opacity: 0, y: -6 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-center text-sm font-semibold text-on-surface-variant bg-surface-container rounded-2xl py-3 px-4"
-                                    >
-                                        <span className="material-symbols-outlined text-base align-middle mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>touch_app</span>
-                                        Selecciona una máquina primero
-                                    </motion.p>
-                                )}
-                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" disabled={!selected}>
+                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-all">
                                     <span className="material-symbols-outlined">payments</span> Pagar en Línea
                                 </button>
-                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selected || stars < (session.stars_cost || 1)}>
+                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed" disabled={stars < (session.stars_cost || 1)}>
                                     <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Sesiones
                                 </button>
                             </>

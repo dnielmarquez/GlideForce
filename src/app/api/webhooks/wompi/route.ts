@@ -145,14 +145,13 @@ export async function POST(req: NextRequest) {
 
             } else if (
                 payment.purpose === 'class_booking' &&
-                payment.session_id &&
-                payment.machine_id
+                payment.session_id
             ) {
                 await fulfillBookingFromWebhook(
                     payment.id,
                     payment.member_id,
                     payment.session_id,
-                    payment.machine_id
+                    payment.machine_id ?? null
                 );
             }
         } catch (err) {

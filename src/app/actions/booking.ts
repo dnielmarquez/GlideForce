@@ -20,9 +20,9 @@ export async function getOccupiedMachines(sessionId: string) {
 
 export async function processBooking(
     sessionIds: string[],
-    machineId: string,
-    paymentMethod: 'stars',
-    isWaitlist: boolean
+    machineId?: string | null,
+    paymentMethod: 'stars' = 'stars',
+    isWaitlist: boolean = false
 ) {
     if (!sessionIds || sessionIds.length === 0) {
         return { error: 'No se seleccionaron clases para reservar.' };
@@ -61,17 +61,26 @@ export async function processBooking(
             return { error: 'Una o más clases no fueron encontradas.' };
         }
 
-        // 3. Double check the machine isn't literally just taken
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: takenCheck } = await (supabase as any)
-            .from('bookings')
-            .select('id, session_id')
-            .in('session_id', sessionIds)
-            .eq('machine_id', machineId)
-            .in('status', ['confirmed']);
+        // 3. Double check the session still has capacity available
+        if (!isWaitlist) {
+            const { data: currentBookings } = await (supabase as any)
+                .from('bookings')
+                .select('session_id')
+                .in('session_id', sessionIds)
+                .in('status', ['confirmed']);
 
-        if (takenCheck && takenCheck.length > 0 && !isWaitlist) {
-            return { error: 'Lo sentimos, la máquina ya está ocupada en alguna de las fechas elegidas.' };
+            const bookingsCountBySession: Record<string, number> = {};
+            (currentBookings || []).forEach((b: any) => {
+                bookingsCountBySession[b.session_id] = (bookingsCountBySession[b.session_id] || 0) + 1;
+            });
+
+            for (const s of sessions) {
+                const cap = s.capacity || 5;
+                const taken = bookingsCountBySession[s.id] || 0;
+                if (taken >= cap) {
+                    return { error: 'Lo sentimos, ya no quedan cupos disponibles en alguna de las fechas elegidas.' };
+                }
+            }
         }
 
         // 4. Process Payment — stars only (online is handled via Wompi webhook)
@@ -111,7 +120,7 @@ export async function processBooking(
         const bookingsToInsert = sessions.map((s: any) => ({
             session_id: s.id,
             member_id: user.id,
-            machine_id: machineId,
+            machine_id: machineId || null,
             status: 'confirmed',
             stars_spent: s.stars_cost || 1,
             cancelled_at: null,
@@ -128,7 +137,7 @@ export async function processBooking(
         if (bookingErr) throw bookingErr;
 
         // Trigger email confirmation asynchronously
-        sendBookingEmails(user.id, sessionIds, machineId, true);
+        sendBookingEmails(user.id, sessionIds, machineId || null, true);
 
         // Force a page re-render to reflect the new state immediately!
         revalidatePath('/classes');
@@ -363,7 +372,7 @@ export async function fulfillBookingFromWebhook(
     paymentId: string,
     memberId: string,
     sessionId: string,
-    machineId: string
+    machineId?: string | null
 ) {
     const adminSupabase = createAdminClient();
 
@@ -389,7 +398,7 @@ export async function fulfillBookingFromWebhook(
     const bookingsToInsert = sessionIdsToBook.map(sid => ({
         session_id:  sid,
         member_id:   memberId,
-        machine_id:  machineId,
+        machine_id:  machineId || null,
         status:      'confirmed',
         stars_spent: 0,          // Paid in COP, not stars
         payment_id:  paymentId,  // FK → payments table
@@ -409,7 +418,7 @@ export async function fulfillBookingFromWebhook(
     }
 
     // Trigger email confirmation asynchronously
-    sendBookingEmails(memberId, sessionIdsToBook, machineId, true);
+    sendBookingEmails(memberId, sessionIdsToBook, machineId || null, true);
 
     // Check if a coupon was used for this payment
     try {
@@ -472,7 +481,7 @@ export async function fulfillBookingFromWebhook(
  */
 export async function getRecurringSessionsForBooking(
     sessionId: string,
-    machineId: string
+    machineId?: string | null
 ): Promise<{ sessions: any[] } | { error: string }> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -494,7 +503,7 @@ export async function getRecurringSessionsForBooking(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: fullSess } = await (supabase as any)
                 .from('class_sessions')
-                .select('id, title, date, start_time, duration_minutes')
+                .select('id, title, date, start_time, duration_minutes, capacity')
                 .eq('id', sessionId)
                 .single();
             return { sessions: fullSess ? [fullSess] : [] };
@@ -504,7 +513,7 @@ export async function getRecurringSessionsForBooking(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: futureSessions, error: fsErr } = await (supabase as any)
             .from('class_sessions')
-            .select('id, title, date, start_time, duration_minutes')
+            .select('id, title, date, start_time, duration_minutes, capacity')
             .eq('recurrence_id', currentSession.recurrence_id)
             .eq('status', 'scheduled')
             .gte('date', currentSession.date)
@@ -514,18 +523,18 @@ export async function getRecurringSessionsForBooking(
             return { sessions: [] };
         }
 
-        // 3. Fetch active confirmed bookings for these session IDs to verify user and machine availability
+        // 3. Fetch active confirmed bookings for these session IDs to verify user and capacity availability
         const sessionIds = futureSessions.map((s: any) => s.id);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: bookings } = await (supabase as any)
             .from('bookings')
-            .select('session_id, member_id, machine_id')
+            .select('session_id, member_id')
             .in('session_id', sessionIds)
             .in('status', ['confirmed']);
 
         const activeBookings = bookings || [];
 
-        // 4. Filter sessions based on availability of the user and the specific machine
+        // 4. Filter sessions based on availability of the user and class capacity
         const eligibleSessions = futureSessions.filter((session: any) => {
             // Always include the primary/selected session itself
             if (session.id === sessionId) return true;
@@ -534,9 +543,10 @@ export async function getRecurringSessionsForBooking(
             const userBooked = activeBookings.some((b: any) => b.session_id === session.id && b.member_id === user.id);
             if (userBooked) return false;
 
-            // The specific machine cannot be occupied in the session
-            const machineOccupied = activeBookings.some((b: any) => b.session_id === session.id && b.machine_id === machineId);
-            if (machineOccupied) return false;
+            // Session cannot be over capacity
+            const sessionBookingsCount = activeBookings.filter((b: any) => b.session_id === session.id).length;
+            const cap = session.capacity || 5;
+            if (sessionBookingsCount >= cap) return false;
 
             return true;
         });
@@ -556,8 +566,8 @@ export async function getRecurringSessionsForBooking(
 export async function adminBookSpots(
     sessionId: string,
     memberId: string,
-    machineId: string,
-    applyToAllRecurring: boolean,
+    machineId?: string | null,
+    applyToAllRecurring: boolean = false,
     chargeStars: boolean = false
 ): Promise<{ success: true; count: number } | { error: string }> {
     const supabase = await createClient();
@@ -578,7 +588,7 @@ export async function adminBookSpots(
         // 1. Fetch current session recurrence
         const { data: currentSession, error: sErr } = await (supabase as any)
             .from('class_sessions')
-            .select('recurrence_id, date, stars_cost')
+            .select('recurrence_id, date, stars_cost, capacity')
             .eq('id', sessionId)
             .single();
 
@@ -600,10 +610,10 @@ export async function adminBookSpots(
             }
         }
 
-        // 2. Fetch occupied machines in these sessions to check availability
+        // 2. Fetch existing bookings in these sessions to check availability
         const { data: activeBookings } = await (supabase as any)
             .from('bookings')
-            .select('session_id, machine_id, member_id')
+            .select('session_id, member_id')
             .in('session_id', sessionIdsToBook)
             .in('status', ['confirmed']);
 
@@ -613,16 +623,16 @@ export async function adminBookSpots(
         const bookingsToInsert = [];
 
         for (const sid of sessionIdsToBook) {
-            // If the machine is already occupied in this session, skip it
-            const machineOccupied = bookingsList.some((b: any) => b.session_id === sid && b.machine_id === machineId);
-            if (machineOccupied) {
+            // If the user already has a confirmed booking in this session, skip it
+            const alreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
+            if (alreadyBooked) {
                 continue;
             }
 
             bookingsToInsert.push({
                 session_id: sid,
                 member_id: memberId,
-                machine_id: machineId,
+                machine_id: machineId || null,
                 status: 'confirmed',
                 stars_spent: chargeStars ? (currentSession.stars_cost || 1) : 0,
                 cancelled_at: null,
@@ -632,7 +642,7 @@ export async function adminBookSpots(
         }
 
         if (bookingsToInsert.length === 0) {
-            return { error: 'El usuario ya tiene reservas o la máquina está ocupada en todas las fechas seleccionadas.' };
+            return { error: 'El usuario ya tiene reservas en todas las fechas seleccionadas.' };
         }
 
         // 3. Process stars charge if enabled
@@ -674,7 +684,7 @@ export async function adminBookSpots(
         if (insertErr) throw insertErr;
 
         // Trigger email confirmation asynchronously (no admin notification, admin performed it!)
-        sendBookingEmails(memberId, sessionIdsToBook, machineId, false);
+        sendBookingEmails(memberId, sessionIdsToBook, machineId || null, false);
 
         revalidatePath('/classes');
         for (const sid of sessionIdsToBook) {

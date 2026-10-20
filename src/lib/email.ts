@@ -70,8 +70,8 @@ function formatEmailDate(dateStr: string): string {
 export async function sendBookingEmails(
   memberId: string,
   sessionIds: string[],
-  machineId: string,
-  notifyAdmin: boolean
+  machineId?: string | null,
+  notifyAdmin?: boolean
 ) {
   const adminEmail = process.env.GMAIL_EMAIL || 'glideandlift@gmail.com';
   const adminSupabase = createAdminClient() as any;
@@ -94,14 +94,18 @@ export async function sendBookingEmails(
 
     if (!sessions || sessions.length === 0) throw new Error('Sessions not found for booking emails.');
 
-    // C. Fetch Machine info
-    const { data: machine } = await adminSupabase
-      .from('machines')
-      .select('label')
-      .eq('id', machineId)
-      .single();
-
-    const machineLabel = machine?.label || `Spot/Máquina`;
+    // C. Fetch Machine info (if machine assigned)
+    let machineLabel: string | null = null;
+    if (machineId) {
+      const { data: machine } = await adminSupabase
+        .from('machines')
+        .select('label')
+        .eq('id', machineId)
+        .single();
+      if (machine?.label) {
+        machineLabel = machine.label;
+      }
+    }
 
     // D. Build Session Blocks for HTML
     const sessionBlocks = sessions.map((s: any) => {
@@ -134,10 +138,15 @@ export async function sendBookingEmails(
             <td style="padding: 4px 0; font-weight: 700;">Hora:</td>
             <td style="padding: 4px 0;">${b.time} (${b.duration} min)</td>
           </tr>
+          ${b.machineLabel ? `
           <tr>
             <td style="padding: 4px 0; font-weight: 700;">Máquina:</td>
             <td style="padding: 4px 0; font-weight: 800; color: #ea7034;">${b.machineLabel}</td>
-          </tr>
+          </tr>` : `
+          <tr>
+            <td style="padding: 4px 0; font-weight: 700;">Ubicación:</td>
+            <td style="padding: 4px 0; font-style: italic; color: #666;">Orden de llegada</td>
+          </tr>`}
         </table>
       </div>
     `).join('');
@@ -385,7 +394,7 @@ export async function sendCancellationNotificationToAdmin(
 export async function sendClassReminderEmail(
   memberId: string,
   session: any,
-  machineLabel: string
+  machineLabel?: string | null
 ) {
   const adminSupabase = createAdminClient() as any;
 
@@ -431,10 +440,15 @@ export async function sendClassReminderEmail(
               <td style="padding: 4px 0; font-weight: 700;">Hora:</td>
               <td style="padding: 4px 0;">${formattedTime} (${session.duration_minutes || 60} min)</td>
             </tr>
+            ${machineLabel ? `
             <tr>
               <td style="padding: 4px 0; font-weight: 700;">Máquina:</td>
               <td style="padding: 4px 0; font-weight: 800; color: #ea7034;">${machineLabel}</td>
-            </tr>
+            </tr>` : `
+            <tr>
+              <td style="padding: 4px 0; font-weight: 700;">Ubicación:</td>
+              <td style="padding: 4px 0; font-style: italic; color: #666;">Orden de llegada</td>
+            </tr>`}
           </table>
         </div>
         

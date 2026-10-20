@@ -247,7 +247,7 @@ export default function MemberDetailModal({ member, isEdit: initEdit, onClose, o
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{c.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
-                        {c.instructor} · {c.date} · {formatClassTime(c.time)} · {c.machine}
+                        {c.instructor} · {c.date} · {formatClassTime(c.time)}
                       </div>
                     </div>
                     <span style={{ fontSize: 10.5, fontWeight: 700, background: 'var(--orange)', color: 'white', padding: '3px 9px', borderRadius: 99 }}>Reservada</span>

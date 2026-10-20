@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     // 4. Send emails and update status
     for (const b of remindersToSend) {
       const session = b.class_sessions;
-      const machineLabel = b.machines?.label || 'Spot/Máquina';
+      const machineLabel = b.machines?.label || null;
 
       try {
         await sendClassReminderEmail(b.member_id, session, machineLabel);
