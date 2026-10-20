@@ -1282,26 +1282,28 @@
   background: white;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .transactions-thead {
   display: grid;
-  grid-template-columns: 2.2fr 2fr 1.6fr 1.2fr 1fr 1.8fr;
+  grid-template-columns: 1.8fr 1.5fr 1.3fr 1.3fr 1.3fr 1fr 0.9fr 1.4fr;
   padding: 11px 20px;
   background: var(--bg);
   border-bottom: 1.5px solid var(--border);
   gap: 12px;
+  min-width: 960px;
 }
 
 .transactions-row {
   display: grid;
-  grid-template-columns: 2.2fr 2fr 1.6fr 1.2fr 1fr 1.8fr;
+  grid-template-columns: 1.8fr 1.5fr 1.3fr 1.3fr 1.3fr 1fr 0.9fr 1.4fr;
   padding: 14px 20px;
   gap: 12px;
   align-items: center;
   transition: background 0.1s;
   cursor: default;
+  min-width: 960px;
 }
 
 .transactions-row:not(:last-child) {
@@ -1924,6 +1926,7 @@
     align-items: stretch !important;
     gap: 10px !important;
     padding: 16px !important;
+    min-width: unset !important;
   }
 
   .transactions-row>div {
@@ -1963,14 +1966,22 @@
   }
 
   .transactions-row>div:nth-child(4)::before {
-    content: "Monto";
+    content: "Cupón";
   }
 
   .transactions-row>div:nth-child(5)::before {
-    content: "Estado";
+    content: "Estrellas";
   }
 
   .transactions-row>div:nth-child(6)::before {
+    content: "Monto";
+  }
+
+  .transactions-row>div:nth-child(7)::before {
+    content: "Estado";
+  }
+
+  .transactions-row>div:nth-child(8)::before {
     content: "Fecha";
   }
 
