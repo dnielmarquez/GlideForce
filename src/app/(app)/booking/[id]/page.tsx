@@ -372,6 +372,10 @@ function BookingContent({ id }: { id: string }) {
                                     )}
                                     Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de sesiones</strong>.
                                 </p>
+                                <div className="mt-4 p-3.5 bg-surface-container rounded-xl flex items-start gap-2.5 text-xs text-on-surface font-medium border border-surface-container-high text-left">
+                                    <span className="material-symbols-outlined text-primary-container text-base shrink-0">schedule</span>
+                                    <span><strong>Vigencia:</strong> Las clases y sesiones tienen una vigencia de <strong>60 días</strong> a partir de su compra o asignación.</span>
+                                </div>
                             </div>
                             <div className="w-full shrink-0 pt-3 border-t border-surface-container-high">
                                 <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => setShowPolicyModal(false)}>
@@ -715,6 +719,10 @@ function BookingContent({ id }: { id: string }) {
                                                 <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
                                             )}
                                             Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de sesiones</strong>.
+                                            <div className="mt-3 pt-2.5 border-t border-error/20 text-xs text-on-surface-variant flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-sm text-primary-container">info</span>
+                                                <span>Las clases son vigentes por <strong>60 días</strong>.</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="w-full space-y-3 shrink-0 pt-3 border-t border-surface-container-high">
@@ -773,7 +781,7 @@ function BookingContent({ id }: { id: string }) {
                             </div>
                         </div>
                         <div className="relative w-full h-48 md:h-96 rounded-2xl overflow-hidden shadow-sm border border-surface-container">
-                            <img className="w-full h-full object-cover" src="https://zmzuyjgbypwvqazxewdr.supabase.co/storage/v1/object/public/avatars/classPhoto.jpg" alt="Class preview" />
+                            <img className="w-full h-full object-cover" src="/classPhoto.jpg" alt="GlideForce Class" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                         </div>
                     </section>
