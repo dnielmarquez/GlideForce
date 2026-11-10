@@ -1,17 +1,18 @@
 interface LogoHeaderProps {
     title?: string;
     subtitle?: string;
+    className?: string;
 }
 
-export default function LogoHeader({ title = "GlideForce", subtitle = "Eleva tu rendimiento" }: LogoHeaderProps) {
+export default function LogoHeader({ title = "Glideforce", subtitle = "Eleva tu rendimiento", className }: LogoHeaderProps) {
     return (
-        <header className="bg-white pt-16 pb-12 flex flex-col items-center">
-            <div className="mb-6 flex justify-center">
+        <header className={`bg-white pt-8 md:pt-16 ${className ? className : 'pb-8 md:pb-12'} flex flex-col items-center`}>
+            <div className="mb-4 md:mb-6 flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                    alt="GlideForce Logo" 
-                    className="h-20 w-auto object-contain" 
-                    src="https://glideforcefitness.com/cdn/shop/files/LOGO_GLIDE_AND_LIFT.jpg?v=1763609873&width=120"
+                <img
+                    alt="Glideforce Logo"
+                    className="h-16 md:h-20 w-auto object-contain"
+                    src="/logoFixed.jpeg"
                 />
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-on-surface">{title}</h1>
@@ -19,3 +20,4 @@ export default function LogoHeader({ title = "GlideForce", subtitle = "Eleva tu 
         </header>
     );
 }
+

@@ -13,7 +13,7 @@ import { generateWompiReference, generateIntegrityHash } from '@/lib/wompi';
  */
 export async function initiateBookingPayment(
     sessionIds: string[],
-    machineId: string,
+    machineId?: string | null,
     couponCode?: string
 ): Promise<{
     reference: string;
@@ -34,7 +34,7 @@ export async function initiateBookingPayment(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: sessions, error: sessErr } = await (supabase as any)
         .from('class_sessions')
-        .select('id, status')
+        .select('id, status, capacity')
         .in('id', sessionIds);
 
     if (sessErr || !sessions || sessions.length !== sessionIds.length) {
@@ -47,17 +47,25 @@ export async function initiateBookingPayment(
         }
     }
 
-    // Verify machine is still free in all sessions
+    // Verify session capacity is still available
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: taken } = await (supabase as any)
+    const { data: activeBookings } = await (supabase as any)
         .from('bookings')
         .select('id, session_id')
         .in('session_id', sessionIds)
-        .eq('machine_id', machineId)
         .in('status', ['confirmed']);
 
-    if (taken && taken.length > 0) {
-        return { error: 'Lo sentimos, la máquina ya está ocupada en alguna de las fechas elegidas.' };
+    const bookingsCountBySession: Record<string, number> = {};
+    (activeBookings || []).forEach((b: any) => {
+        bookingsCountBySession[b.session_id] = (bookingsCountBySession[b.session_id] || 0) + 1;
+    });
+
+    for (const s of sessions) {
+        const cap = s.capacity || 5;
+        const taken = bookingsCountBySession[s.id] || 0;
+        if (taken >= cap) {
+            return { error: 'Lo sentimos, ya no quedan cupos disponibles en alguna de las fechas elegidas.' };
+        }
     }
 
     // Fetch class price from settings
@@ -150,7 +158,7 @@ export async function initiateBookingPayment(
             purpose:         'class_booking',
             status:          'pending',
             session_id:      sessionIds[0],
-            machine_id:      machineId,
+            machine_id:      machineId || null,
             amount_in_cents: amountInCents,
             currency,
             coupon_id:       couponId,

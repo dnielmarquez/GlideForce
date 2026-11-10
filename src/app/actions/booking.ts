@@ -20,9 +20,9 @@ export async function getOccupiedMachines(sessionId: string) {
 
 export async function processBooking(
     sessionIds: string[],
-    machineId: string,
-    paymentMethod: 'stars',
-    isWaitlist: boolean
+    machineId?: string | null,
+    paymentMethod: 'stars' = 'stars',
+    isWaitlist: boolean = false
 ) {
     if (!sessionIds || sessionIds.length === 0) {
         return { error: 'No se seleccionaron clases para reservar.' };
@@ -34,6 +34,19 @@ export async function processBooking(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         return { error: 'Debes iniciar sesión para reservar.' };
+    }
+
+    // Check if the user already has a confirmed booking in any of the requested sessions
+    // to enforce a single booking per member for standard member checkouts
+    const { data: existingBookings } = await (supabase as any)
+        .from('bookings')
+        .select('session_id')
+        .in('session_id', sessionIds)
+        .eq('member_id', user.id)
+        .in('status', ['confirmed']);
+
+    if (existingBookings && existingBookings.length > 0) {
+        return { error: 'Ya tienes una reserva confirmada en una de las clases seleccionadas.' };
     }
 
     try {
@@ -48,17 +61,26 @@ export async function processBooking(
             return { error: 'Una o más clases no fueron encontradas.' };
         }
 
-        // 3. Double check the machine isn't literally just taken
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: takenCheck } = await (supabase as any)
-            .from('bookings')
-            .select('id, session_id')
-            .in('session_id', sessionIds)
-            .eq('machine_id', machineId)
-            .in('status', ['confirmed']);
+        // 3. Double check the session still has capacity available
+        if (!isWaitlist) {
+            const { data: currentBookings } = await (supabase as any)
+                .from('bookings')
+                .select('session_id')
+                .in('session_id', sessionIds)
+                .in('status', ['confirmed']);
 
-        if (takenCheck && takenCheck.length > 0 && !isWaitlist) {
-            return { error: 'Lo sentimos, la máquina ya está ocupada en alguna de las fechas elegidas.' };
+            const bookingsCountBySession: Record<string, number> = {};
+            (currentBookings || []).forEach((b: any) => {
+                bookingsCountBySession[b.session_id] = (bookingsCountBySession[b.session_id] || 0) + 1;
+            });
+
+            for (const s of sessions) {
+                const cap = s.capacity || 5;
+                const taken = bookingsCountBySession[s.id] || 0;
+                if (taken >= cap) {
+                    return { error: 'Lo sentimos, ya no quedan cupos disponibles en alguna de las fechas elegidas.' };
+                }
+            }
         }
 
         // 4. Process Payment — stars only (online is handled via Wompi webhook)
@@ -74,7 +96,7 @@ export async function processBooking(
             const totalCost = sessions.reduce((sum: number, s: any) => sum + (s.stars_cost || 1), 0);
 
             if (!profile || profile.stars_balance < totalCost) {
-                return { error: 'No tienes estrellas suficientes (Verificación del servidor).' };
+                return { error: 'No tienes sesiones suficientes (Verificación del servidor).' };
             }
 
             const adminSupabase = createAdminClient();
@@ -98,7 +120,7 @@ export async function processBooking(
         const bookingsToInsert = sessions.map((s: any) => ({
             session_id: s.id,
             member_id: user.id,
-            machine_id: machineId,
+            machine_id: machineId || null,
             status: 'confirmed',
             stars_spent: s.stars_cost || 1,
             cancelled_at: null,
@@ -110,12 +132,12 @@ export async function processBooking(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: bookingErr } = await (adminSupabase as any)
             .from('bookings')
-            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+            .insert(bookingsToInsert);
         
         if (bookingErr) throw bookingErr;
 
         // Trigger email confirmation asynchronously
-        sendBookingEmails(user.id, sessionIds, machineId, true);
+        sendBookingEmails(user.id, sessionIds, machineId || null, true);
 
         // Force a page re-render to reflect the new state immediately!
         revalidatePath('/classes');
@@ -245,7 +267,7 @@ export async function cancelBooking(sessionId: string) {
                         reference_type: 'session',
                         note: booking.stars_spent > 0
                             ? 'Reembolso por cancelación a tiempo'
-                            : 'Reembolso en estrella por cancelación a tiempo de clase pagada online'
+                            : 'Reembolso en sesión por cancelación a tiempo de clase pagada online'
                     });
                 if (txErr) console.error('Error processing refund transaction:', txErr);
             }
@@ -279,7 +301,7 @@ export async function adminCancelClass(sessionId: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: bookings, error: bksErr } = await (adminSupabase as any)
             .from('bookings')
-            .select('id, member_id, stars_spent')
+            .select('id, member_id, stars_spent, payment_id')
             .eq('session_id', sessionId)
             .in('status', ['confirmed']);
         
@@ -301,14 +323,21 @@ export async function adminCancelClass(sessionId: string) {
             if (updErr) throw updErr;
 
             // 4. Refund stars for each booking
-            const transactions = bookings.filter((b: any) => b.stars_spent > 0).map((b: any) => ({
-                member_id: b.member_id,
-                amount: b.stars_spent,
-                type: 'admin_cancellation_refund',
-                reference_id: sessionId,
-                reference_type: 'session',
-                note: 'Reembolso por cancelación de clase por administrador'
-            }));
+            const transactions = bookings
+                .map((b: any) => {
+                    const refundAmount = b.stars_spent > 0 
+                        ? b.stars_spent 
+                        : (b.payment_id ? 1 : 0);
+                    return {
+                        member_id: b.member_id,
+                        amount: refundAmount,
+                        type: 'cancellation_refund',
+                        reference_id: sessionId,
+                        reference_type: 'session',
+                        note: 'Reembolso por cancelación de clase por administrador'
+                    };
+                })
+                .filter((tx: any) => tx.amount > 0);
 
             if (transactions.length > 0) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -343,7 +372,7 @@ export async function fulfillBookingFromWebhook(
     paymentId: string,
     memberId: string,
     sessionId: string,
-    machineId: string
+    machineId?: string | null
 ) {
     const adminSupabase = createAdminClient();
 
@@ -369,7 +398,7 @@ export async function fulfillBookingFromWebhook(
     const bookingsToInsert = sessionIdsToBook.map(sid => ({
         session_id:  sid,
         member_id:   memberId,
-        machine_id:  machineId,
+        machine_id:  machineId || null,
         status:      'confirmed',
         stars_spent: 0,          // Paid in COP, not stars
         payment_id:  paymentId,  // FK → payments table
@@ -381,7 +410,7 @@ export async function fulfillBookingFromWebhook(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: bookingErr } = await (adminSupabase as any)
         .from('bookings')
-        .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+        .insert(bookingsToInsert);
 
     if (bookingErr) {
         console.error('[fulfillBookingFromWebhook] Failed to insert bookings:', bookingErr);
@@ -389,7 +418,7 @@ export async function fulfillBookingFromWebhook(
     }
 
     // Trigger email confirmation asynchronously
-    sendBookingEmails(memberId, sessionIdsToBook, machineId, true);
+    sendBookingEmails(memberId, sessionIdsToBook, machineId || null, true);
 
     // Check if a coupon was used for this payment
     try {
@@ -414,8 +443,8 @@ export async function fulfillBookingFromWebhook(
                 .eq('id', payment.coupon_id)
                 .single();
 
-            // 3. Award 1 extra star if it was a 2_for_1 promo AND only 1 session was booked
-            if (coupon && coupon.discount_type === '2_for_1' && sessionIdsToBook.length === 1) {
+            // 3. Award 1 extra star if it was a 2_for_1 promo
+            if (coupon && coupon.discount_type === '2_for_1') {
                 const { error: txErr } = await (adminSupabase as any)
                     .from('star_transactions')
                     .insert({
@@ -425,7 +454,7 @@ export async function fulfillBookingFromWebhook(
                         payment_id:     paymentId,
                         reference_id:   sessionId,
                         reference_type: 'session',
-                        note:           'Promo 2x1 - Estrellita Extra por uso de cupón en Pago de Clase'
+                        note:           'Promo 2x1 - Sesión Extra por uso de cupón en Pago de Clase'
                     });
 
                 if (txErr) {
@@ -452,7 +481,7 @@ export async function fulfillBookingFromWebhook(
  */
 export async function getRecurringSessionsForBooking(
     sessionId: string,
-    machineId: string
+    machineId?: string | null
 ): Promise<{ sessions: any[] } | { error: string }> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -474,7 +503,7 @@ export async function getRecurringSessionsForBooking(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: fullSess } = await (supabase as any)
                 .from('class_sessions')
-                .select('id, title, date, start_time, duration_minutes')
+                .select('id, title, date, start_time, duration_minutes, capacity')
                 .eq('id', sessionId)
                 .single();
             return { sessions: fullSess ? [fullSess] : [] };
@@ -484,7 +513,7 @@ export async function getRecurringSessionsForBooking(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: futureSessions, error: fsErr } = await (supabase as any)
             .from('class_sessions')
-            .select('id, title, date, start_time, duration_minutes')
+            .select('id, title, date, start_time, duration_minutes, capacity')
             .eq('recurrence_id', currentSession.recurrence_id)
             .eq('status', 'scheduled')
             .gte('date', currentSession.date)
@@ -494,18 +523,18 @@ export async function getRecurringSessionsForBooking(
             return { sessions: [] };
         }
 
-        // 3. Fetch active confirmed bookings for these session IDs to verify user and machine availability
+        // 3. Fetch active confirmed bookings for these session IDs to verify user and capacity availability
         const sessionIds = futureSessions.map((s: any) => s.id);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: bookings } = await (supabase as any)
             .from('bookings')
-            .select('session_id, member_id, machine_id')
+            .select('session_id, member_id')
             .in('session_id', sessionIds)
             .in('status', ['confirmed']);
 
         const activeBookings = bookings || [];
 
-        // 4. Filter sessions based on availability of the user and the specific machine
+        // 4. Filter sessions based on availability of the user and class capacity
         const eligibleSessions = futureSessions.filter((session: any) => {
             // Always include the primary/selected session itself
             if (session.id === sessionId) return true;
@@ -514,9 +543,10 @@ export async function getRecurringSessionsForBooking(
             const userBooked = activeBookings.some((b: any) => b.session_id === session.id && b.member_id === user.id);
             if (userBooked) return false;
 
-            // The specific machine cannot be occupied in the session
-            const machineOccupied = activeBookings.some((b: any) => b.session_id === session.id && b.machine_id === machineId);
-            if (machineOccupied) return false;
+            // Session cannot be over capacity
+            const sessionBookingsCount = activeBookings.filter((b: any) => b.session_id === session.id).length;
+            const cap = session.capacity || 5;
+            if (sessionBookingsCount >= cap) return false;
 
             return true;
         });
@@ -536,8 +566,8 @@ export async function getRecurringSessionsForBooking(
 export async function adminBookSpots(
     sessionId: string,
     memberId: string,
-    machineId: string,
-    applyToAllRecurring: boolean,
+    machineId?: string | null,
+    applyToAllRecurring: boolean = false,
     chargeStars: boolean = false
 ): Promise<{ success: true; count: number } | { error: string }> {
     const supabase = await createClient();
@@ -558,7 +588,7 @@ export async function adminBookSpots(
         // 1. Fetch current session recurrence
         const { data: currentSession, error: sErr } = await (supabase as any)
             .from('class_sessions')
-            .select('recurrence_id, date, stars_cost')
+            .select('recurrence_id, date, stars_cost, capacity')
             .eq('id', sessionId)
             .single();
 
@@ -580,10 +610,10 @@ export async function adminBookSpots(
             }
         }
 
-        // 2. Fetch occupied machines in these sessions to check availability
+        // 2. Fetch existing bookings in these sessions to check availability
         const { data: activeBookings } = await (supabase as any)
             .from('bookings')
-            .select('session_id, machine_id, member_id')
+            .select('session_id, member_id')
             .in('session_id', sessionIdsToBook)
             .in('status', ['confirmed']);
 
@@ -593,22 +623,16 @@ export async function adminBookSpots(
         const bookingsToInsert = [];
 
         for (const sid of sessionIdsToBook) {
-            // If the user already has a booking in this session, skip it
-            const userAlreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
-            if (userAlreadyBooked) {
-                continue;
-            }
-
-            // If the machine is already occupied in this session, skip it
-            const machineOccupied = bookingsList.some((b: any) => b.session_id === sid && b.machine_id === machineId);
-            if (machineOccupied) {
+            // If the user already has a confirmed booking in this session, skip it
+            const alreadyBooked = bookingsList.some((b: any) => b.session_id === sid && b.member_id === memberId);
+            if (alreadyBooked) {
                 continue;
             }
 
             bookingsToInsert.push({
                 session_id: sid,
                 member_id: memberId,
-                machine_id: machineId,
+                machine_id: machineId || null,
                 status: 'confirmed',
                 stars_spent: chargeStars ? (currentSession.stars_cost || 1) : 0,
                 cancelled_at: null,
@@ -618,7 +642,7 @@ export async function adminBookSpots(
         }
 
         if (bookingsToInsert.length === 0) {
-            return { error: 'El usuario ya tiene reservas o la máquina está ocupada en todas las fechas seleccionadas.' };
+            return { error: 'El usuario ya tiene reservas en todas las fechas seleccionadas.' };
         }
 
         // 3. Process stars charge if enabled
@@ -633,7 +657,7 @@ export async function adminBookSpots(
             const totalStarsCost = bookingsToInsert.length * (currentSession.stars_cost || 1);
 
             if (!memberProfile || memberProfile.stars_balance < totalStarsCost) {
-                return { error: `El usuario no tiene estrellas suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
+                return { error: `El usuario no tiene sesiones suficientes para esta reserva (${totalStarsCost} requeridas, tiene ${memberProfile?.stars_balance || 0}).` };
             }
 
             const adminSupabase = createAdminClient();
@@ -655,12 +679,12 @@ export async function adminBookSpots(
         const adminSupabase = createAdminClient();
         const { error: insertErr } = await (adminSupabase as any)
             .from('bookings')
-            .upsert(bookingsToInsert, { onConflict: 'session_id, member_id' });
+            .insert(bookingsToInsert);
 
         if (insertErr) throw insertErr;
 
         // Trigger email confirmation asynchronously (no admin notification, admin performed it!)
-        sendBookingEmails(memberId, sessionIdsToBook, machineId, false);
+        sendBookingEmails(memberId, sessionIdsToBook, machineId || null, false);
 
         revalidatePath('/classes');
         for (const sid of sessionIdsToBook) {
@@ -736,7 +760,7 @@ export async function adminCancelBooking(
                     type: 'admin_adjustment',
                     reference_id: booking.session_id,
                     reference_type: 'session',
-                    note: 'Reembolso administrativo manual (1 estrella)'
+                    note: 'Reembolso administrativo manual (1 sesión)'
                 });
             if (txErr) console.error('Error processing admin refund:', txErr);
         }
@@ -814,5 +838,303 @@ export async function adminUpdateClassTime(
         return { error: 'Ocurrió un error al actualizar el horario de la clase.' };
     }
 }
+
+export async function adminUpdateClassTitle(
+    classId: string,
+    newTitle: string,
+    applyToAllRecurring: boolean
+): Promise<{ success: true } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+
+        // 1. Fetch current class details to get recurrence_id and date
+        const { data: classSession, error: sErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .select('id, recurrence_id, date')
+            .eq('id', classId)
+            .single();
+
+        if (sErr || !classSession) {
+            return { error: 'Clase no encontrada.' };
+        }
+
+        if (applyToAllRecurring && classSession.recurrence_id) {
+            // Update all classes in the recurrence series starting from the selected class's date onwards
+            const { error: updErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .update({ title: newTitle })
+                .eq('recurrence_id', classSession.recurrence_id)
+                .gte('date', classSession.date);
+            if (updErr) throw updErr;
+        } else {
+            // Update only this class
+            const { error: updErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .update({ title: newTitle })
+                .eq('id', classId);
+            if (updErr) throw updErr;
+        }
+
+        revalidatePath('/classes');
+        revalidatePath(`/booking/${classId}`);
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (e) {
+        console.error('[adminUpdateClassTitle] Error:', e);
+        return { error: 'Ocurrió un error al actualizar el nombre de la clase.' };
+    }
+}
+
+export interface RecurrenceSessionItem {
+    id: string;
+    title: string;
+    date: string;
+    time: string;
+    duration: number;
+    capacity: number;
+    confirmedBookingsCount: number;
+}
+
+export async function adminGetRecurrenceSessions(
+    recurrenceId: string,
+    futureOnly: boolean = true
+): Promise<{ success: true; sessions: RecurrenceSessionItem[] } | { error: string }> {
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+        const bogotaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+        const bogotaTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()) + ':00';
+
+        let query = (adminSupabase as any)
+            .from('class_sessions')
+            .select(`
+                id,
+                title,
+                date,
+                start_time,
+                duration_minutes,
+                capacity,
+                status,
+                bookings (
+                    id,
+                    status
+                )
+            `)
+            .eq('recurrence_id', recurrenceId)
+            .neq('status', 'cancelled');
+
+        if (futureOnly) {
+            query = query.gte('date', bogotaDate);
+        }
+
+        const { data: sessions, error: sErr } = await query
+            .order('date', { ascending: true })
+            .order('start_time', { ascending: true });
+
+        if (sErr) throw sErr;
+
+        // Filter out past classes on the same day if futureOnly
+        const filteredSessions = (sessions || []).filter((s: any) => {
+            if (!futureOnly) return true;
+            if (s.date > bogotaDate) return true;
+            if (s.date === bogotaDate) {
+                return (s.start_time || '00:00:00') >= bogotaTime;
+            }
+            return false;
+        });
+
+        const formatted: RecurrenceSessionItem[] = filteredSessions.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            date: s.date,
+            time: s.start_time ? s.start_time.substring(0, 5) : '',
+            duration: s.duration_minutes,
+            capacity: s.capacity,
+            confirmedBookingsCount: s.bookings ? s.bookings.filter((b: any) => b.status === 'confirmed').length : 0,
+        }));
+
+        return { success: true, sessions: formatted };
+    } catch (e) {
+        console.error('[adminGetRecurrenceSessions] Error:', e);
+        return { error: 'Ocurrió un error al obtener las clases de la serie recurrente.' };
+    }
+}
+
+export async function adminDeleteClasses(
+    sessionIds: string[]
+): Promise<{ success: true; deletedCount: number; refundedCount: number } | { error: string }> {
+    if (!sessionIds || sessionIds.length === 0) {
+        return { error: 'No se indicaron clases para eliminar.' };
+    }
+
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) return { error: 'No autenticado.' };
+
+    // Verify requesting user is admin
+    const { data: profile, error: pErr } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', adminUser.id)
+        .single();
+    if (pErr || !profile || profile.role !== 'admin') {
+        return { error: 'Acceso denegado. Se requieren permisos de administrador.' };
+    }
+
+    try {
+        const adminSupabase = createAdminClient();
+        const bogotaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+        const bogotaTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()) + ':00';
+
+        // 1. Fetch sessions details to verify they exist and capture recurrence_id
+        const { data: sessions, error: sessErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .select('id, title, date, start_time, recurrence_id')
+            .in('id', sessionIds);
+
+        if (sessErr) throw sessErr;
+        if (!sessions || sessions.length === 0) {
+            return { error: 'No se encontraron las clases a eliminar.' };
+        }
+
+        // Strictly filter to future sessions only
+        const futureSessions = (sessions || []).filter((s: any) => {
+            if (s.date > bogotaDate) return true;
+            if (s.date === bogotaDate) {
+                return (s.start_time || '00:00:00') >= bogotaTime;
+            }
+            return false;
+        });
+
+        if (futureSessions.length === 0) {
+            return { error: 'No se encontraron clases futuras para eliminar. Las clases que ya pasaron no pueden ser eliminadas.' };
+        }
+
+        const foundSessionIds = futureSessions.map((s: any) => s.id);
+        const recurrenceIdsToUpdate = Array.from(new Set(
+            futureSessions.map((s: any) => s.recurrence_id).filter(Boolean)
+        )) as string[];
+
+        // 2. Fetch all confirmed bookings for these sessions before deleting
+        const { data: bookings, error: bksErr } = await (adminSupabase as any)
+            .from('bookings')
+            .select('id, session_id, member_id, stars_spent, payment_id')
+            .in('session_id', foundSessionIds)
+            .eq('status', 'confirmed');
+
+        if (bksErr) throw bksErr;
+
+        let refundedCount = 0;
+        if (bookings && bookings.length > 0) {
+            refundedCount = bookings.length;
+            const transactions = bookings.map((b: any) => {
+                const refundAmount = b.stars_spent > 0 
+                    ? b.stars_spent 
+                    : (b.payment_id ? 1 : 0);
+                return {
+                    member_id: b.member_id,
+                    amount: refundAmount,
+                    type: 'cancellation_refund',
+                    reference_id: b.session_id,
+                    reference_type: 'session',
+                    note: 'Reembolso por eliminación de clase por administrador'
+                };
+            }).filter((tx: any) => tx.amount > 0);
+
+            if (transactions.length > 0) {
+                const { error: txErr } = await (adminSupabase as any)
+                    .from('star_transactions')
+                    .insert(transactions);
+                if (txErr) throw txErr;
+            }
+        }
+
+        // 3. Unlink foreign key in payments (RESTRICT constraint on payments.session_id)
+        const { error: payErr } = await (adminSupabase as any)
+            .from('payments')
+            .update({ session_id: null })
+            .in('session_id', foundSessionIds);
+        if (payErr) {
+            console.warn('[adminDeleteClasses] Warning unlinking payments:', payErr);
+        }
+
+        // 4. Delete the class sessions
+        const { error: delErr } = await (adminSupabase as any)
+            .from('class_sessions')
+            .delete()
+            .in('id', foundSessionIds);
+        if (delErr) throw delErr;
+
+        // 5. Update or clean up class_recurrences
+        for (const recId of recurrenceIdsToUpdate) {
+            const { count, error: countErr } = await (adminSupabase as any)
+                .from('class_sessions')
+                .select('id', { count: 'exact', head: true })
+                .eq('recurrence_id', recId);
+
+            if (!countErr) {
+                if (count === 0 || count === null) {
+                    await (adminSupabase as any)
+                        .from('class_recurrences')
+                        .delete()
+                        .eq('id', recId);
+                } else {
+                    await (adminSupabase as any)
+                        .from('class_recurrences')
+                        .update({ sessions_created: count })
+                        .eq('id', recId);
+                }
+            }
+        }
+
+        // 6. Invalidate caches
+        revalidatePath('/classes');
+        revalidatePath('/admin');
+        revalidatePath('/profile');
+        revalidatePath('/stars');
+        for (const sid of foundSessionIds) {
+            revalidatePath(`/booking/${sid}`);
+        }
+
+        return { 
+            success: true, 
+            deletedCount: foundSessionIds.length, 
+            refundedCount 
+        };
+    } catch (e) {
+        console.error('[adminDeleteClasses] Error:', e);
+        return { error: 'Ocurrió un error al eliminar las clases y procesar los reembolsos.' };
+    }
+}
+
+
 
 

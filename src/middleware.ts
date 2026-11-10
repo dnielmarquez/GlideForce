@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     const isPublicRoute = pathname === '/';
     const isCallbackRoute = pathname.startsWith('/auth/callback');
     const isAdminRoute = pathname.startsWith('/admin');
+    const isClassesRoute = pathname.startsWith('/classes');
     // Webhook endpoints must NEVER be redirected — they are called by third-party servers
     const isWebhookRoute = pathname.startsWith('/api/webhooks');
 
@@ -22,33 +23,37 @@ export async function middleware(request: NextRequest) {
         return response;
     }
 
-    // If already authenticated, push them off auth pages
-    if (user && isAuthRoute) {
-        return NextResponse.redirect(new URL('/classes', request.url));
-    }
-
     // Allow unauthenticated access to /reset-password
     // (user arrives with a valid recovery token, session is set by the callback)
-    if (pathname.startsWith('/reset-password')) {
+    if (pathname.startsWith('/reset-password') && !user) {
         return response;
     }
 
-    // Admin authorization check
-    if (user && isAdminRoute) {
+    // Auth & role-based routing for logged-in users
+    if (user) {
         const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
+        const userRole = profile?.role || 'client';
 
-        if (profile?.role !== 'admin') {
-            return NextResponse.redirect(new URL('/classes', request.url));
+        if (userRole === 'admin') {
+            // Admin cannot access /classes or auth routes
+            if (isClassesRoute || isAuthRoute) {
+                return NextResponse.redirect(new URL('/admin', request.url));
+            }
+        } else {
+            // Clients cannot access /admin or auth routes
+            if (isAdminRoute || isAuthRoute) {
+                return NextResponse.redirect(new URL('/classes', request.url));
+            }
         }
-    }
-
-    // If logged out, bounce back to login (unless on root, auth pages, or webhook routes)
-    if (!user && !isAuthRoute && !isPublicRoute && !isWebhookRoute) {
-        return NextResponse.redirect(new URL('/login', request.url));
+    } else {
+        // If logged out, bounce back to login (unless on root, auth pages, or webhook routes)
+        if (!isAuthRoute && !isPublicRoute && !isWebhookRoute) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
     }
 
     return response;
@@ -65,3 +70,4 @@ export const config = {
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };
+

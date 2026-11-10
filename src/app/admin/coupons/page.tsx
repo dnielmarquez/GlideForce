@@ -166,7 +166,7 @@ export default function CouponsPage() {
       </div>
 
       {/* ── Table header + filters ──────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="coupons-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Gestión de Cupones</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
@@ -174,7 +174,7 @@ export default function CouponsPage() {
           </div>
         </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="coupons-filter-group" style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Search */}
           <div className="topbar-search" style={{ width: 240 }}>
             <AdminIcon name="search" size={14} />
@@ -207,17 +207,12 @@ export default function CouponsPage() {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="coupons-table-wrap" style={{
         background: 'white', borderRadius: 'var(--radius)',
         border: '1.5px solid var(--border)', overflow: 'hidden',
       }}>
         {/* Head */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1.3fr 1.3fr 1.3fr 1fr 1fr 0.8fr 0.5fr',
-          padding: '11px 20px', background: 'var(--bg)',
-          borderBottom: '1.5px solid var(--border)', gap: 12,
-        }}>
+        <div className="coupons-thead">
           {[
             'Cupón',
             'Código',
@@ -261,15 +256,7 @@ export default function CouponsPage() {
           return (
             <div
               key={c.id}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1.3fr 1.3fr 1.3fr 1fr 1fr 0.8fr 0.5fr',
-                padding: '14px 20px', gap: 12, alignItems: 'center',
-                borderBottom: '1px solid var(--border)',
-                transition: 'background 0.1s', cursor: 'default',
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg)'}
-              onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'white'}
+              className="coupons-row"
             >
               {/* Cupón title & description */}
               <div>

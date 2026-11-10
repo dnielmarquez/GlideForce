@@ -13,6 +13,7 @@ type PaymentStatus  = AdminTransaction['status'];
 type PaymentPurpose = AdminTransaction['purpose'];
 type FilterStatus   = 'todos' | PaymentStatus;
 type FilterPurpose  = 'todos' | PaymentPurpose;
+type FilterCoupon   = 'todos' | 'con_cupon' | 'sin_cupon';
 type StatsPeriod    = 'today' | 'week' | 'month' | 'all';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -36,8 +37,8 @@ const STATUS_STYLE: Record<PaymentStatus, { bg: string; color: string; border: s
 };
 
 const PURPOSE_LABEL: Record<PaymentPurpose, string> = {
-    star_purchase: '⭐ Compra de Estrellas',
-    class_booking: '🏋️ Reserva de Clase',
+    star_purchase: '⭐ Sesiones',
+    class_booking: '🏋️ Reserva',
 };
 
 const PERIOD_LABEL: Record<StatsPeriod, string> = {
@@ -85,6 +86,7 @@ export default function TransactionsPage() {
     const [search, setSearch]           = useState('');
     const [filterStatus, setFilterStatus]   = useState<FilterStatus>('todos');
     const [filterPurpose, setFilterPurpose] = useState<FilterPurpose>('todos');
+    const [filterCoupon, setFilterCoupon]   = useState<FilterCoupon>('todos');
     const [statsPeriod, setStatsPeriod]     = useState<StatsPeriod>('month');
     const [toast, setToast]             = useState<ToastState>({ show: false, msg: '' });
 
@@ -102,9 +104,10 @@ export default function TransactionsPage() {
         return rows.filter(r => new Date(r.created_at) >= since);
     }, [rows, statsPeriod]);
 
-    const statsApproved = statsRows.filter(r => r.status === 'approved');
-    const totalRev      = statsApproved.reduce((s, r) => s + r.amount_in_cents, 0);
-    const statsPending  = statsRows.filter(r => r.status === 'pending').length;
+    const statsApproved       = statsRows.filter(r => r.status === 'approved');
+    const totalRev            = statsApproved.reduce((s, r) => s + r.amount_in_cents, 0);
+    const statsStarsDelivered = statsApproved.reduce((s, r) => s + (r.stars_delivered || 0), 0);
+    const statsCouponsUsed    = statsRows.filter(r => r.coupon !== null).length;
 
     // ── Table filtering ────────────────────────────────────────────────────────
     const filtered = useMemo(() => rows.filter(r => {
@@ -113,11 +116,14 @@ export default function TransactionsPage() {
             r.wompi_reference.toLowerCase().includes(q) ||
             r.member_name.toLowerCase().includes(q)     ||
             r.member_email.toLowerCase().includes(q)    ||
+            (r.coupon?.code ?? '').toLowerCase().includes(q) ||
+            (r.coupon?.title ?? '').toLowerCase().includes(q) ||
             (r.wompi_transaction_id ?? '').toLowerCase().includes(q);
         const matchStatus  = filterStatus  === 'todos' || r.status  === filterStatus;
         const matchPurpose = filterPurpose === 'todos' || r.purpose === filterPurpose;
-        return matchSearch && matchStatus && matchPurpose;
-    }), [rows, search, filterStatus, filterPurpose]);
+        const matchCoupon  = filterCoupon  === 'todos' || (filterCoupon === 'con_cupon' ? !!r.coupon : !r.coupon);
+        return matchSearch && matchStatus && matchPurpose && matchCoupon;
+    }), [rows, search, filterStatus, filterPurpose, filterCoupon]);
 
     // ── Loading ────────────────────────────────────────────────────────────────
     if (loading) {
@@ -131,7 +137,7 @@ export default function TransactionsPage() {
     return (
         <>
             {/* ── Stats period selector ───────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div className="transactions-stats-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Resumen:
                 </span>
@@ -166,16 +172,16 @@ export default function TransactionsPage() {
                     <div className="stat-sub">Solo aprobados</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">Pendientes</div>
-                    <div className="stat-value" style={{ color: statsPending > 0 ? '#D97706' : 'var(--text)' }}>
-                        {statsPending}
+                    <div className="stat-label">Estrellas Entregadas</div>
+                    <div className="stat-value" style={{ color: '#047857' }}>
+                        ⭐ {statsStarsDelivered}
                     </div>
-                    <div className="stat-sub">Sin confirmar</div>
+                    <div className="stat-sub">{statsCouponsUsed} con cupón</div>
                 </div>
             </div>
 
             {/* ── Table header + filters ──────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div className="transactions-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
                 <div>
                     <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Transacciones</div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
@@ -183,12 +189,12 @@ export default function TransactionsPage() {
                     </div>
                 </div>
 
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="transactions-filter-group" style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     {/* Search */}
                     <div className="topbar-search" style={{ width: 240 }}>
                         <AdminIcon name="search" size={14} />
                         <input
-                            placeholder="Referencia, nombre, correo…"
+                            placeholder="Referencia, nombre, cupón…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -215,7 +221,20 @@ export default function TransactionsPage() {
                                 className={`cal-view-tab${filterPurpose === k ? ' active' : ''}`}
                                 onClick={() => setFilterPurpose(k)}
                             >
-                                {k === 'todos' ? 'Todos' : k === 'star_purchase' ? 'Estrellas' : 'Reservas'}
+                                {k === 'todos' ? 'Tipos' : k === 'star_purchase' ? 'Sesiones' : 'Reservas'}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Coupon filter */}
+                    <div className="cal-view-tabs">
+                        {(['todos', 'con_cupon', 'sin_cupon'] as FilterCoupon[]).map(k => (
+                            <div
+                                key={k}
+                                className={`cal-view-tab${filterCoupon === k ? ' active' : ''}`}
+                                onClick={() => setFilterCoupon(k)}
+                            >
+                                {k === 'todos' ? 'Cupones' : k === 'con_cupon' ? 'Con cupón' : 'Sin cupón'}
                             </div>
                         ))}
                     </div>
@@ -223,18 +242,10 @@ export default function TransactionsPage() {
             </div>
 
             {/* ── Table ──────────────────────────────────────────────────────── */}
-            <div style={{
-                background: 'white', borderRadius: 'var(--radius)',
-                border: '1.5px solid var(--border)', overflow: 'hidden',
-            }}>
+            <div className="transactions-table-wrap">
                 {/* Head */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1.6fr 1.2fr 1fr 1.1fr 1.1fr',
-                    padding: '11px 20px', background: 'var(--bg)',
-                    borderBottom: '1.5px solid var(--border)', gap: 12,
-                }}>
-                    {['Miembro', 'Referencia Wompi', 'Tipo', 'Monto', 'Estado', 'Fecha'].map(h => (
+                <div className="transactions-thead">
+                    {['Miembro', 'Referencia Wompi', 'Tipo', 'Cupón', 'Estrellas', 'Monto', 'Estado', 'Fecha'].map(h => (
                         <div key={h} style={{
                             fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
                             textTransform: 'uppercase', letterSpacing: '0.07em',
@@ -254,20 +265,16 @@ export default function TransactionsPage() {
                 {/* Rows */}
                 {filtered.map(r => {
                     const st = STATUS_STYLE[r.status];
+                    const expectedStars = r.purpose === 'star_purchase'
+                        ? (r.stars_to_credit ?? 0)
+                        : (r.coupon?.discount_type === '2_for_1' ? 1 : 0);
+
                     return (
                         <div
                             key={r.id}
-                            style={{
-                                display: 'grid',
-                                gridTemplateColumns: '2fr 1.6fr 1.2fr 1fr 1.1fr 1.1fr',
-                                padding: '14px 20px', gap: 12, alignItems: 'center',
-                                borderBottom: '1px solid var(--border)',
-                                transition: 'background 0.1s', cursor: 'default',
-                            }}
-                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg)'}
-                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'white'}
+                            className="transactions-row"
                         >
-                            {/* Member */}
+                            {/* 1. Member */}
                             <div>
                                 <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{r.member_name}</div>
                                 <div style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 500, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -275,7 +282,7 @@ export default function TransactionsPage() {
                                 </div>
                             </div>
 
-                            {/* Reference */}
+                            {/* 2. Reference */}
                             <div>
                                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', fontFamily: 'monospace', letterSpacing: '0.01em', wordBreak: 'break-all' }}>
                                     {r.wompi_reference}
@@ -287,7 +294,7 @@ export default function TransactionsPage() {
                                 )}
                             </div>
 
-                            {/* Purpose */}
+                            {/* 3. Purpose */}
                             <div>
                                 <span style={{
                                     fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
@@ -298,16 +305,111 @@ export default function TransactionsPage() {
                                     whiteSpace: 'nowrap',
                                 }}>
                                     {PURPOSE_LABEL[r.purpose]}
-                                    {r.purpose === 'star_purchase' && r.stars_to_credit ? ` ×${r.stars_to_credit}` : ''}
                                 </span>
                             </div>
 
-                            {/* Amount */}
+                            {/* 4. Cupón */}
+                            <div>
+                                {r.coupon ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <span style={{
+                                            fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                                            background: '#FEF3C7', color: '#92400E', border: '1.5px solid #FCD34D',
+                                            fontFamily: 'monospace', width: 'fit-content', whiteSpace: 'nowrap',
+                                        }}>
+                                            🎟️ {r.coupon.code}
+                                        </span>
+                                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
+                                            {r.coupon.discount_type === '2_for_1' ? 'Promo 2x1' :
+                                             r.coupon.discount_type === 'percentage' ? `-${r.coupon.discount_value}%` :
+                                             `-${formatCOP(r.coupon.discount_value * 100)}`}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span style={{ fontSize: 12, color: 'var(--text-light)', fontWeight: 500 }}>
+                                        —
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* 5. Estrellas */}
+                            <div>
+                                {(() => {
+                                    if (r.status === 'approved') {
+                                        if (r.stars_delivered > 0) {
+                                            const matchExpected = expectedStars > 0 ? r.stars_delivered === expectedStars : true;
+                                            return (
+                                                <div>
+                                                    <span style={{
+                                                        fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 99,
+                                                        background: '#ECFDF5', color: '#047857', border: '1.5px solid #A7F3D0',
+                                                        display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
+                                                    }}>
+                                                        ⭐ +{r.stars_delivered}
+                                                    </span>
+                                                    <div style={{
+                                                        fontSize: 9.5, fontWeight: 600, marginTop: 2,
+                                                        color: matchExpected ? '#059669' : '#DC2626',
+                                                    }}>
+                                                        {matchExpected ? '✓ Entregadas' : `⚠️ Debió ser ${expectedStars}`}
+                                                    </div>
+                                                </div>
+                                            );
+                                        } else if (expectedStars > 0) {
+                                            return (
+                                                <div>
+                                                    <span style={{
+                                                        fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 99,
+                                                        background: '#FEE2E2', color: '#DC2626', border: '1.5px solid #FCA5A5',
+                                                        display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
+                                                    }}>
+                                                        ⚠️ 0 ⭐
+                                                    </span>
+                                                    <div style={{ fontSize: 9.5, color: '#DC2626', fontWeight: 600, marginTop: 2 }}>
+                                                        Faltan {expectedStars} ⭐
+                                                    </div>
+                                                </div>
+                                            );
+                                        } else {
+                                            return (
+                                                <span style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 500 }}>
+                                                    0 ⭐
+                                                </span>
+                                            );
+                                        }
+                                    }
+
+                                    if (r.status === 'pending') {
+                                        return (
+                                            <div>
+                                                <span style={{
+                                                    fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                                                    background: '#FEF3C7', color: '#D97706', border: '1.5px solid #FCD34D',
+                                                    display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap',
+                                                }}>
+                                                    ⏳ {expectedStars > 0 ? `${expectedStars} ⭐` : '0 ⭐'}
+                                                </span>
+                                                <div style={{ fontSize: 9.5, color: '#D97706', fontWeight: 500, marginTop: 2 }}>
+                                                    Al aprobar
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <span style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 500 }}>
+                                            0 ⭐
+                                        </span>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* 6. Amount */}
                             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px' }}>
                                 {formatCOP(r.amount_in_cents)}
                             </div>
 
-                            {/* Status */}
+                            {/* 7. Status */}
                             <div>
                                 <span style={{
                                     fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
@@ -319,8 +421,8 @@ export default function TransactionsPage() {
                                 </span>
                             </div>
 
-                            {/* Date */}
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+                            {/* 8. Date */}
+                            <div className="transactions-date" style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
                                 {formatDate(r.created_at)}
                                 {r.fulfilled_at && (
                                     <div style={{ fontSize: 10, color: '#065F46', fontWeight: 600, marginTop: 2 }}>

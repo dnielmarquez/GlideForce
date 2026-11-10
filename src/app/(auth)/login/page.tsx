@@ -58,23 +58,33 @@ export default function LoginPage() {
     };
 
     return (
-        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
+        <PageTransition className="min-h-screen flex flex-col md:grid md:grid-cols-2 bg-white w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto relative shadow-2xl md:overflow-hidden md:my-8 md:min-h-[80vh] md:rounded-3xl">
             <Suspense fallback={null}>
                 <LoginParamsHandler setError={setError} setInfo={setInfo} />
             </Suspense>
             {/* Desktop Left Column */}
             <div className="hidden md:flex flex-col items-center justify-center bg-primary-container p-12 text-white relative overflow-hidden">
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10">GlideForce</h1>
+                <div className="mb-6 flex justify-center relative z-10">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-white flex items-center justify-center p-2 shadow-lg">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            alt="Glideforce Logo"
+                            className="w-full h-full object-contain"
+                            src="/logoFixed.jpeg"
+                        />
+                    </div>
+                </div>
+                <h1 className="text-5xl font-black mb-6 tracking-tighter relative z-10 text-center">Glideforce Pilates Studio</h1>
                 <p className="text-xl font-medium opacity-90 text-center max-w-sm relative z-10">
-                    Bienvenido de vuelta. Reserva tus clases y gestiona tu membresía en un solo lugar.
+                    Eleva tu fitness
                 </p>
             </div>
 
             {/* Mobile Header & Main Form Area */}
             <div className="flex flex-col flex-grow bg-white">
                 <div className="md:hidden">
-                    <LogoHeader subtitle={resentEmail ? "Verifica tu correo" : "Bienvenido de vuelta"} />
+                    <LogoHeader title="Glideforce Pilates Studio" subtitle={resentEmail ? "Verifica tu correo" : "Entra y reserva tu clase"} />
                 </div>
                 <main className="flex-grow px-8 pb-12 flex flex-col justify-center">
                     <div className="w-full max-w-md mx-auto space-y-8 mt-8 md:mt-0">
@@ -84,7 +94,7 @@ export default function LoginPage() {
                                 {resentEmail ? 'Verifica tu Cuenta' : 'Iniciar Sesión'}
                             </h2>
                             <p className="text-on-surface-variant font-medium mt-2">
-                                {resentEmail ? 'Confirma tu dirección de correo' : 'Bienvenido de vuelta a GlideForce'}
+                                {resentEmail ? 'Confirma tu dirección de correo' : 'Entra y reserva tu clase'}
                             </p>
                         </div>
 
@@ -111,7 +121,7 @@ export default function LoginPage() {
                                 </button>
                             </section>
                         ) : (
-                            <section className="bg-white p-8 rounded-2xl ios-shadow space-y-6 border border-surface-container">
+                            <section className="bg-white p-6 md:p-8 rounded-2xl ios-shadow space-y-4 md:space-y-6 border border-surface-container">
 
                                 {/* Info banner */}
                                 {info && (
@@ -138,7 +148,7 @@ export default function LoginPage() {
                                             name="email"
                                             required
                                             autoComplete="email"
-                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                            className="w-full bg-surface-container-low border border-surface-container-high rounded-full px-6 py-3 md:py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
                                             placeholder="nombre@ejemplo.com"
                                             type="email"
                                         />
@@ -153,7 +163,7 @@ export default function LoginPage() {
                                                 name="password"
                                                 required
                                                 autoComplete="current-password"
-                                                className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
+                                                className="w-full bg-surface-container-low border border-surface-container-high rounded-full pl-6 pr-14 py-3 md:py-4 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary-container outline-none transition"
                                                 placeholder="••••••••"
                                                 type={showPassword ? 'text' : 'password'}
                                             />
@@ -183,7 +193,7 @@ export default function LoginPage() {
                                     <button
                                         disabled={isLoading}
                                         type="submit"
-                                        className="w-full bg-primary-container text-white py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-all disabled:opacity-60 mt-2 flex items-center justify-center gap-2"
+                                        className="w-full bg-primary-container text-white py-3.5 md:py-5 rounded-full font-bold text-lg shadow-[0_8px_16px_rgba(234,112,52,0.2)] active:scale-[0.98] transition-all disabled:opacity-60 mt-2 flex items-center justify-center gap-2"
                                     >
                                         {isLoading ? (
                                             <>

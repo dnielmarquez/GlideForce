@@ -8,7 +8,7 @@ import PageTransition from '@/components/PageTransition';
 
 
 
-const defaultAvatar = "/logoFixed.png";
+const defaultAvatar = "/logoFixed.jpeg";
 
 function formatTime(t: string) {
     if (!t) return '';
@@ -154,7 +154,6 @@ export default function ClassesPage() {
                 {/* Desktop Left Column: Header & Calendar */}
                 <div className="md:col-span-5 md:sticky md:top-20 md:h-fit">
                     <section className="mb-8 text-center md:text-left">
-                        <p className="text-on-surface-variant font-medium label-sm uppercase opacity-70">Buenos días</p>
                         <h1 className="text-4xl font-extrabold tracking-tighter text-on-surface mt-1">Explora tus Clases</h1>
                     </section>
                     <section className="mb-10">
@@ -246,7 +245,7 @@ export default function ClassesPage() {
                             }
                             
                             return currentClasses.map((c, i) => {
-                                const profName = c.instructors?.name || 'Profesor Interino';
+                                const profName = c.instructors?.name || 'Entrenadora Interina';
                                 const dur = `${c.duration_minutes} MIN`;
                                 const imgUrl = c.instructors?.photo_url || defaultAvatar;
 

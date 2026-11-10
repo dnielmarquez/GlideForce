@@ -27,7 +27,7 @@ export default function EventPopup({ data, onClose, onCancel, onView }: EventPop
   return (
     <>
       {/* Click-away backdrop */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={onClose} />
+      <div className="event-popup-backdrop" onClick={onClose} />
       <div
         className="event-popup"
         style={{ top: pos.y, left: pos.x }}

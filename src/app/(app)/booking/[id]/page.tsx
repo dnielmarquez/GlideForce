@@ -156,8 +156,8 @@ function BookingContent({ id }: { id: string }) {
     }, [id]);
 
     useEffect(() => {
-        if (selected && session?.recurrence_id) {
-            getRecurringSessionsForBooking(id, selected).then(res => {
+        if (session?.recurrence_id) {
+            getRecurringSessionsForBooking(id, null).then(res => {
                 if (res && 'sessions' in res && res.sessions) {
                     setEligibleRecurringSessions(res.sessions);
                     setSelectedSessionIds([id]); // Default to only current class
@@ -170,7 +170,7 @@ function BookingContent({ id }: { id: string }) {
             setEligibleRecurringSessions([]);
             setSelectedSessionIds([id]);
         }
-    }, [selected, session?.recurrence_id, id]);
+    }, [session?.recurrence_id, id]);
 
     if (isLoading) {
         return (
@@ -191,16 +191,17 @@ function BookingContent({ id }: { id: string }) {
         );
     }
 
-    const isWaitlist = machinesCount > 0 && occupied.length >= machinesCount;
-    const available = Math.max(0, machinesCount - occupied.length);
+    const totalCapacity = session?.capacity || machinesCount || 5;
+    const isWaitlist = totalCapacity > 0 && occupied.length >= totalCapacity;
+    const available = Math.max(0, totalCapacity - occupied.length);
 
     const handleConfirmBooking = async () => {
-        if (!selected || !paymentMethod) return;
+        if (!paymentMethod) return;
         setWompiError(null);
 
         if (paymentMethod === 'online') {
             setIsProcessing(true);
-            const res = await initiateBookingPayment(selectedSessionIds, selected, appliedCoupon?.code || undefined);
+            const res = await initiateBookingPayment(selectedSessionIds, null, appliedCoupon?.code || undefined);
             setIsProcessing(false);
 
             if ('error' in res) { setWompiError(res.error); return; }
@@ -245,7 +246,7 @@ function BookingContent({ id }: { id: string }) {
 
         // Stars payment
         setIsProcessing(true);
-        const res = await processBooking(selectedSessionIds, selected, 'stars', isWaitlist);
+        const res = await processBooking(selectedSessionIds, null, 'stars', isWaitlist);
         setIsProcessing(false);
         if ('error' in res && res.error) {
             alert(res.error);
@@ -354,25 +355,29 @@ function BookingContent({ id }: { id: string }) {
                 {showPolicyModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]"
                         >
-                            <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">Políticas de Cancelación</h2>
-                            <p className="text-on-surface-variant text-sm leading-relaxed mb-8 text-left">
-                                {cancelTimeMinutes > 0 ? (
-                                    <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
-                                ) : (
-                                    <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
-                                )}
-                                Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de estrellitas</strong>.
-                            </p>
-                            <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => setShowPolicyModal(false)}>
-                                Entendido
-                            </button>
+                            <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 text-center">
+                                <h2 className="text-xl md:text-2xl font-black text-on-surface mb-3 md:mb-4 tracking-tight">Políticas de Cancelación</h2>
+                                <p className="text-on-surface-variant text-sm leading-relaxed text-left">
+                                    {cancelTimeMinutes > 0 ? (
+                                        <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
+                                    ) : (
+                                        <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
+                                    )}
+                                    Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de sesiones</strong>.
+                                </p>
+                            </div>
+                            <div className="w-full shrink-0 pt-3 border-t border-surface-container-high">
+                                <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => setShowPolicyModal(false)}>
+                                    Entendido
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
@@ -383,194 +388,201 @@ function BookingContent({ id }: { id: string }) {
                 {paymentMethod && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]"
                         >
-                            <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-4xl text-on-surface-variant">
-                                    {paymentMethod === 'stars' ? 'stars' : 'payments'}
-                                </span>
+                            {/* Header */}
+                            <div className="flex flex-col items-center text-center shrink-0">
+                                <div className="w-12 h-12 md:w-16 md:h-16 bg-surface-container-high rounded-full flex items-center justify-center mb-2 md:mb-3 shrink-0">
+                                    <span className="material-symbols-outlined text-2xl md:text-3xl text-on-surface-variant">
+                                        {paymentMethod === 'stars' ? 'stars' : 'payments'}
+                                    </span>
+                                </div>
+                                <h2 className="text-xl md:text-2xl font-black text-on-surface mb-2 md:mb-3 tracking-tight">
+                                    {paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Resumen de Pago'}
+                                </h2>
                             </div>
-                            <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">
-                                {paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Resumen de Pago'}
-                            </h2>
 
-                            {/* Recurring sessions selector */}
-                            {eligibleRecurringSessions.length > 1 && (
-                                <div className="w-full mb-6 text-left space-y-3 bg-surface-container rounded-2xl p-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-[10px] font-extrabold uppercase tracking-widest text-on-surface-variant">
-                                            Reservar varias clases
-                                        </label>
-                                        <span className="bg-primary-container/10 text-primary-container text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                            Recurrente
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-3 justify-between bg-white rounded-xl p-2 border border-surface-container-high">
-                                        <button
-                                            onClick={() => {
-                                                const currentQty = selectedSessionIds.length;
-                                                const newQty = Math.max(1, currentQty - 1);
-                                                setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
-                                            }}
-                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container text-on-surface font-bold text-lg hover:bg-surface-container-high transition-colors disabled:opacity-40"
-                                            disabled={selectedSessionIds.length <= 1}
-                                        >
-                                            −
-                                        </button>
-                                        <div className="text-center">
-                                            <span className="text-lg font-black text-on-surface">{selectedSessionIds.length}</span>
-                                            <span className="text-[11px] text-on-surface-variant font-medium block">
-                                                {selectedSessionIds.length === 1 ? 'clase seleccionada' : 'clases seleccionadas'}
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-4">
+                                {/* Recurring sessions selector */}
+                                {eligibleRecurringSessions.length > 1 && (
+                                    <div className="w-full text-left space-y-3 bg-surface-container rounded-2xl p-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-[10px] font-extrabold uppercase tracking-widest text-on-surface-variant">
+                                                Reservar varias clases
+                                            </label>
+                                            <span className="bg-primary-container/10 text-primary-container text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                Recurrente
                                             </span>
                                         </div>
-                                        <button
-                                            onClick={() => {
-                                                const currentQty = selectedSessionIds.length;
-                                                const newQty = Math.min(eligibleRecurringSessions.length, currentQty + 1);
-                                                setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
-                                            }}
-                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary-container text-white font-bold text-lg hover:opacity-90 transition-colors disabled:opacity-40"
-                                            disabled={selectedSessionIds.length >= eligibleRecurringSessions.length}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
+                                        
+                                        <div className="flex items-center gap-3 justify-between bg-white rounded-xl p-2 border border-surface-container-high">
+                                            <button
+                                                onClick={() => {
+                                                    const currentQty = selectedSessionIds.length;
+                                                    const newQty = Math.max(1, currentQty - 1);
+                                                    setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container text-on-surface font-bold text-lg hover:bg-surface-container-high transition-colors disabled:opacity-40"
+                                                disabled={selectedSessionIds.length <= 1}
+                                            >
+                                                −
+                                            </button>
+                                            <div className="text-center">
+                                                <span className="text-lg font-black text-on-surface">{selectedSessionIds.length}</span>
+                                                <span className="text-[11px] text-on-surface-variant font-medium block">
+                                                    {selectedSessionIds.length === 1 ? 'clase seleccionada' : 'clases seleccionadas'}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const currentQty = selectedSessionIds.length;
+                                                    const newQty = Math.min(eligibleRecurringSessions.length, currentQty + 1);
+                                                    setSelectedSessionIds(eligibleRecurringSessions.slice(0, newQty).map(s => s.id));
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary-container text-white font-bold text-lg hover:opacity-90 transition-colors disabled:opacity-40"
+                                                disabled={selectedSessionIds.length >= eligibleRecurringSessions.length}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
 
-                                    {/* Compact list of selected sessions */}
-                                    <div className="space-y-1 max-h-24 overflow-y-auto no-scrollbar pt-1 pr-1 border-t border-surface-container-high">
-                                        {eligibleRecurringSessions.slice(0, selectedSessionIds.length).map((s: any, idx: number) => {
-                                            const formattedDate = new Date(s.date + 'T00:00:00').toLocaleDateString('es-CO', {
-                                                weekday: 'short', day: 'numeric', month: 'short'
-                                            });
-                                            return (
-                                                <div key={s.id} className="flex justify-between items-center text-xs text-on-surface font-semibold bg-white/50 px-2.5 py-1.5 rounded-lg border border-surface-container-high/30">
-                                                    <span className="flex items-center gap-1.5 text-on-surface-variant">
-                                                        <span className="material-symbols-outlined text-xs text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                                            event
+                                        {/* Compact list of selected sessions */}
+                                        <div className="space-y-1 max-h-24 overflow-y-auto no-scrollbar pt-1 pr-1 border-t border-surface-container-high">
+                                            {eligibleRecurringSessions.slice(0, selectedSessionIds.length).map((s: any, idx: number) => {
+                                                const formattedDate = new Date(s.date + 'T00:00:00').toLocaleDateString('es-CO', {
+                                                    weekday: 'short', day: 'numeric', month: 'short'
+                                                });
+                                                return (
+                                                    <div key={s.id} className="flex justify-between items-center text-xs text-on-surface font-semibold bg-white/50 px-2.5 py-1.5 rounded-lg border border-surface-container-high/30">
+                                                        <span className="flex items-center gap-1.5 text-on-surface-variant">
+                                                            <span className="material-symbols-outlined text-xs text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                                event
+                                                            </span>
+                                                            {idx === 0 ? 'Esta clase' : `Clase ${idx + 1}`}
                                                         </span>
-                                                        {idx === 0 ? 'Esta clase' : `Clase ${idx + 1}`}
-                                                    </span>
-                                                    <span className="text-on-surface font-black uppercase text-[10px]">
-                                                        {formattedDate}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {paymentMethod === 'online' ? (
-                                <div className="w-full space-y-6 text-left mb-6">
-                                    <div className="bg-surface-container rounded-2xl p-5 space-y-3">
-                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
-                                            <span>Subtotal ({qty} {qty === 1 ? 'clase' : 'clases'})</span>
-                                            <span className="text-on-surface">{formatCOP(baseTotalCop)}</span>
+                                                        <span className="text-on-surface font-black uppercase text-[10px]">
+                                                            {formattedDate}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        {appliedCoupon && totalDiscountAmount > 0 && (
-                                            <div className="flex justify-between items-center text-sm font-semibold text-green-700">
-                                                <span>{discountLabel}</span>
-                                                <span>-{formatCOP(totalDiscountAmount)}</span>
+                                    </div>
+                                )}
+
+                                {paymentMethod === 'online' ? (
+                                     <div className="w-full space-y-4 text-left">
+                                         {/* Coupon Input */}
+                                         <div className="space-y-2">
+                                             <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Cupón de Descuento</label>
+                                             <div className="flex gap-2">
+                                                 <input
+                                                     className="flex-1 px-4 py-3 bg-surface-container rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary-container uppercase"
+                                                     placeholder="ej. GLIDEFORCE20"
+                                                     value={couponCode}
+                                                     onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                     disabled={couponSuccess || isValidatingCoupon}
+                                                 />
+                                                 {couponSuccess ? (
+                                                     <button
+                                                         onClick={handleRemoveCoupon}
+                                                         className="px-4 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl text-sm font-bold transition-all"
+                                                     >
+                                                         Quitar
+                                                     </button>
+                                                 ) : (
+                                                     <button
+                                                         onClick={handleApplyCoupon}
+                                                         disabled={isValidatingCoupon || !couponCode.trim()}
+                                                         className="px-5 py-3 bg-primary-container text-white hover:opacity-90 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                                                     >
+                                                         {isValidatingCoupon ? '...' : 'Aplicar'}
+                                                     </button>
+                                                 )}
+                                             </div>
+                                             {couponError && (
+                                                 <p className="text-red-500 text-xs font-semibold px-1 mt-1">⚠️ {couponError}</p>
+                                             )}
+                                             {couponSuccess && appliedCoupon && (
+                                                 <p className="text-green-700 text-xs font-semibold px-1 mt-1">
+                                                     ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado con éxito.
+                                                     {appliedCoupon.discount_type === '2_for_1' && ' ¡Recibirás una sesión extra al finalizar la clase!'}
+                                                 </p>
+                                             )}
+                                         </div>
+
+                                         <div className="bg-surface-container rounded-2xl p-4 space-y-3">
+                                             <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                                 <span>Subtotal ({qty} {qty === 1 ? 'clase' : 'clases'})</span>
+                                                 <span className="text-on-surface">{formatCOP(baseTotalCop)}</span>
+                                             </div>
+                                             {appliedCoupon && totalDiscountAmount > 0 && (
+                                                 <div className="flex justify-between items-center text-sm font-semibold text-green-700">
+                                                     <span>{discountLabel}</span>
+                                                     <span>-{formatCOP(totalDiscountAmount)}</span>
+                                                 </div>
+                                             )}
+                                             {appliedCoupon && appliedCoupon.discount_type === '2_for_1' && (
+                                                 <div className="flex justify-between items-center text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-lg">
+                                                     <span>🎁 Promo 2x1 Activa</span>
+                                                     <span>1 sesión de regalo</span>
+                                                 </div>
+                                             )}
+                                             <div className="h-px bg-surface-container-high my-2" />
+                                             <div className="flex justify-between items-center text-base font-black">
+                                                 <span>Total a Pagar</span>
+                                                 <span className="text-primary-container text-lg">
+                                                     {formatCOP(finalTotalCop)}
+                                                 </span>
+                                             </div>
+                                         </div>
+
+                                         <p className="text-on-surface-variant text-center text-xs leading-relaxed">
+                                             Serás redirigido a la pasarela de pago seguro Wompi.<br />
+                                             Asegúrate de leer las <br />
+                                             <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
+                                         </p>
+                                     </div>
+                                ) : (
+                                    <div className="w-full space-y-4 text-left">
+                                        <div className="bg-surface-container rounded-2xl p-4 space-y-3">
+                                            <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                                <span>Clases a reservar</span>
+                                                <span className="text-on-surface font-black">{qty}</span>
                                             </div>
-                                        )}
-                                        {appliedCoupon && appliedCoupon.discount_type === '2_for_1' && qty === 1 && (
-                                            <div className="flex justify-between items-center text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded-lg">
-                                                <span>🎁 Promo 2x1 Activa</span>
-                                                <span>1 estrella de regalo</span>
+                                            <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
+                                                <span>Costo por clase</span>
+                                                <span className="text-on-surface font-black">{session.stars_cost || 1} {session.stars_cost === 1 ? 'sesión' : 'sesiones'}</span>
                                             </div>
-                                        )}
-                                        <div className="h-px bg-surface-container-high my-2" />
-                                        <div className="flex justify-between items-center text-base font-black">
-                                            <span>Total a Pagar</span>
-                                            <span className="text-primary-container text-lg">
-                                                {formatCOP(finalTotalCop)}
-                                            </span>
+                                            <div className="h-px bg-surface-container-high my-2" />
+                                            <div className="flex justify-between items-center text-base font-black">
+                                                <span>Total Sesiones</span>
+                                                <span className="text-primary-container text-lg flex items-center gap-1">
+                                                    {qty * (session.stars_cost || 1)}
+                                                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                                </span>
+                                            </div>
                                         </div>
+                                        <p className="text-on-surface-variant text-center text-xs leading-relaxed">
+                                            Al confirmar, descontaremos <strong className="text-on-surface">{qty * (session.stars_cost || 1)} sesiones</strong> de tu balance actual.<br />
+                                            Asegúrate de leer las <br />
+                                            <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
+                                        </p>
                                     </div>
+                                )}
+                            </div>
 
-                                    {/* Coupon Input */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Cupón de Descuento</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                className="flex-1 px-4 py-3 bg-surface-container rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary-container uppercase"
-                                                placeholder="ej. GLIDEFORCE20"
-                                                value={couponCode}
-                                                onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                                                disabled={couponSuccess || isValidatingCoupon}
-                                            />
-                                            {couponSuccess ? (
-                                                <button
-                                                    onClick={handleRemoveCoupon}
-                                                    className="px-4 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl text-sm font-bold transition-all"
-                                                >
-                                                    Quitar
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={handleApplyCoupon}
-                                                    disabled={isValidatingCoupon || !couponCode.trim()}
-                                                    className="px-5 py-3 bg-primary-container text-white hover:opacity-90 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                                                >
-                                                    {isValidatingCoupon ? '...' : 'Aplicar'}
-                                                </button>
-                                            )}
-                                        </div>
-                                        {couponError && (
-                                            <p className="text-red-500 text-xs font-semibold px-1 mt-1">⚠️ {couponError}</p>
-                                        )}
-                                        {couponSuccess && appliedCoupon && (
-                                            <p className="text-green-700 text-xs font-semibold px-1 mt-1">
-                                                ✓ Cupón &quot;{appliedCoupon.title}&quot; aplicado con éxito.
-                                                {appliedCoupon.discount_type === '2_for_1' && qty === 1 && ' ¡Recibirás una estrella extra al finalizar la clase!'}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <p className="text-on-surface-variant text-center text-xs leading-relaxed">
-                                        Serás redirigido a la pasarela de pago seguro Wompi.<br />
-                                        Asegúrate de leer las <br />
-                                        <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="w-full space-y-4 mb-6">
-                                    <div className="bg-surface-container rounded-2xl p-5 space-y-3 text-left">
-                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
-                                            <span>Clases a reservar</span>
-                                            <span className="text-on-surface font-black">{qty}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
-                                            <span>Costo por clase</span>
-                                            <span className="text-on-surface font-black">{session.stars_cost || 1} {session.stars_cost === 1 ? 'estrellita' : 'estrellitas'}</span>
-                                        </div>
-                                        <div className="h-px bg-surface-container-high my-2" />
-                                        <div className="flex justify-between items-center text-base font-black">
-                                            <span>Total Estrellitas</span>
-                                            <span className="text-primary-container text-lg flex items-center gap-1">
-                                                {qty * (session.stars_cost || 1)}
-                                                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <p className="text-on-surface-variant text-center text-xs leading-relaxed">
-                                        Al confirmar, descontaremos <strong className="text-on-surface">{qty * (session.stars_cost || 1)} estrellitas</strong> de tu balance actual.<br />
-                                        Asegúrate de leer las <br />
-                                        <button onClick={() => setShowPolicyModal(true)} className="text-primary-container font-black underline decoration-primary-container/30 hover:decoration-primary-container underline-offset-4 mt-1 transition-all">políticas de cancelación</button>
-                                    </p>
-                                </div>
-                            )}
-
-                            {wompiError && (
-                                <p className="text-red-500 text-sm font-medium mb-4 bg-red-50 p-3 rounded-xl">{wompiError}</p>
-                            )}
-                            <div className="w-full space-y-3">
+                            {/* Pinned Footer */}
+                            <div className="w-full space-y-3 shrink-0 pt-3 border-t border-surface-container-high">
+                                {wompiError && (
+                                    <p className="text-red-500 text-sm font-medium mb-3 bg-red-50 p-3 rounded-xl">{wompiError}</p>
+                                )}
                                 <button 
                                     className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 active:scale-95 transition-transform disabled:opacity-50" 
                                     disabled={(paymentMethod === 'stars' && stars < (qty * (session.stars_cost || 1))) || isProcessing}
@@ -578,10 +590,10 @@ function BookingContent({ id }: { id: string }) {
                                 >
                                     {isProcessing ? 'Procesando...' : 
                                         (paymentMethod === 'stars' && stars < (qty * (session.stars_cost || 1)) 
-                                        ? 'Estrellitas insuficientes' 
+                                        ? 'Sesiones insuficientes' 
                                         : (paymentMethod === 'stars' ? 'Confirmar Reserva' : 'Ir a Pagar'))}
                                 </button>
-                                <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" disabled={isProcessing} onClick={handleClosePaymentModal}>
+                                <button className="w-full py-3 bg-transparent text-on-surface-variant font-bold transition-colors hover:bg-surface-container rounded-2xl text-base" disabled={isProcessing} onClick={handleClosePaymentModal}>
                                     Cancelar
                                 </button>
                             </div>
@@ -595,25 +607,27 @@ function BookingContent({ id }: { id: string }) {
                 {showWaitlistModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]"
                         >
-                            <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-4xl text-on-surface-variant">hourglass_empty</span>
+                            <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-4 text-center">
+                                <div className="w-12 h-12 md:w-16 md:h-16 mx-auto bg-surface-container-high rounded-full flex items-center justify-center mb-2 md:mb-3">
+                                    <span className="material-symbols-outlined text-2xl md:text-3xl text-on-surface-variant">hourglass_empty</span>
+                                </div>
+                                <h2 className="text-xl md:text-2xl font-black text-on-surface mb-2 md:mb-3 tracking-tight">Lista de Espera</h2>
+                                <p className="text-on-surface-variant text-sm leading-relaxed">
+                                    Te asignaremos la clase inmediatamente si alguien cancela. Te notificaremos. Asegúrate que puedes tomar la clase si eso sucede.
+                                </p>
                             </div>
-                            <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">Lista de Espera</h2>
-                            <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-                                Te asignaremos la clase inmediatamente si alguien cancela. Te notificaremos. Asegúrate que puedes tomar la clase si eso sucede.
-                            </p>
-                            <div className="w-full space-y-3">
+                            <div className="w-full space-y-3 shrink-0 pt-3 border-t border-surface-container-high">
                                 <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 active:scale-95 transition-transform" onClick={() => { setShowWaitlistModal(false); setShowSuccessModal(true); }}>
                                     Entrar a Lista
                                 </button>
-                                <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" onClick={() => setShowWaitlistModal(false)}>
+                                <button className="w-full py-3 bg-transparent text-on-surface-variant font-bold transition-colors hover:bg-surface-container rounded-2xl text-base" onClick={() => setShowWaitlistModal(false)}>
                                     Cancelar
                                 </button>
                             </div>
@@ -627,23 +641,27 @@ function BookingContent({ id }: { id: string }) {
                 {showSuccessModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]"
                         >
-                            <div className="w-20 h-20 bg-primary-container/10 rounded-full flex items-center justify-center mb-6">
-                                <span className="material-symbols-outlined text-primary-container text-5xl" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check_circle</span>
+                            <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-4 text-center">
+                                <div className="w-12 h-12 md:w-16 md:h-16 mx-auto bg-primary-container/10 rounded-full flex items-center justify-center mb-2 md:mb-3">
+                                    <span className="material-symbols-outlined text-primary-container text-3xl md:text-4xl" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check_circle</span>
+                                </div>
+                                <h2 className="text-xl md:text-2xl font-black text-on-surface mb-2 md:mb-3 tracking-tight">¡Genial!</h2>
+                                <p className="text-on-surface-variant text-sm md:text-base leading-relaxed">
+                                    Tu puesto ha sido asegurado. ¡Te esperamos!
+                                </p>
                             </div>
-                            <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">¡Genial!</h2>
-                            <p className="text-on-surface-variant text-base leading-relaxed mb-8">
-                                Tu puesto ha sido asegurado. ¡Te esperamos!
-                            </p>
-                            <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
-                                Volver al Calendario
-                            </button>
+                            <div className="w-full shrink-0 pt-3 border-t border-surface-container-high">
+                                <button className="w-full py-4 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
+                                    Volver al Calendario
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
@@ -654,46 +672,52 @@ function BookingContent({ id }: { id: string }) {
                 {showCancelModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[130] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.4 }}
-                            className="bg-white w-full rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl"
+                            className="bg-white w-full max-w-sm rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 flex flex-col shadow-2xl max-h-[85vh]"
                         >
                             {cancelResult ? (
-                                <>
-                                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${cancelResult.refunded ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                        <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                            {cancelResult.refunded ? 'check_circle' : 'info'}
-                                        </span>
+                                <div className="flex-1 flex flex-col justify-between min-h-0 w-full">
+                                    <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-4 w-full text-center">
+                                        <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-full flex items-center justify-center mb-2 md:mb-3 ${cancelResult.refunded ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                            <span className="material-symbols-outlined text-2xl md:text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                {cancelResult.refunded ? 'check_circle' : 'info'}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-xl md:text-2xl font-black text-on-surface mb-2 tracking-tight">Clase Cancelada</h2>
+                                        <p className="text-on-surface-variant text-sm leading-relaxed">
+                                            {cancelResult.refunded 
+                                                ? 'Cancelaste a tiempo. Tu sesión ha sido reembolsada a tu cuenta.' 
+                                                : 'Cancelaste fuera del tiempo permitido. La sesión no fue reembolsada según las políticas.'}
+                                        </p>
                                     </div>
-                                    <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">Clase Cancelada</h2>
-                                    <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-                                        {cancelResult.refunded 
-                                            ? 'Cancelaste a tiempo. Tu estrellita ha sido reembolsada a tu cuenta.' 
-                                            : 'Cancelaste fuera del tiempo permitido. La estrellita no fue reembolsada según las políticas.'}
-                                    </p>
-                                    <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
-                                        Volver al Calendario
-                                    </button>
-                                </>
+                                    <div className="w-full shrink-0 pt-3 border-t border-surface-container-high">
+                                        <button className="w-full py-4 bg-surface-container-high hover:bg-surface-container-highest text-on-surface rounded-2xl font-bold tracking-wide transition-colors" onClick={() => router.push(dateParam ? `/classes?date=${dateParam}` : '/classes')}>
+                                            Volver al Calendario
+                                        </button>
+                                    </div>
+                                </div>
                             ) : (
-                                <>
-                                    <div className="w-20 h-20 bg-red-50 text-error rounded-full flex items-center justify-center mb-6">
-                                        <span className="material-symbols-outlined text-4xl">event_busy</span>
+                                <div className="flex-1 flex flex-col justify-between min-h-0 w-full">
+                                    <div className="flex-1 overflow-y-auto no-scrollbar py-2 my-2 space-y-4 w-full text-center">
+                                        <div className="w-12 h-12 md:w-16 md:h-16 mx-auto bg-red-50 text-error rounded-full flex items-center justify-center mb-2 md:mb-3">
+                                            <span className="material-symbols-outlined text-2xl md:text-3xl">event_busy</span>
+                                        </div>
+                                        <h2 className="text-xl md:text-2xl font-black text-on-surface mb-2 tracking-tight">¿Cancelar Clase?</h2>
+                                        <div className="text-on-surface-variant text-xs md:text-sm leading-relaxed text-left border border-error/20 bg-error/5 p-4 rounded-xl">
+                                            <span className="font-bold text-error mb-2 block">Políticas de Cancelación:</span>
+                                            {cancelTimeMinutes > 0 ? (
+                                                <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
+                                            ) : (
+                                                <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
+                                            )}
+                                            Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de sesiones</strong>.
+                                        </div>
                                     </div>
-                                    <h2 className="text-2xl font-black text-on-surface mb-4 tracking-tight">¿Cancelar Clase?</h2>
-                                    <p className="text-on-surface-variant text-sm leading-relaxed mb-6 text-left border border-error/20 bg-error/5 p-4 rounded-xl">
-                                        <span className="font-bold text-error mb-2 block">Políticas de Cancelación:</span>
-                                        {cancelTimeMinutes > 0 ? (
-                                            <>Puedes cancelar tu lugar de forma gratuita hasta <strong className="text-on-surface">{Math.floor(cancelTimeMinutes / 60) > 0 ? `${Math.floor(cancelTimeMinutes / 60)} horas ` : ''}{cancelTimeMinutes % 60 > 0 ? `${cancelTimeMinutes % 60} minutos ` : ''}antes</strong> del inicio de la clase.<br /><br /></>
-                                        ) : (
-                                            <>Puedes cancelar tu lugar de forma gratuita en cualquier momento.<br /><br /></>
-                                        )}
-                                        Si cancelas después de este plazo o no te presentas, <strong className="text-on-surface">no habrá reembolsos ni devoluciones de estrellitas</strong>.
-                                    </p>
-                                    <div className="w-full space-y-3">
+                                    <div className="w-full space-y-3 shrink-0 pt-3 border-t border-surface-container-high">
                                         <button 
                                             className="w-full py-4 bg-error text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform disabled:opacity-50" 
                                             disabled={isProcessing}
@@ -701,11 +725,11 @@ function BookingContent({ id }: { id: string }) {
                                         >
                                             {isProcessing ? 'Procesando...' : 'Confirmar Cancelación'}
                                         </button>
-                                        <button className="w-full py-4 bg-transparent text-on-surface-variant font-bold transition-colors" disabled={isProcessing} onClick={() => setShowCancelModal(false)}>
+                                        <button className="w-full py-3 bg-transparent text-on-surface-variant font-bold transition-colors hover:bg-surface-container rounded-2xl text-base" disabled={isProcessing} onClick={() => setShowCancelModal(false)}>
                                             Mantener Reserva
                                         </button>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </motion.div>
                     </motion.div>
@@ -757,46 +781,27 @@ function BookingContent({ id }: { id: string }) {
 
                 {/* Desktop Right Column: Actions */}
                 <div className="md:col-span-5 space-y-8 md:sticky md:top-24 md:bg-white md:p-8 md:rounded-3xl md:shadow-sm md:border md:border-surface-container">
-                    <section className="space-y-4">
-                        <div className="flex justify-between items-end">
-                            <h3 className="text-xl font-bold tracking-tight">Selecciona tu Máquina</h3>
-                            <span className="text-xs text-on-surface-variant font-medium">{isWaitlist ? "0 disponibles" : `${available} disponibles hoy`}</span>
+                    <section className="bg-surface-container-low p-6 rounded-2xl border border-surface-container space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">Disponibilidad</span>
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                                isWaitlist 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-green-100 text-green-800'
+                            }`}>
+                                {isWaitlist ? 'Clase llena' : `${available} cupos disponibles`}
+                            </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            {machineList.length > 0 ? machineList.map(m => {
-                                const isMyMachine = userBooking?.machine_id === m.id && userBooking?.status === 'confirmed';
-                                const isOccupied = occupied.includes(m.id) && !isMyMachine;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        disabled={isOccupied || isWaitlist || !canBook}
-                                        onClick={() => setSelected(m.id)}
-                                        className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm transition-all ${
-                                            isMyMachine ? 'border-2 border-green-500 bg-green-50/50' : 
-                                            isOccupied || isWaitlist || !canBook ? 'bg-surface-container opacity-50 border border-transparent' : 
-                                            (selected === m.id ? 'border-2 border-primary-container bg-primary-container/5' : 'border border-surface-container bg-white hover:border-primary-container/30')
-                                        }`}
-                                    >
-                                        <span className={`material-symbols-outlined text-3xl mb-2 ${isMyMachine ? 'text-green-600' : ''}`} style={{ fontVariationSettings: (selected === m.id && !isOccupied && !isWaitlist) || isMyMachine ? "'FILL' 1" : "'FILL' 0" }}>fitness_center</span>
-                                        <span className="text-[11px] font-bold">{m.label}</span>
-                                        <span className={`text-[9px] uppercase tracking-wider font-black mt-1 ${isMyMachine ? 'text-green-600' : (isOccupied || isWaitlist ? 'text-primary' : 'text-primary')}`}>
-                                            {isMyMachine ? 'Tu Máquina' : (isOccupied || isWaitlist ? 'Ocupado' : 'Disponible')}
-                                        </span>
-                                    </button>
-                                );
-                            }) : Array.from({ length: machinesCount || 5 }, (_, i) => i + 1).map(m => (
-                                <div key={m} className="flex flex-col items-center justify-center p-6 rounded-2xl shadow-sm border border-surface-container bg-surface-container-low opacity-50">
-                                    <span className="text-[11px] font-bold">M-0{m}</span>
-                                    <span className="text-[9px] uppercase tracking-wider text-error font-black mt-1">NO CONFIGURADA</span>
-                                </div>
-                            ))}
+                        <div className="flex items-center gap-2.5 text-xs text-on-surface-variant/90 bg-white p-3 rounded-xl border border-surface-container-high/60 shadow-sm">
+                            <span className="material-symbols-outlined text-primary text-base shrink-0">info</span>
+                            <span>Las máquinas se eligen en <strong>orden de llegada</strong> al ingresar al estudio.</span>
                         </div>
                     </section>
 
                     <section className="bg-surface-container-low md:bg-surface-container-lowest p-6 rounded-2xl border border-surface-container flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="bg-primary-container text-white w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-full"><span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>star</span></div>
-                            <div><p className="font-bold text-lg leading-tight">Tienes {stars} Estrellitas</p></div>
+                            <div><p className="font-bold text-lg leading-tight">Tienes {stars} Sesiones</p></div>
                         </div>
                     </section>
 
@@ -809,9 +814,6 @@ function BookingContent({ id }: { id: string }) {
                                         userBooking?.status === 'confirmed' ? (isFinished ? 'Clase completada. ¡Gracias por asistir!' : 'Ya estás inscrito en esta clase.') :
                                         `Esta clase está ${userBookingStatusLabel.toLowerCase()}.`
                                      }</span>
-                                     {userBooking?.status === 'confirmed' && userBooking?.machine_id && (
-                                         <span className="text-green-700 mt-2 uppercase tracking-wider text-[11px]">Máquina asignada: {machineList.find(m => m.id === userBooking.machine_id)?.label || userBooking.machine_id}</span>
-                                     )}
                                 </div>
                                 {userBooking?.status === 'confirmed' && !isFinished && (
                                     <button onClick={() => setShowCancelModal(true)} className="w-full py-5 border-2 border-error/30 text-error rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-error/5 hover:border-error/50">
@@ -825,22 +827,11 @@ function BookingContent({ id }: { id: string }) {
                             </button>
                         ) : (
                             <>
-                                {/* Hint when no machine is selected */}
-                                {!selected && (
-                                    <motion.p
-                                        initial={{ opacity: 0, y: -6 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-center text-sm font-semibold text-on-surface-variant bg-surface-container rounded-2xl py-3 px-4"
-                                    >
-                                        <span className="material-symbols-outlined text-base align-middle mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>touch_app</span>
-                                        Selecciona una máquina primero
-                                    </motion.p>
-                                )}
-                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" disabled={!selected}>
+                                <button onClick={() => setPaymentMethod('online')} className="w-full h-16 bg-primary-container text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary-container/20 flex items-center justify-center gap-2 active:scale-95 transition-all">
                                     <span className="material-symbols-outlined">payments</span> Pagar en Línea
                                 </button>
-                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed" disabled={!selected || stars < (session.stars_cost || 1)}>
-                                    <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Estrellitas
+                                <button onClick={() => setPaymentMethod('stars')} className="w-full h-16 bg-surface-container border border-surface-container-high text-on-surface rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed" disabled={stars < (session.stars_cost || 1)}>
+                                    <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span> Usar Sesiones
                                 </button>
                             </>
                         )}

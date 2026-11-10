@@ -105,9 +105,9 @@ function PaymentResultContent() {
             icon: 'check_circle',
             iconColor: 'text-green-600',
             bgColor: 'bg-green-50',
-            title: purpose === 'star_purchase' ? '¡Estrellitas acreditadas!' : '¡Reserva confirmada!',
+            title: purpose === 'star_purchase' ? '¡Sesiones acreditadas!' : '¡Reserva confirmada!',
             subtitle: purpose === 'star_purchase'
-                ? 'Tus estrellitas ya están disponibles en tu cuenta.'
+                ? 'Tus sesiones ya están disponibles en tu cuenta.'
                 : 'Tu puesto ha sido asegurado. ¡Te esperamos!',
         },
         declined: {

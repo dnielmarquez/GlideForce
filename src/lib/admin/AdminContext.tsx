@@ -11,6 +11,8 @@ interface AdminContextType {
   refreshClasses: () => Promise<void>;
   toast: ToastState;
   showToast: (msg: string) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 }
 
 const AdminContext = createContext<AdminContextType | null>(null);
@@ -19,6 +21,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<GFClass[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [toast, setToast] = useState<ToastState>({ show: false, msg: '' });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const supabase = createClient();
 
   const loadInstructors = useCallback(async () => {
@@ -78,7 +81,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AdminContext.Provider value={{ classes, instructors, setClasses, refreshClasses, toast, showToast }}>
+    <AdminContext.Provider value={{ classes, instructors, setClasses, refreshClasses, toast, showToast, sidebarOpen, setSidebarOpen }}>
       {children}
     </AdminContext.Provider>
   );

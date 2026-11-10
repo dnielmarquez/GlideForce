@@ -29,14 +29,14 @@ export default function MembersTable({ members, onSave }: MembersTableProps) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div className="members-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Miembros</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
             {members.length} miembros registrados
           </div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="members-filter-group" style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="topbar-search" style={{ width: 240 }}>
             <AdminIcon name="search" size={14} />
             <input
@@ -62,7 +62,7 @@ export default function MembersTable({ members, onSave }: MembersTableProps) {
       {/* Table */}
       <div className="members-table">
         <div className="members-thead">
-          {['Miembro', 'Correo', 'Celular', 'Estrellitas', 'Estado', 'Acciones'].map((h) => (
+          {['Miembro', 'Correo', 'Celular', 'Sesiones', 'Estado', 'Acciones'].map((h) => (
             <div key={h} className="members-th">{h}</div>
           ))}
         </div>

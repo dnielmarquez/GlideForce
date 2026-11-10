@@ -135,7 +135,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
                         {ROLE_LABELS[profile.role] ?? profile.role}
                     </span>
                     <span className="text-on-surface-variant text-xs font-medium opacity-60">
-                        ⭐ {profile.stars_balance} estrellas
+                        ⭐ {profile.stars_balance} sesiones
                     </span>
                 </div>
             </div>

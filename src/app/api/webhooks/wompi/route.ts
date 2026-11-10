@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
         .update({
             status:               localStatus,
             wompi_transaction_id: wompiTxId,
-            wompi_payload:        event,
+            wompi_payload: {
+                ...(typeof payment.wompi_payload === 'object' && payment.wompi_payload !== null ? payment.wompi_payload : {}),
+                wompi_event: event
+            },
             fulfilled_at:         localStatus === 'approved' ? new Date().toISOString() : null,
         })
         .eq('id', payment.id);
@@ -142,14 +145,13 @@ export async function POST(req: NextRequest) {
 
             } else if (
                 payment.purpose === 'class_booking' &&
-                payment.session_id &&
-                payment.machine_id
+                payment.session_id
             ) {
                 await fulfillBookingFromWebhook(
                     payment.id,
                     payment.member_id,
                     payment.session_id,
-                    payment.machine_id
+                    payment.machine_id ?? null
                 );
             }
         } catch (err) {
