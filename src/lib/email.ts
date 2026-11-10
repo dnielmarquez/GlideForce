@@ -168,7 +168,7 @@ export async function sendBookingEmails(
         ${sessionsHtml}
         
         <p style="font-size: 14px; color: #666; line-height: 1.6; margin-top: 24px; text-align: left;">
-          Recuerda llegar 5 minutos antes de la clase. Si necesitas cancelar, recuerda hacerlo dentro del plazo permitido para recibir tu reembolso.
+          Recuerda llegar 5 minutos antes de la clase. Si necesitas cancelar, recuerda hacerlo dentro del plazo permitido para recibir tu reembolso. Ten presente que las clases tienen una vigencia de 60 días.
         </p>
         
         <div style="height: 1px; background-color: #f0f0f0; margin-top: 24px; margin-bottom: 20px;"></div>

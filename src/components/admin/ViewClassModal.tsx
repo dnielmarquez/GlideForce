@@ -31,6 +31,27 @@ interface BookingUser {
   booking_date: string;
   machine_id?: string;
   machine_label?: string;
+  cancelled_at?: string | null;
+  star_refunded?: boolean | null;
+  cancellation_reason?: string | null;
+}
+
+function formatCancellationDateTime(isoStr?: string | null): string {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('es-CO', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Bogota'
+    });
+  } catch {
+    return '';
+  }
 }
 
 export default function ViewClassModal({ classId, onClose }: ViewClassModalProps) {
@@ -248,6 +269,9 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           id,
           status,
           created_at,
+          cancelled_at,
+          star_refunded,
+          cancellation_reason,
           machine_id,
           machines (
             id,
@@ -275,7 +299,10 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
           status: b.status,
           machine_id: b.machine_id,
           machine_label: b.machines?.label || null,
-          booking_date: new Date(b.created_at).toLocaleString('es-ES', { 
+          cancelled_at: b.cancelled_at || null,
+          star_refunded: b.star_refunded ?? null,
+          cancellation_reason: b.cancellation_reason || null,
+          booking_date: new Date(b.created_at).toLocaleString('es-CO', { 
             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
           }),
         }));
@@ -1571,13 +1598,61 @@ export default function ViewClassModal({ classId, onClose }: ViewClassModalProps
                      </div>
                      
                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                       <div style={{ textAlign: 'right' }}>
+                       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                           {user.status === 'confirmed' ? (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>Confirmado</span>
+                            <>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 8px', borderRadius: 6, display: 'inline-block' }}>
+                                Confirmado
+                              </span>
+                              <div style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 500 }}>
+                                Reservó: {user.booking_date}
+                              </div>
+                            </>
                           ) : (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', background: 'var(--surface-high)', padding: '2px 6px', borderRadius: 6, display: 'inline-block', marginBottom: 2 }}>{user.status}</span>
+                            <>
+                              {user.star_refunded ? (
+                                <span style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: '#137333',
+                                  background: '#E6F4EA',
+                                  border: '1px solid #CEEAD6',
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}>
+                                  <span>✓</span> A tiempo · No se cobró estrella
+                                </span>
+                              ) : (
+                                <span style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: '#C5221F',
+                                  background: '#FCE8E6',
+                                  border: '1px solid #FAD2CF',
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}>
+                                  <span>⚠️</span> Fuera de tiempo · Se cobró estrella
+                                </span>
+                              )}
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {user.cancelled_at
+                                  ? `Canceló: ${formatCancellationDateTime(user.cancelled_at)}`
+                                  : `Cancelada (${user.booking_date})`}
+                              </div>
+                              {user.cancellation_reason === 'admin' && (
+                                <span style={{ fontSize: 9.5, color: '#7E22CE', background: '#F3E8FF', padding: '1px 5px', borderRadius: 4, fontWeight: 600 }}>
+                                  Cancelado por Admin
+                                </span>
+                              )}
+                            </>
                           )}
-                          <div style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 500 }}>{user.booking_date}</div>
                        </div>
                        
                        {user.status === 'confirmed' && (
