@@ -179,7 +179,7 @@ export default function RegisterPage() {
                 <div className="md:hidden flex flex-col items-center">
                     <LogoHeader title="Glideforce Pilates Studio" subtitle="Crea tu cuenta" className="pb-2" />
                     <p className="text-xs text-on-surface-variant text-center px-6 pb-4 font-medium leading-relaxed">
-                        Revisa tu bandeja de entrada y la carpeta de Spam, y confirma tu correo
+                        Revisa Bandeja de Entrada | La Carpeta de Spams | Confirma Tu Correo
                     </p>
                     <div className="w-full px-8 pb-4">
                         <PromoCard />
@@ -191,7 +191,7 @@ export default function RegisterPage() {
                         <div className="hidden md:block text-center mb-8">
                             <h2 className="text-3xl font-black text-on-surface mb-2">REGISTRO PROMO</h2>
                             <p className="text-sm text-on-surface-variant font-medium mb-6">
-                                Revisa tu bandeja de entrada y la carpeta de Spam, y confirma tu correo
+                                Revisa Bandeja de Entrada | La Carpeta de Spams | Confirma Tu Correo
                             </p>
                             <PromoCard />
                         </div>
